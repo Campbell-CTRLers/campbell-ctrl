@@ -6,9 +6,7 @@ on:
       - main
 
 permissions:
-  contents: read
-  pages: write
-  id-token: write
+  contents: write
 
 # Only one concurrent deployment at a time
 concurrency:
@@ -21,14 +19,11 @@ jobs:
     runs-on: ubuntu-latest
     environment:
       name: Production
-      url: ${{ steps.deployment.outputs.page_url }}
+      url: https://campbellctrl.xyz
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-
-      - name: Configure GitHub Pages
-        uses: actions/configure-pages@v5
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
@@ -57,15 +52,20 @@ jobs:
       - name: Copy index.html to 404.html for SPA routing
         run: cp dist/index.html dist/404.html
 
-      # Preserve custom domain on every deploy
+      # A CNAME file in the gh-pages branch root tells GitHub Pages to serve
+      # the entire site (including preview subdirectories) under this custom
+      # domain. Preview deployments intentionally omit their own CNAME so they
+      # are served at campbell-ctrlers.github.io/campbell-ctrl/pr-preview/…
+      # instead. GitHub Pages source must be set to the gh-pages branch in
+      # repository Settings → Pages for all deployments to work correctly.
       - name: Write CNAME
         run: echo "campbellctrl.xyz" > dist/CNAME
 
-      - name: Upload Pages artifact
-        uses: actions/upload-pages-artifact@v3
+      - name: Deploy to gh-pages branch
+        uses: peaceiris/actions-gh-pages@v4
         with:
-          path: dist
-
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: dist
+          # keep_files preserves preview subdirectories written by the
+          # Preview Deployment workflow on every production push
+          keep_files: true

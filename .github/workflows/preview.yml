@@ -7,6 +7,13 @@ on:
     branches-ignore:
       - main
 
+# NOTE: Preview deployments require GitHub Pages to be configured to serve
+# from the gh-pages branch (Settings → Pages → Source: Deploy from a branch,
+# branch: gh-pages). The production workflow writes a CNAME file to the root
+# of that branch so the live site stays at campbellctrl.xyz. Preview
+# deployments intentionally omit CNAME so they are served at the github.io
+# subdomain: campbell-ctrlers.github.io/campbell-ctrl/pr-preview/<n>/
+
 permissions:
   contents: write
   pull-requests: write
@@ -108,12 +115,15 @@ jobs:
       - name: Copy index.html to 404.html for SPA routing
         run: cp dist/index.html dist/404.html
 
-      # Sanitise branch name for use as a directory (replace / with -)
+      # Sanitise the branch name into a safe directory/URL segment:
+      # replace any character that is not alphanumeric or a hyphen with a
+      # hyphen, then collapse consecutive hyphens and strip leading/trailing
+      # hyphens. This covers slashes, dots, @, #, spaces, etc.
       - name: Compute branch slug
         id: slug
         run: |
           BRANCH="${GITHUB_REF_NAME}"
-          SLUG="${BRANCH//\//-}"
+          SLUG=$(echo "$BRANCH" | sed 's/[^a-zA-Z0-9]/-/g; s/-\+/-/g; s/^-//; s/-$//')
           echo "branch=${SLUG}" >> "$GITHUB_OUTPUT"
 
       - name: Deploy branch preview
