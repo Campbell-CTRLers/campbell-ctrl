@@ -34,11 +34,19 @@ import { BackdropDecoration } from './components/BackdropDecoration';
 
 
 
+// Returns the portion of pathname that follows the Vite base URL.
+// e.g. base='/pr-preview/5/', pathname='/pr-preview/5/esports' → 'esports'
+//      base='/',               pathname='/home'                 → 'home'
+const getTabFromPathname = (pathname) => {
+  const base = import.meta.env.BASE_URL;
+  return pathname.startsWith(base) ? pathname.slice(base.length) : pathname.slice(1);
+};
+
 export default function App() {
   const getInitialTab = () => {
-    const path = window.location.pathname.replace('/', '').toLowerCase();
+    const relative = getTabFromPathname(window.location.pathname);
     const validTabs = ['home', 'esports', 'meetings', 'legal'];
-    return validTabs.includes(path) ? path : 'home';
+    return validTabs.includes(relative.toLowerCase()) ? relative.toLowerCase() : 'home';
   };
 
   const [currentTab, setCurrentTab] = useState(getInitialTab);
@@ -52,7 +60,7 @@ export default function App() {
     setIsTransitioning(true);
 
     if (!isPopState) {
-      window.history.pushState(null, '', `/${newTab}`);
+      window.history.pushState(null, '', `${import.meta.env.BASE_URL}${newTab}`);
     }
 
     const tl = gsap.timeline();
@@ -73,13 +81,18 @@ export default function App() {
   };
 
   useEffect(() => {
-    // If we land on '/', rewrite URL to '/home' cleanly without triggering history duplicate
-    if (window.location.pathname === '/') {
-      window.history.replaceState(null, '', '/home');
+    const base = import.meta.env.BASE_URL; // e.g. '/' or '/pr-preview/5/'
+    // Normalise: strip any trailing slash for the bare-path comparison so both
+    // '/pr-preview/5' and '/pr-preview/5/' match the base.
+    const basePath = base.replace(/\/$/, '');
+    // If we land on the bare base path, rewrite URL to include 'home' cleanly
+    const { pathname } = window.location;
+    if (pathname === base || pathname === basePath) {
+      window.history.replaceState(null, '', `${base}home`);
     }
 
     const handlePopState = () => {
-      const path = window.location.pathname.replace('/', '').toLowerCase() || 'home';
+      const path = getTabFromPathname(window.location.pathname).toLowerCase() || 'home';
       if (path !== currentTab) {
         handleTabChange(path, true);
       }

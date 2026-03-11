@@ -10,9 +10,11 @@ on:
 # NOTE: Preview deployments require GitHub Pages to be configured to serve
 # from the gh-pages branch (Settings → Pages → Source: Deploy from a branch,
 # branch: gh-pages). The production workflow writes a CNAME file to the root
-# of that branch so the live site stays at campbellctrl.xyz. Preview
-# deployments intentionally omit CNAME so they are served at the github.io
-# subdomain: campbell-ctrlers.github.io/campbell-ctrl/pr-preview/<n>/
+# of that branch, so GitHub Pages redirects all github.io URLs to the custom
+# domain campbellctrl.xyz — including preview sub-paths. Preview builds are
+# therefore compiled with VITE_BASE set to their deployment sub-path so that
+# asset references and the client-side router resolve correctly at e.g.
+# campbellctrl.xyz/pr-preview/<n>/ or campbellctrl.xyz/branch/<slug>/.
 
 permissions:
   contents: write
@@ -31,7 +33,7 @@ jobs:
     runs-on: ubuntu-latest
     environment:
       name: Preview
-      url: ${{ steps.preview.outputs.deployment-url }}
+      url: https://campbellctrl.xyz/pr-preview/${{ github.event.pull_request.number }}/
 
     steps:
       - name: Checkout code
@@ -52,6 +54,7 @@ jobs:
         if: github.event.action != 'closed'
         run: npm run build
         env:
+          VITE_BASE: /pr-preview/${{ github.event.pull_request.number }}/
           VITE_FIREBASE_API_KEY: ${{ secrets.VITE_FIREBASE_API_KEY }}
           VITE_FIREBASE_AUTH_DOMAIN: ${{ secrets.VITE_FIREBASE_AUTH_DOMAIN }}
           VITE_FIREBASE_PROJECT_ID: ${{ secrets.VITE_FIREBASE_PROJECT_ID }}
@@ -83,7 +86,7 @@ jobs:
     runs-on: ubuntu-latest
     environment:
       name: Preview
-      url: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/branch/${{ steps.slug.outputs.branch }}
+      url: https://campbellctrl.xyz/branch/${{ steps.slug.outputs.branch }}
 
     steps:
       - name: Checkout code
@@ -98,9 +101,21 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      # Sanitise the branch name into a safe directory/URL segment:
+      # replace any character that is not alphanumeric or a hyphen with a
+      # hyphen, then collapse consecutive hyphens and strip leading/trailing
+      # hyphens. This covers slashes, dots, @, #, spaces, etc.
+      - name: Compute branch slug
+        id: slug
+        run: |
+          BRANCH="${GITHUB_REF_NAME}"
+          SLUG=$(echo "$BRANCH" | sed 's/[^a-zA-Z0-9]/-/g; s/-\+/-/g; s/^-//; s/-$//')
+          echo "branch=${SLUG}" >> "$GITHUB_OUTPUT"
+
       - name: Build
         run: npm run build
         env:
+          VITE_BASE: /branch/${{ steps.slug.outputs.branch }}/
           VITE_FIREBASE_API_KEY: ${{ secrets.VITE_FIREBASE_API_KEY }}
           VITE_FIREBASE_AUTH_DOMAIN: ${{ secrets.VITE_FIREBASE_AUTH_DOMAIN }}
           VITE_FIREBASE_PROJECT_ID: ${{ secrets.VITE_FIREBASE_PROJECT_ID }}
@@ -114,17 +129,6 @@ jobs:
       # Copy index.html → 404.html so the React router handles all sub-paths
       - name: Copy index.html to 404.html for SPA routing
         run: cp dist/index.html dist/404.html
-
-      # Sanitise the branch name into a safe directory/URL segment:
-      # replace any character that is not alphanumeric or a hyphen with a
-      # hyphen, then collapse consecutive hyphens and strip leading/trailing
-      # hyphens. This covers slashes, dots, @, #, spaces, etc.
-      - name: Compute branch slug
-        id: slug
-        run: |
-          BRANCH="${GITHUB_REF_NAME}"
-          SLUG=$(echo "$BRANCH" | sed 's/[^a-zA-Z0-9]/-/g; s/-\+/-/g; s/^-//; s/-$//')
-          echo "branch=${SLUG}" >> "$GITHUB_OUTPUT"
 
       - name: Deploy branch preview
         uses: peaceiris/actions-gh-pages@4f9cc6602d3f66b9c108549d475ec49e8ef4d45e # v4

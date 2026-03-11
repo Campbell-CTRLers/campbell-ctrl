@@ -53,10 +53,10 @@ jobs:
         run: cp dist/index.html dist/404.html
 
       # A CNAME file in the gh-pages branch root tells GitHub Pages to serve
-      # the entire site (including preview subdirectories) under this custom
-      # domain. Preview deployments intentionally omit their own CNAME so they
-      # are served at campbell-ctrlers.github.io/campbell-ctrl/pr-preview/…
-      # instead. GitHub Pages source must be set to the gh-pages branch in
+      # the entire site under the custom domain campbellctrl.xyz, including
+      # preview sub-paths. Preview builds therefore set VITE_BASE to their
+      # deployment sub-path so assets and the router resolve correctly.
+      # GitHub Pages source must be set to the gh-pages branch in
       # repository Settings → Pages for all deployments to work correctly.
       - name: Write CNAME
         run: echo "campbellctrl.xyz" > dist/CNAME
