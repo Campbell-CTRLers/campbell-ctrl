@@ -229,11 +229,20 @@ const Navbar = ({ currentTab, onNavigate }) => {
   // Dropdown animation
   useEffect(() => {
     if (isMenuOpen) {
+      gsap.set(menuRef.current, { pointerEvents: 'auto', visibility: 'visible' });
       gsap.to(menuRef.current, { height: 'auto', duration: 0.5, ease: 'expo.out' });
       gsap.to('.mobile-nav-item', { opacity: 1, y: 0, duration: 0.4, stagger: 0.05, delay: 0.1, ease: 'power2.out' });
     } else {
       gsap.to('.mobile-nav-item', { opacity: 0, y: -10, duration: 0.2, ease: 'power2.in' });
-      gsap.to(menuRef.current, { height: 0, duration: 0.4, ease: 'power3.inOut', delay: 0.1 });
+      gsap.to(menuRef.current, { 
+        height: 0, 
+        duration: 0.4, 
+        ease: 'power3.inOut', 
+        delay: 0.1,
+        onComplete: () => {
+          if (menuRef.current) gsap.set(menuRef.current, { pointerEvents: 'none', visibility: 'hidden' });
+        }
+      });
     }
   }, [isMenuOpen]);
 
@@ -290,7 +299,10 @@ const Navbar = ({ currentTab, onNavigate }) => {
       </div>
 
       {/* Dropdown Menu (Mobile/Tablet) */}
-      <div ref={menuRef} className="w-full h-0 md:hidden flex flex-col items-center justify-start font-mono z-0">
+      <div 
+        ref={menuRef} 
+        className="w-full h-0 md:hidden flex flex-col items-center justify-start font-mono z-0 overflow-hidden invisible pointer-events-none"
+      >
         <div className="flex flex-col items-center justify-center gap-2 w-full pt-4 pb-2">
           <button onClick={() => handleNavClick('home')} className={cn("mobile-nav-item w-[85%] py-4 rounded-2xl opacity-0 -translate-y-2 text-xl font-bold transition-all touch-manipulation flex items-center justify-center", currentTab === 'home' ? "bg-accent/10 text-accent" : "text-primary hover:bg-slate-500/5")}>Home</button>
           <button onClick={() => handleNavClick('esports')} className={cn("mobile-nav-item w-[85%] py-4 rounded-2xl opacity-0 -translate-y-2 text-xl font-bold transition-all touch-manipulation flex items-center justify-center", currentTab === 'esports' ? "bg-accent/10 text-accent" : "text-primary hover:bg-slate-500/5")}>Esports</button>
