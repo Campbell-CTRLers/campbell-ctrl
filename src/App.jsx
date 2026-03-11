@@ -1,13 +1,13 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { ScrollToPlugin } from 'gsap/ScrollToPlugin';
 import { onAuthStateChanged } from 'firebase/auth';
 import { db, auth } from './firebase';
-import { collection, onSnapshot, writeBatch, doc } from 'firebase/firestore';
+import { onSnapshot, doc } from 'firebase/firestore';
 import { SpeedInsights } from '@vercel/speed-insights/react';
 import { Analytics } from '@vercel/analytics/react';
-import { ThemeProvider, useTheme } from './context/ThemeContext';
+import { ThemeProvider } from './context/ThemeContext';
 import Navbar from './components/Navbar';
 import AdminDashboard from './components/AdminDashboard';
 import { useHaptics } from './hooks/useHaptics';
@@ -15,8 +15,6 @@ import CustomCursor from './ui/CustomCursor';
 import BootSequence from './components/BootSequence';
 import Footer from './components/Footer';
 
-// Use shared utility
-import { cn } from './utils/cn';
 
 gsap.registerPlugin(ScrollTrigger, ScrollToPlugin);
 
@@ -48,22 +46,6 @@ export default function App() {
   const [isBooting, setIsBooting] = useState(() => !sessionStorage.getItem('hasBooted'));
   const haptics = useHaptics();
 
-  useEffect(() => {
-    // If we land on '/', rewrite URL to '/home' cleanly without triggering history duplicate
-    if (window.location.pathname === '/') {
-      window.history.replaceState(null, '', '/home');
-    }
-
-    const handlePopState = () => {
-      const path = window.location.pathname.replace('/', '').toLowerCase() || 'home';
-      if (path !== currentTab) {
-        handleTabChange(path, true);
-      }
-    };
-    window.addEventListener('popstate', handlePopState);
-    return () => window.removeEventListener('popstate', handlePopState);
-  }, [currentTab]);
-
   const handleTabChange = (newTab, isPopState = false) => {
     if (newTab === currentTab || isTransitioning) return;
     haptics.selection();
@@ -89,6 +71,23 @@ export default function App() {
         setTimeout(() => ScrollTrigger.refresh(), 50);
       });
   };
+
+  useEffect(() => {
+    // If we land on '/', rewrite URL to '/home' cleanly without triggering history duplicate
+    if (window.location.pathname === '/') {
+      window.history.replaceState(null, '', '/home');
+    }
+
+    const handlePopState = () => {
+      const path = window.location.pathname.replace('/', '').toLowerCase() || 'home';
+      if (path !== currentTab) {
+        handleTabChange(path, true);
+      }
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [currentTab]);
+
   const [isAdmin, setIsAdmin] = useState(false);
   const [authenticatedUser, setAuthenticatedUser] = useState(null);
   const [authInitialized, setAuthInitialized] = useState(false);
@@ -129,7 +128,7 @@ export default function App() {
           try {
             const eventTime = new Date(`${game.date} ${game.time || '12:00 PM'}`).getTime();
             return isNaN(eventTime) || eventTime > threeHoursAgo;
-          } catch (e) { return true; }
+          } catch { return true; }
         });
 
         if (data.gamesList) setGamesList(filteredGames);

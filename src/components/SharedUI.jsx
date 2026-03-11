@@ -1,8 +1,5 @@
-import React, { useRef, useState, useEffect } from 'react';
-import gsap from 'gsap';
-import { Gamepad2, Calendar, Trophy, ArrowRight } from 'lucide-react';
-import { CalendarModal } from './CalendarModal';
-import { useTheme } from '../context/ThemeContext';
+import React from 'react';
+import { Gamepad2 } from 'lucide-react';
 import { cn } from '../utils/cn';
 export { cn };
 

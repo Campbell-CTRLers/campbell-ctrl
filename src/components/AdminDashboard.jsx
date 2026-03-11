@@ -1,11 +1,9 @@
 import React, { useRef, useState, useEffect } from 'react';
 import gsap from 'gsap';
 import { Settings, Plus, Trash2, CloudUpload, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Calendar } from 'lucide-react';
-import clsx from 'clsx';
-import { twMerge } from 'tailwind-merge';
 import { db, auth, googleProvider } from '../firebase';
 import { writeBatch, doc } from 'firebase/firestore';
-import { signInWithEmailAndPassword, signInWithPopup, signOut, setPersistence, browserLocalPersistence, browserSessionPersistence, onAuthStateChanged } from 'firebase/auth';
+import { signInWithEmailAndPassword, signInWithPopup, signOut, setPersistence, browserLocalPersistence, browserSessionPersistence } from 'firebase/auth';
 import { useTheme } from '../context/ThemeContext';
 import { useHaptics } from '../hooks/useHaptics';
 import { cn } from '../utils/cn';
@@ -132,7 +130,7 @@ const AdminDashboard = ({ isAdmin, onClose, gamesList, setGamesList, standings, 
         localStorage.removeItem('auth_expiry');
       }
       haptics.success();
-    } catch (err) {
+    } catch {
       haptics.error();
       setErrorMsg('Access Denied. Invalid Credentials.');
       setPassword('');
@@ -172,9 +170,9 @@ const AdminDashboard = ({ isAdmin, onClose, gamesList, setGamesList, standings, 
       haptics.success();
       setEmail(result.user.email);
       setIsAuthenticated(true);
-    } catch (err) {
+    } catch (_err) {
       haptics.error();
-      setErrorMsg(err.code === 'auth/popup-closed-by-user' ? 'Sign-in cancelled.' : 'Authentication failed.');
+      setErrorMsg(_err.code === 'auth/popup-closed-by-user' ? 'Sign-in cancelled.' : 'Authentication failed.');
     } finally { setIsAuthenticating(false); }
   };
 
@@ -214,9 +212,9 @@ const AdminDashboard = ({ isAdmin, onClose, gamesList, setGamesList, standings, 
       
       setSaveSuccess(true);
       setTimeout(() => setSaveSuccess(false), 2000);
-    } catch (err) {
+    } catch (_err) {
       haptics.error();
-      setSaveErrorMsg(err.message || 'Failed to sync with cloud database.');
+      setSaveErrorMsg(_err.message || 'Failed to sync with cloud database.');
     } finally { setIsSaving(false); }
   };
 
