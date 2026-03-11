@@ -4,7 +4,7 @@ import { Settings, Plus, Trash2, CloudUpload, ChevronDown, ChevronLeft, ChevronR
 import { db, auth, googleProvider } from '../firebase';
 import { writeBatch, doc } from 'firebase/firestore';
 import { signInWithEmailAndPassword, signInWithPopup, signOut, setPersistence, browserLocalPersistence, browserSessionPersistence } from 'firebase/auth';
-import { useTheme } from '../context/ThemeContext';
+import { useTheme } from '../context/useTheme';
 import { useHaptics } from '../hooks/useHaptics';
 import { cn } from '../utils/cn';
 import { CustomAnimatedDatePicker, CustomTimePicker, CustomDropdown } from '../ui/FormControls';

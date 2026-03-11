@@ -1,40 +1,34 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, lazy, Suspense } from 'react';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { ScrollToPlugin } from 'gsap/ScrollToPlugin';
 import { onAuthStateChanged } from 'firebase/auth';
 import { db, auth } from './firebase';
 import { onSnapshot, doc } from 'firebase/firestore';
-import { SpeedInsights } from '@vercel/speed-insights/react';
-import { Analytics } from '@vercel/analytics/react';
 import { ThemeProvider } from './context/ThemeContext';
+import { MobileProvider, useMobile } from './hooks/useMobile';
 import Navbar from './components/Navbar';
 import AdminDashboard from './components/AdminDashboard';
 import { useHaptics } from './hooks/useHaptics';
 import CustomCursor from './ui/CustomCursor';
 import BootSequence from './components/BootSequence';
 import Footer from './components/Footer';
+import { BackdropDecoration } from './components/BackdropDecoration';
 
+// Lazy-load tabs — only the active tab's JS is downloaded
+const HomeTab = lazy(() => import('./pages/HomeTab'));
+const EsportsTab = lazy(() => import('./pages/EsportsTab'));
+const MeetingsTab = lazy(() => import('./pages/MeetingsTab'));
+const LegalTab = lazy(() => import('./pages/LegalTab'));
 
 gsap.registerPlugin(ScrollTrigger, ScrollToPlugin);
 
-// ----------------------------------------------------
-// COMPONENTS
-// ----------------------------------------------------
 
 
+// Inner component so it can use the useMobile hook (needs MobileProvider above)
+function AppInner() {
+  const { isMobile } = useMobile();
 
-
-
-import HomeTab from './pages/HomeTab';
-import EsportsTab from './pages/EsportsTab';
-import MeetingsTab from './pages/MeetingsTab';
-import LegalTab from './pages/LegalTab';
-import { BackdropDecoration } from './components/BackdropDecoration';
-
-
-
-export default function App() {
   const getInitialTab = () => {
     const path = window.location.pathname.replace('/', '').toLowerCase();
     const validTabs = ['home', 'esports', 'meetings', 'legal'];
@@ -55,16 +49,21 @@ export default function App() {
       window.history.pushState(null, '', `/${newTab}`);
     }
 
-    const tl = gsap.timeline();
+    if (isMobile) {
+      // On mobile: CSS opacity transition is sufficient, avoid GSAP overhead
+      window.scrollTo(0, 0);
+      setCurrentTab(newTab);
+      setIsTransitioning(false);
+      return;
+    }
 
-    // Simple fade out
+    const tl = gsap.timeline();
     tl.to('#main-content', { opacity: 0, duration: 0.15, ease: 'power2.in' })
       .call(() => {
         window.scrollTo(0, 0);
         setCurrentTab(newTab);
         gsap.set('#main-content', { clearProps: 'all', opacity: 0 });
       })
-      // Simple fade in
       .to('#main-content', { opacity: 1, duration: 0.25, ease: 'power2.out' })
       .call(() => {
         setIsTransitioning(false);
@@ -141,47 +140,47 @@ export default function App() {
   // ─── RENDER ───────────────────────────────────────────────────────────
 
   if (isBooting) {
-    return (
-      <ThemeProvider>
-        <BootSequence onComplete={() => setIsBooting(false)} />
-      </ThemeProvider>
-    );
+    return <BootSequence onComplete={() => setIsBooting(false)} />;
   }
 
   return (
-    <ThemeProvider>
-      <div className="bg-background min-h-screen font-sans selection:bg-accent selection:text-background pb-1 relative">
-        <BackdropDecoration />
-        <CustomCursor />
-        
-        {/* Navigation Indicator Overlay */}
-        <div id="transition-overlay" className="fixed inset-0 z-[100] bg-accent pointer-events-none" style={{ clipPath: 'inset(100% 0 0 0)' }}></div>
-        
-        <Navbar currentTab={currentTab} onNavigate={handleTabChange} />
-        
-        <main id="main-content">
+    <div className="bg-background min-h-screen font-sans selection:bg-accent selection:text-background pb-1 relative">
+      <BackdropDecoration />
+      <CustomCursor />
+
+      <Navbar currentTab={currentTab} onNavigate={handleTabChange} />
+
+      <main id="main-content">
+        <Suspense fallback={null}>
           {currentTab === 'home' && <HomeTab gamesList={gamesList} standings={standings} />}
           {currentTab === 'esports' && <EsportsTab gamesList={gamesList} standings={standings} />}
           {currentTab === 'meetings' && <MeetingsTab />}
           {currentTab === 'legal' && <LegalTab />}
-        </main>
+        </Suspense>
+      </main>
 
-        <Footer onToggleAdmin={() => setIsAdmin(true)} onNavigate={handleTabChange} />
-        
-        <AdminDashboard
-          isAdmin={isAdmin} 
-          onClose={() => setIsAdmin(false)}
-          gamesList={gamesList} 
-          setGamesList={setGamesList}
-          standings={standings} 
-          setStandings={setStandings}
-          authenticatedUser={authenticatedUser}
-          authInitialized={authInitialized}
-        />
-        
-        <SpeedInsights />
-        <Analytics />
-      </div>
-    </ThemeProvider>
+      <Footer onToggleAdmin={() => setIsAdmin(true)} onNavigate={handleTabChange} />
+
+      <AdminDashboard
+        isAdmin={isAdmin}
+        onClose={() => setIsAdmin(false)}
+        gamesList={gamesList}
+        setGamesList={setGamesList}
+        standings={standings}
+        setStandings={setStandings}
+        authenticatedUser={authenticatedUser}
+        authInitialized={authInitialized}
+      />
+    </div>
+  );
+}
+
+export default function App() {
+  return (
+    <MobileProvider>
+      <ThemeProvider>
+        <AppInner />
+      </ThemeProvider>
+    </MobileProvider>
   );
 }

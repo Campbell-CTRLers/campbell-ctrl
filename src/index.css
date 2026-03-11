@@ -221,26 +221,21 @@
   display: block;
 }
 
-/* Force hide all native cursors globally since we use a custom one */
-* {
-  cursor: none !important;
+/* Custom cursor — hide native cursor on desktop (CustomCursor component handles display),
+   restore native cursor on touch/mobile via media query */
+@media (pointer: fine) {
+  * { cursor: none !important; }
+  input, textarea {
+    cursor: none !important;
+    caret-color: rgb(var(--color-primary));
+  }
 }
-
-/* Force hide native I-beam cursor in text inputs */
+@media (pointer: coarse) {
+  * { cursor: auto !important; }
+}
+/* iOS font-size zoom prevention */
 input, textarea {
-  cursor: none !important;
-  caret-color: rgb(var(--color-primary));
-  font-size: 16px !important; /* Prevent iOS zoom on focus */
-}
-
-/* Mobile/Tablet adjustments for Custom Cursor */
-@media (max-width: 1024px) {
-  .custom-cursor-container {
-    display: none !important;
-  }
-  * {
-    cursor: auto !important;
-  }
+  font-size: 16px !important;
 }
 
 @keyframes glide-in {
@@ -259,18 +254,7 @@ input, textarea {
   z-index: 1;
 }
 
-/* Custom Cursor Dynamic Theme Colors */
-.cursor-trail {
-  background: rgba(0, 0, 0, 0.04);
-  border: 1px solid rgba(0, 0, 0, 0.03);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-}
-[data-theme="dark"] .cursor-trail {
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.04);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-}
-
+/* Cursor main circle */
 .cursor-main-bg {
   background: rgba(0, 0, 0, 0.07);
   border: 1px solid rgba(0, 0, 0, 0.1);
@@ -352,4 +336,45 @@ input, textarea {
 }
 .animate-pulse-slow {
   animation: pulse-slow 12s ease-in-out infinite;
+}
+
+/* ─── MOBILE ANIMATION OPTIMIZATIONS ──────────────────────────────────────── */
+@media (max-width: 768px) {
+  /* Kill background parallax/scale animations — saves battery and GPU layers */
+  .hero-bg-img {
+    animation: none !important;
+    transform: none !important;
+    will-change: auto !important;
+  }
+
+  /* Faster, lighter entrance animations */
+  .animate-float { animation-duration: 4s !important; }
+  .animate-pulse-slow { animation-duration: 6s !important; }
+
+  /* Prevent layers being promoted unnecessarily on mobile */
+  .parallax-bg, [data-gsap] {
+    will-change: auto !important;
+  }
+
+  /* Theme toggle: simple fade instead of radial wipe (handled in ThemeContext.jsx) */
+  :root, [data-theme] {
+    transition: background-color 0.35s ease, color 0.2s ease !important;
+  }
+
+  /* Kill view-transition API on mobile — not needed, handled in ThemeContext.jsx */
+  ::view-transition-old(root), ::view-transition-new(root) {
+    animation: none !important;
+  }
+}
+
+/* ─── REDUCED MOTION ──────────────────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+  .hero-bg-img, .animate-float, .animate-pulse-slow {
+    animation: none !important;
+  }
 }

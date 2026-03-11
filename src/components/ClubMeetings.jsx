@@ -1,6 +1,6 @@
 import React, { useRef, useState, useEffect } from 'react';
 import gsap from 'gsap';
-import { useTheme } from '../context/ThemeContext';
+import { useTheme } from '../context/useTheme';
 import { CalendarModal } from './CalendarModal';
 import { cn } from '../utils/cn';
 
