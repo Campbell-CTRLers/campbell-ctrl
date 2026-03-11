@@ -4,7 +4,7 @@ import { Settings, Plus, Trash2, CloudUpload, ChevronDown, ChevronLeft, ChevronR
 import { db, auth, googleProvider } from '../firebase';
 import { writeBatch, doc } from 'firebase/firestore';
 import { signInWithEmailAndPassword, signInWithPopup, signOut, setPersistence, browserLocalPersistence, browserSessionPersistence } from 'firebase/auth';
-import { useTheme } from '../context/ThemeContext';
+import { useTheme } from '../context/useTheme';
 import { useHaptics } from '../hooks/useHaptics';
 import { cn } from '../utils/cn';
 import { CustomAnimatedDatePicker, CustomTimePicker, CustomDropdown } from '../ui/FormControls';
@@ -152,8 +152,8 @@ const AdminDashboard = ({ isAdmin, onClose, gamesList, setGamesList, standings, 
       const result = await signInWithPopup(auth, googleProvider);
       
       // Verify authorization against allowed list
-      const ALLOWED_EMAILS = (import.meta.env.VITE_ADMIN_EMAILS || '').split(',').map(e => e.trim()).filter(Boolean);
-      if (!ALLOWED_EMAILS.includes(result.user.email)) {
+      const ALLOWED_EMAILS = (import.meta.env.VITE_ADMIN_EMAILS || '').split(',').map(e => e.trim().toLowerCase()).filter(Boolean);
+      if (!ALLOWED_EMAILS.includes(result.user.email?.toLowerCase())) {
         await signOut(auth);
         haptics.error();
         setErrorMsg('Unauthorized account.');

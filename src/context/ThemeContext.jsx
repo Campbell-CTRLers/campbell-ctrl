@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
+import { isMobileUser } from '../hooks/useMobile';
 
-const ThemeContext = React.createContext({ theme: 'light', toggleTheme: () => { } });
+// eslint-disable-next-line react-refresh/only-export-components
+export const ThemeContext = React.createContext({ theme: 'light', toggleTheme: () => {} });
 
 export const ThemeProvider = ({ children }) => {
   const [theme, setTheme] = useState(() => {
@@ -11,14 +13,16 @@ export const ThemeProvider = ({ children }) => {
   const toggleTheme = (e) => {
     const next = theme === 'light' ? 'dark' : 'light';
 
-    if (!document.startViewTransition || !e) {
+    // On mobile, skip the expensive View Transition radial wipe.
+    // CSS transitions on :root handle the visual fade automatically.
+    if (isMobileUser || !document.startViewTransition || !e) {
       setTheme(next);
       document.documentElement.setAttribute('data-theme', next);
       localStorage.setItem('theme', next);
       return;
     }
 
-    // Get click coordinates for the radial wipe origin
+    // Desktop: radial wipe from click origin
     const x = e.clientX ?? window.innerWidth / 2;
     const y = e.clientY ?? window.innerHeight / 2;
     const endRadius = Math.hypot(Math.max(x, window.innerWidth - x), Math.max(y, window.innerHeight - y));
@@ -30,21 +34,9 @@ export const ThemeProvider = ({ children }) => {
     });
 
     transition.ready.then(() => {
-      const clipPath = [
-        `circle(0px at ${x}px ${y}px)`,
-        `circle(${endRadius}px at ${x}px ${y}px)`
-      ];
-
       document.documentElement.animate(
-        {
-          clipPath: clipPath,
-        },
-        {
-          duration: 600,
-          easing: 'ease-in-out',
-          pseudoElement: '::view-transition-new(root)',
-          fill: 'both'
-        }
+        { clipPath: [`circle(0px at ${x}px ${y}px)`, `circle(${endRadius}px at ${x}px ${y}px)`] },
+        { duration: 500, easing: 'ease-in-out', pseudoElement: '::view-transition-new(root)', fill: 'both' }
       );
     });
   };
@@ -69,5 +61,3 @@ export const ThemeProvider = ({ children }) => {
     </ThemeContext.Provider>
   );
 };
-
-export const useTheme = () => React.useContext(ThemeContext);

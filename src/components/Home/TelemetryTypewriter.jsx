@@ -19,13 +19,14 @@ export const TelemetryTypewriter = ({ gamesList }) => {
 
   useEffect(() => {
     if (phase !== 'revealing') return;
-    if (visibleCount >= gamesList.length) {
-      setPhase('done');
-      return;
-    }
 
+    // Advance to next card, or finish — both via async callback (avoids setState-in-effect)
     const revealTimer = setTimeout(() => {
-      setVisibleCount(prev => prev + 1);
+      if (visibleCount >= gamesList.length) {
+        setPhase('done');
+      } else {
+        setVisibleCount(prev => prev + 1);
+      }
     }, 400);
 
     return () => clearTimeout(revealTimer);
