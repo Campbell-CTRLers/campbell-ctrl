@@ -1,0 +1,24 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Global data document (schedules and standings)
+    match /global/data {
+      // Allow ANYONE to read the data (so the website visitors can see schedules)
+      allow read: if true;
+      
+      // Allow ONLY authenticated admins to write/overwrite the data
+      // SECURITY: If Google Sign-In is enabled, any google user can get request.auth != null
+      // Therefore we MUST explicitly verify their exact email address here on the server
+      allow write: if request.auth != null && (
+        request.auth.token.email == 'charlie.m.herbert@gmail.com' || 
+        request.auth.token.email == 'admin@campbellhigh.net'
+      );
+    }
+    
+    // Default deny for everything else
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
