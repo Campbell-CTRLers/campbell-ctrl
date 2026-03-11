@@ -11,7 +11,6 @@ import Navbar from './components/Navbar';
 import AdminDashboard from './components/AdminDashboard';
 import { useHaptics } from './hooks/useHaptics';
 import CustomCursor from './ui/CustomCursor';
-import BootSequence from './components/BootSequence';
 import Footer from './components/Footer';
 import { BackdropDecoration } from './components/BackdropDecoration';
 
@@ -37,7 +36,6 @@ function AppInner() {
 
   const [currentTab, setCurrentTab] = useState(getInitialTab);
   const [isTransitioning, setIsTransitioning] = useState(false);
-  const [isBooting, setIsBooting] = useState(() => !sessionStorage.getItem('hasBooted'));
   const haptics = useHaptics();
 
   const handleTabChange = (newTab, isPopState = false) => {
@@ -138,10 +136,6 @@ function AppInner() {
   }, []);
 
   // ─── RENDER ───────────────────────────────────────────────────────────
-
-  if (isBooting) {
-    return <BootSequence onComplete={() => setIsBooting(false)} />;
-  }
 
   return (
     <div className="bg-background min-h-screen font-sans selection:bg-accent selection:text-background pb-1 relative">
