@@ -151,9 +151,11 @@ const AdminDashboard = ({ isAdmin, onClose, gamesList, setGamesList, standings, 
       
       const result = await signInWithPopup(auth, googleProvider);
       
-      // Verify authorization against allowed list
+      // Verify authorization against allowed list (case-insensitive)
       const ALLOWED_EMAILS = (import.meta.env.VITE_ADMIN_EMAILS || '').split(',').map(e => e.trim()).filter(Boolean);
-      if (!ALLOWED_EMAILS.includes(result.user.email)) {
+      const isAuthorized = ALLOWED_EMAILS.some(email => email.toLowerCase() === result.user.email?.toLowerCase());
+      
+      if (!isAuthorized) {
         await signOut(auth);
         haptics.error();
         setErrorMsg('Unauthorized account.');

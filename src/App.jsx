@@ -104,7 +104,8 @@ function AppInner() {
     }
 
     return onAuthStateChanged(auth, (user) => {
-      if (user && ALLOWED_EMAILS.includes(user.email)) {
+      const isAuthorized = user && ALLOWED_EMAILS.some(email => email.toLowerCase() === user.email?.toLowerCase());
+      if (isAuthorized) {
         setAuthenticatedUser(user);
       } else {
         setAuthenticatedUser(null);
