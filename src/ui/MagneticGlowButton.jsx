@@ -1,11 +1,6 @@
 import React, { useRef, useState } from 'react';
-import clsx from 'clsx';
-import { twMerge } from 'tailwind-merge';
 import { useHaptics } from '../hooks/useHaptics';
-
-function cn(...inputs) {
-  return twMerge(clsx(inputs));
-}
+import { cn } from '../utils/cn';
 
 const MagneticGlowButton = ({ children, onClick, className, solid = false }) => {
   const buttonRef = useRef(null);

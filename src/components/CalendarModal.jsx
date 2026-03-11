@@ -2,18 +2,13 @@ import React, { useEffect, useRef, useState } from 'react';
 import AppleCalendarIcon from './AppleCalendarIcon';
 import { createPortal } from 'react-dom';
 import gsap from 'gsap';
-import { X, ArrowLeft, Download } from 'lucide-react';
-import clsx from 'clsx';
-import { twMerge } from 'tailwind-merge';
+import { X, Download } from 'lucide-react';
+import { cn } from '../utils/cn';
 import MagneticGlowButton from '../ui/MagneticGlowButton';
 import inPersonMeetingIcs from '../assets/in-person-meeting.ics?url';
 import iconGoogleCalendar from '../assets/icon-google-calendar.svg';
 import iconMicrosoftOutlook from '../assets/icon-microsoft-outlook.svg';
 import { useHaptics } from '../hooks/useHaptics';
-
-function cn(...inputs) {
-  return twMerge(clsx(inputs));
-}
 
 export function CalendarOptions({ compact = false }) {
   const containerRef = useRef(null);
@@ -136,13 +131,12 @@ export function CalendarModal({ open, onClose }) {
   const backdropRef = useRef(null);
   const panelRef = useRef(null);
   const haptics = useHaptics();
-  const [visible, setVisible] = useState(false);
+  const [animating, setAnimating] = useState(false);
 
-  // Entry animation
+  // Entry animation — runs after the portal mounts when open becomes true
   useEffect(() => {
     if (!open) return;
     haptics.selection();
-    setVisible(true);
     const bd = backdropRef.current;
     const panel = panelRef.current;
     if (!bd || !panel) return;
@@ -151,7 +145,7 @@ export function CalendarModal({ open, onClose }) {
       { opacity: 0, scale: 0.85, y: 40 },
       { opacity: 1, scale: 1, y: 0, duration: 0.45, ease: 'back.out(1.6)' }
     );
-  }, [open]);
+  }, [open, haptics]);
 
   // Exit animation — animate out then unmount
   const handleClose = () => {
@@ -159,11 +153,12 @@ export function CalendarModal({ open, onClose }) {
     const bd = backdropRef.current;
     const panel = panelRef.current;
     if (!bd || !panel) { onClose(); return; }
+    setAnimating(true);
     gsap.to(panel, { opacity: 0, scale: 0.9, y: 24, duration: 0.25, ease: 'power2.in' });
-    gsap.to(bd, { opacity: 0, duration: 0.3, ease: 'power2.in', onComplete: () => { setVisible(false); onClose(); } });
+    gsap.to(bd, { opacity: 0, duration: 0.3, ease: 'power2.in', onComplete: () => { setAnimating(false); onClose(); } });
   };
 
-  if (!open && !visible) return null;
+  if (!open && !animating) return null;
 
   return createPortal(
     <div

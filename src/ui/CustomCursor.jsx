@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import gsap from 'gsap';
-import { isCoarsePointer } from '../hooks/useMobile';
+import { isCoarsePointer } from '../utils/mobile';
 
 /**
  * CustomCursor — clean circle cursor for desktop only.

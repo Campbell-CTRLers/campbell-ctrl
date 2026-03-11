@@ -1,7 +1,7 @@
 import React, { useRef, useEffect } from 'react';
 import gsap from 'gsap';
 import { ScrollToPlugin } from 'gsap/ScrollToPlugin';
-import { isMobileUser } from '../../hooks/useMobile';
+import { isMobileUser } from '../../utils/mobile';
 
 gsap.registerPlugin(ScrollToPlugin);
 
