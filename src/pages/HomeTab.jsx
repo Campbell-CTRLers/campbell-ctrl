@@ -1,7 +1,6 @@
 import React, { useRef, useEffect } from 'react';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
-import { cn } from '../utils/cn';
 import { ClubMeetings } from '../components/ClubMeetings';
 import { LiveStandings } from '../components/LiveStandings';
 

@@ -2,9 +2,6 @@ import React, { useEffect, useRef, useState } from 'react';
 import gsap from 'gsap';
 import { Turnstile } from '@marsidev/react-turnstile';
 import { useHaptics } from '../hooks/useHaptics';
-import clsx from 'clsx';
-import { twMerge } from 'tailwind-merge';
-
 import { cn } from '../utils/cn';
 
 const BootSequence = ({ onComplete }) => {

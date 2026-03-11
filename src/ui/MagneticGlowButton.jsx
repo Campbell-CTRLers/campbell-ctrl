@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useRef, useState } from 'react';
 import clsx from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { useHaptics } from '../hooks/useHaptics';
