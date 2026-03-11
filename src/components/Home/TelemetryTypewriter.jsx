@@ -9,28 +9,10 @@ export const TelemetryTypewriter = ({ gamesList }) => {
   const containerRef = useRef(null);
 
   useEffect(() => {
-    // Phase 1: Show loading shimmer for 1.5s
-    const loadTimer = setTimeout(() => {
-      setPhase('revealing');
-    }, 1500);
-
-    return () => clearTimeout(loadTimer);
-  }, []);
-
-  useEffect(() => {
-    if (phase !== 'revealing') return;
-
-    // Advance to next card, or finish — both via async callback (avoids setState-in-effect)
-    const revealTimer = setTimeout(() => {
-      if (visibleCount >= gamesList.length) {
-        setPhase('done');
-      } else {
-        setVisibleCount(prev => prev + 1);
-      }
-    }, 400);
-
-    return () => clearTimeout(revealTimer);
-  }, [phase, visibleCount, gamesList.length]);
+    // Show data immediately, skip shimmer
+    setPhase('done');
+    setVisibleCount(gamesList.length);
+  }, [gamesList.length]);
 
   // Animate each card as it appears
   useEffect(() => {

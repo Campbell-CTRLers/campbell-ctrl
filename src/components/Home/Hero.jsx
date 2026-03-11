@@ -16,10 +16,10 @@ export const Hero = () => {
         {
           y: 0,
           opacity: 1,
-          stagger: isMobileUser ? 0.04 : 0.08,
-          duration: isMobileUser ? 0.6 : 1.2,
+          stagger: isMobileUser ? 0.02 : 0.05,
+          duration: isMobileUser ? 0.4 : 0.8,
           ease: 'power3.out',
-          delay: 0.1,
+          delay: 0,
           clearProps: 'all',
         }
       );
