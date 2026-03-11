@@ -1,6 +1,7 @@
 import React, { useRef, useEffect } from 'react';
 import gsap from 'gsap';
 import { ScrollToPlugin } from 'gsap/ScrollToPlugin';
+import { isMobileUser } from '../../hooks/useMobile';
 
 gsap.registerPlugin(ScrollToPlugin);
 
@@ -9,30 +10,32 @@ export const Hero = () => {
 
   useEffect(() => {
     let ctx = gsap.context(() => {
-      // Intro animation for text elements
-      gsap.fromTo('.hero-elem', 
-        { y: 40, opacity: 0 },
+      // Intro animation — shorter on mobile for snappier load
+      gsap.fromTo('.hero-elem',
+        { y: 30, opacity: 0 },
         {
           y: 0,
           opacity: 1,
-          stagger: 0.08,
-          duration: 1.2,
+          stagger: isMobileUser ? 0.04 : 0.08,
+          duration: isMobileUser ? 0.6 : 1.2,
           ease: 'power3.out',
-          delay: 0.2,
-          clearProps: 'all'
+          delay: 0.1,
+          clearProps: 'all',
         }
       );
 
-      // Subtle, continuous background breathing animation
-      gsap.to('.hero-bg-img', {
-        scale: 1.1,
-        x: '2%',
-        y: '1%',
-        duration: 20,
-        ease: 'sine.inOut',
-        yoyo: true,
-        repeat: -1
-      });
+      // Background breathing — desktop only (continuous GPU compositing on mobile)
+      if (!isMobileUser) {
+        gsap.to('.hero-bg-img', {
+          scale: 1.1,
+          x: '2%',
+          y: '1%',
+          duration: 20,
+          ease: 'sine.inOut',
+          yoyo: true,
+          repeat: -1,
+        });
+      }
     }, container);
     return () => ctx.revert();
   }, []);

@@ -1,207 +1,140 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef } from 'react';
 import gsap from 'gsap';
+import { isCoarsePointer } from '../hooks/useMobile';
 
-export default function CustomCursor({ theme }) {
+/**
+ * CustomCursor — clean circle cursor for desktop only.
+ *
+ * Changes vs previous version:
+ * - Motion blur trails removed entirely (no trail divs, no history array)
+ * - Cursor morphing (bounding-box snap) ONLY on <button> and <a> elements
+ *   — content cards, step sections etc. keep the default 24px circle
+ * - Hidden globally if the device uses a coarse pointer (mobile/tablet)
+ */
+export default function CustomCursor() {
   const cursorRef = useRef(null);
-  const trailsRef = useRef([]);
-  const hoveredEl = useRef(null);
-
-  const trailCount = 5;
-  const [trailDivs] = useState([...Array(trailCount)].map((_, i) => i));
 
   useEffect(() => {
-    // Disable custom cursor on all touch-based/coarse pointer devices (Tablets, Phones)
-    if (window.matchMedia("(pointer: coarse)").matches) return;
-    
+    // Don't run on touch/mobile devices
+    if (isCoarsePointer) return;
+
     const cursor = cursorRef.current;
-    const trails = trailsRef.current;
-    
-    // Start off-screen and invisible until first real mouse movement
+    if (!cursor) return;
+
     const mouse = { x: -500, y: -500 };
     let hasMoved = false;
-    const history = [];
-    for (let i = 0; i < trailCount; i++) history.push({ x: mouse.x, y: mouse.y });
-    
-    const xSet = gsap.quickSetter(cursor, "x", "px");
-    const ySet = gsap.quickSetter(cursor, "y", "px");
-    
-    const trailSets = trails.map(t => ({
-      x: gsap.quickSetter(t, "x", "px"),
-      y: gsap.quickSetter(t, "y", "px")
-    }));
+    const hoveredEl = { current: null };
 
-    // Keep native cursor visible until the mouse actually moves
+    const xSet = gsap.quickSetter(cursor, 'x', 'px');
+    const ySet = gsap.quickSetter(cursor, 'y', 'px');
+
     const onMouseMove = (e) => {
       if (!hasMoved) {
         hasMoved = true;
         document.body.style.cursor = 'none';
-        // Apply cursor:none to already-registered interactables
-        document.querySelectorAll('a, button, input, textarea, .nav-link, .interactive-hover, .magnetic-btn, .mobile-nav-item, .footer-link, .cf-turnstile-wrapper')
+        document.querySelectorAll('a, button, input, textarea')
           .forEach(el => { el.style.cursor = 'none'; });
       }
       mouse.x = e.clientX;
       mouse.y = e.clientY;
     };
-    
+
     const render = () => {
-      history.unshift({ x: mouse.x, y: mouse.y });
-      history.pop();
-      
-      if (hoveredEl.current) {
-        const rect = hoveredEl.current.getBoundingClientRect();
-        const st = window.getComputedStyle(hoveredEl.current);
+      const el = hoveredEl.current;
+
+      if (el) {
+        const tag = el.tagName;
+        const rect = el.getBoundingClientRect();
+        const st = window.getComputedStyle(el);
         const radius = st.borderRadius;
-        const tag = hoveredEl.current.tagName;
 
         if (tag === 'INPUT' || tag === 'TEXTAREA') {
+          // Thin caret shape over inputs
           xSet(mouse.x);
           ySet(mouse.y);
+          gsap.to(cursor, { width: 4, height: 22, borderRadius: 99, opacity: 0.7, duration: 0.12, ease: 'power3.out', overwrite: 'auto' });
+          return;
+        }
 
-          // Morph shape into a simple rounded pill matching the caret
-          gsap.to(cursor, {
-            width: 6,
-            height: 20,
-            borderRadius: 99,
-            clearProps: 'clipPath',
-            duration: 0.15,
-            ease: 'power3.out',
-            overwrite: 'auto'
-          });
-          
-          trails.forEach(t => { if (t) t.style.opacity = '0'; });
-          
-          trailSets.forEach((t, i) => {
-            t.x(history[i].x);
-            t.y(history[i].y);
-          });
-        } else if (hoveredEl.current.classList.contains('cf-turnstile-wrapper') || hoveredEl.current.closest('.cf-turnstile-wrapper')) {
-          // Hide custom cursor completely for iframes/turnstile
-          gsap.to(cursor, {
-            opacity: 0,
-            duration: 0.15,
-            ease: 'power3.out',
-            overwrite: 'auto'
-          });
-          
-          trails.forEach(t => { if (t) t.style.opacity = '0'; });
-          
-          // DO NOT translate the custom cursor here to prevent it from getting stuck on screen edge
-          // The native cursor handles the rest.
-        } else {
-          // Standard magnetic hover for buttons/links -> Exact 1:1 pixel match bounding box
+        if (tag === 'BUTTON' || tag === 'A') {
+          // Snap to the element's bounding box — only for real interactive elements
           gsap.to(cursor, {
             width: rect.width,
             height: rect.height,
             borderRadius: radius,
             x: rect.left + rect.width / 2,
             y: rect.top + rect.height / 2,
-            clearProps: 'clipPath',
+            opacity: 0.25,
             duration: 0.08,
             ease: 'power2.out',
-            overwrite: true
+            overwrite: true,
           });
-          
-          trails.forEach(t => { if (t) t.style.opacity = '0'; });
+          return;
         }
-        
-      } else {
-        xSet(mouse.x);
-        ySet(mouse.y);
-        
-        gsap.to(cursor, {
-          width: 24,
-          height: 24,
-          opacity: 1,
-          borderRadius: 99,
-          clearProps: 'clipPath',
-          duration: 0.15,
-          ease: 'power3.out',
-          overwrite: true
-        });
-        
-        trails.forEach((t, i) => { if (t) t.style.opacity = String(1 - ((i + 1) / (trailCount + 1))); });
-        
-        trailSets.forEach((t, i) => {
-          t.x(history[i].x);
-          t.y(history[i].y);
-        });
       }
+
+      // Default: clean 24px circle follows the mouse
+      xSet(mouse.x);
+      ySet(mouse.y);
+      gsap.to(cursor, {
+        width: 24,
+        height: 24,
+        borderRadius: 99,
+        opacity: 1,
+        duration: 0.15,
+        ease: 'power3.out',
+        overwrite: true,
+      });
     };
-    
+
     gsap.ticker.add(render);
-    window.addEventListener("mousemove", onMouseMove);
+    window.addEventListener('mousemove', onMouseMove);
 
-    const addHoverState = (e) => {
-      hoveredEl.current = e.currentTarget;
-    };
+    const onEnter = (e) => { hoveredEl.current = e.currentTarget; };
+    const onLeave = () => { hoveredEl.current = null; };
 
-    const removeHoverState = () => {
-      hoveredEl.current = null;
-    };
-
-    const setupInteractiveElements = () => {
-      const interactables = document.querySelectorAll('a, button, input, textarea, .nav-link, .interactive-hover, .magnetic-btn, .mobile-nav-item, .footer-link, .cf-turnstile-wrapper');
-      interactables.forEach(el => {
-        el.removeEventListener('mouseenter', addHoverState);
-        el.removeEventListener('mouseleave', removeHoverState);
-        
-        el.addEventListener('mouseenter', addHoverState);
-        el.addEventListener('mouseleave', removeHoverState);
-        
-        // Only suppress native cursor once the user has used a mouse
+    const setupInteractables = () => {
+      document.querySelectorAll('a, button, input, textarea').forEach(el => {
+        el.removeEventListener('mouseenter', onEnter);
+        el.removeEventListener('mouseleave', onLeave);
+        el.addEventListener('mouseenter', onEnter);
+        el.addEventListener('mouseleave', onLeave);
         if (hasMoved) el.style.cursor = 'none';
       });
     };
 
-    setupInteractiveElements();
+    setupInteractables();
 
-    let debounceTimer;
+    let debounce;
     const observer = new MutationObserver(() => {
-      // Clear stale hover ref if element was removed from DOM
       if (hoveredEl.current && !document.body.contains(hoveredEl.current)) {
         hoveredEl.current = null;
       }
-      clearTimeout(debounceTimer);
-      debounceTimer = setTimeout(setupInteractiveElements, 100);
+      clearTimeout(debounce);
+      debounce = setTimeout(setupInteractables, 100);
     });
     observer.observe(document.body, { childList: true, subtree: true });
 
     return () => {
-      window.removeEventListener("mousemove", onMouseMove);
+      window.removeEventListener('mousemove', onMouseMove);
       gsap.ticker.remove(render);
       document.body.style.cursor = 'auto';
       observer.disconnect();
     };
-  }, [theme]); 
+  }, []);
+
+  // Render nothing on coarse-pointer (touch) devices
+  if (isCoarsePointer) return null;
 
   return (
-    <div>
-      {/* Motion blur shadow trails */}
-      {trailDivs.map(i => (
-        <div 
-          key={i}
-          ref={el => trailsRef.current[i] = el}
-          className="cursor-trail fixed top-0 left-0 w-6 h-6 rounded-full pointer-events-none z-[999999]"
-          style={{ 
-            transform: 'translate(-50%, -50%)', 
-            opacity: 1 - ((i + 1) / (trailCount + 1)),
-            transition: 'background 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease'
-          }}
-        />
-      ))}
-      
-      {/* Main cursor - shadow style with subtle border */}
-      <div 
-        ref={cursorRef} 
-        className="cursor-main-bg fixed top-0 left-0 w-6 h-6 z-[999999] pointer-events-none flex flex-col justify-between items-center" 
-        style={{ 
-          borderRadius: '99px',
-          transform: 'translate(-50%, -50%)', 
-          x: -100, y: -100,
-          transition: 'background 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease'
-        }}
-      >
-      </div>
-    </div>
+    <div
+      ref={cursorRef}
+      className="cursor-main-bg fixed top-0 left-0 w-6 h-6 z-[999999] pointer-events-none"
+      style={{
+        borderRadius: '99px',
+        transform: 'translate(-50%, -50%)',
+        transition: 'background 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease',
+      }}
+    />
   );
 }

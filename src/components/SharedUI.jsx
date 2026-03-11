@@ -1,9 +1,10 @@
+/* eslint-disable react-refresh/only-export-components */
 import React from 'react';
 import { Gamepad2 } from 'lucide-react';
 import { cn } from '../utils/cn';
-export { cn };
 
 // Global Date Formatter Helper
+// eslint-disable-next-line react-refresh/only-export-components
 export const formatGameDate = (dateStr, timeStr) => {
   if (!dateStr) return "TBD";
   const dateObj = new Date(dateStr + 'T00:00:00');
@@ -17,6 +18,7 @@ export const formatGameDate = (dateStr, timeStr) => {
 };
 
 // Full game list for dropdowns (matches Live Standings)
+// eslint-disable-next-line react-refresh/only-export-components
 export const GAME_LIST = [
   "Rocket League", "Smash Bros", "Marvel Rivals", "Splatoon 3",
   "Street Fighter 6", "Mario Kart 8 Delux", "Smash Bros ALT",
@@ -24,6 +26,7 @@ export const GAME_LIST = [
 ];
 
 // Icon file mapping — maps game name fragments to locally stored SteamGridDB PNGs
+// eslint-disable-next-line react-refresh/only-export-components
 export const GAME_ICON_MAP = {
   "rocket league": "/game-icons/rocket-league.png",
   "smash bros": "/game-icons/smash-bros.png",

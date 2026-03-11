@@ -1,10 +1,5 @@
-import React, { useRef, useState, useEffect } from 'react';
-import clsx from 'clsx';
-import { twMerge } from 'tailwind-merge';
-
-export function cn(...inputs) {
-  return twMerge(clsx(inputs));
-}
+import React, { useRef, useState } from 'react';
+import { cn } from '../utils/cn';
 
 const InlineCaret = ({ error }) => (
   <span className="inline-block relative w-0 h-5 align-middle">
@@ -18,7 +13,7 @@ const InlineCaret = ({ error }) => (
 export default function AnimatedInput({ value, onChange, placeholder, type = 'text', className, error }) {
   const inputRef = useRef(null);
   const scrollContainer = useRef(null);
-  
+
   const [selStart, setSelStart] = useState(0);
   const [selEnd, setSelEnd] = useState(0);
   const [isFocused, setIsFocused] = useState(false);
@@ -41,9 +36,8 @@ export default function AnimatedInput({ value, onChange, placeholder, type = 'te
     syncScroll();
   };
 
-  useEffect(() => {
-    updateSelection();
-  }, [value, isFocused]);
+  // Selection state is kept current by event handlers (onFocus/onClick/onKeyUp/onSelect)
+  // — no useEffect needed.
 
   return (
     <div className={cn(

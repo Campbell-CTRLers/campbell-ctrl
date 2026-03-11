@@ -1,8 +1,9 @@
+/* eslint-disable react-hooks/refs */
 import React, { useRef, useState, useEffect } from 'react';
 import gsap from 'gsap';
 import { ArrowRight, Sun, Moon } from 'lucide-react';
 import { cn } from '../utils/cn';
-import { useTheme } from '../context/ThemeContext';
+import { useTheme } from '../context/useTheme';
 import { useHaptics } from '../hooks/useHaptics';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 
