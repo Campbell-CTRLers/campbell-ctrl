@@ -4,7 +4,7 @@ import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { ScrollToPlugin } from 'gsap/ScrollToPlugin';
 import { onAuthStateChanged } from 'firebase/auth';
 import { db, auth } from './firebase';
-import { onSnapshot, doc } from 'firebase/firestore';
+import { onSnapshot, doc, getDoc } from 'firebase/firestore';
 import { ThemeProvider } from './context/ThemeContext';
 import { MobileProvider, useMobile } from './hooks/useMobile';
 import Navbar from './components/Navbar';
@@ -94,8 +94,6 @@ function AppInner() {
 // ─── AUTH & DATA LISTENERS ───────────────────────────────────────────
 
   useEffect(() => {
-    const ALLOWED_EMAILS = (import.meta.env.VITE_ADMIN_EMAILS || '').split(',').map(e => e.trim()).filter(Boolean);
-    
     // Check for 30-day session expiry
     const authExpiry = localStorage.getItem('auth_expiry');
     if (authExpiry && Date.now() > Number(authExpiry)) {
@@ -103,15 +101,24 @@ function AppInner() {
       localStorage.removeItem('auth_expiry');
     }
 
-    return onAuthStateChanged(auth, (user) => {
-      const isAuthorized = user && ALLOWED_EMAILS.some(email => email.toLowerCase() === user.email?.toLowerCase());
-      if (isAuthorized) {
-        setAuthenticatedUser(user);
-      } else {
+    let unsubAuth;
+    getDoc(doc(db, 'config', 'admins')).then((snap) => {
+      const allowedEmails = (snap.exists() ? snap.data().emails || [] : [])
+        .map(e => e.toLowerCase());
+
+      unsubAuth = onAuthStateChanged(auth, (user) => {
+        const isAuthorized = user && allowedEmails.includes(user.email?.toLowerCase());
+        setAuthenticatedUser(isAuthorized ? user : null);
+        setAuthInitialized(true);
+      });
+    }).catch(() => {
+      unsubAuth = onAuthStateChanged(auth, () => {
         setAuthenticatedUser(null);
-      }
-      setAuthInitialized(true);
+        setAuthInitialized(true);
+      });
     });
+
+    return () => unsubAuth?.();
   }, []);
 
   useEffect(() => {

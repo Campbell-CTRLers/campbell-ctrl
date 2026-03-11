@@ -1,19 +1,23 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    
+
+    // Admin email list — managed in Firebase Console, not committed to source
+    match /config/admins {
+      allow read: if true;
+      allow write: if false;
+    }
+
     // Global data document (schedules and standings)
     match /global/data {
       // Allow ANYONE to read the data (so the website visitors can see schedules)
       allow read: if true;
       
       // Allow ONLY authenticated admins to write/overwrite the data
-      // SECURITY: If Google Sign-In is enabled, any google user can get request.auth != null
-      // Therefore we MUST explicitly verify their exact email address here on the server
-      allow write: if request.auth != null && (
-        request.auth.token.email == 'charlie.m.herbert@gmail.com' || 
-        request.auth.token.email == 'admin@campbellhigh.net'
-      );
+      // Emails are stored in Firestore
+      allow write: if request.auth != null &&
+        exists(/databases/$(database)/documents/config/admins) &&
+        request.auth.token.email in get(/databases/$(database)/documents/config/admins).data.emails;
     }
     
     // Default deny for everything else

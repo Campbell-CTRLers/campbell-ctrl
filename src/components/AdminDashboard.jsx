@@ -2,7 +2,7 @@ import React, { useRef, useState, useEffect } from 'react';
 import gsap from 'gsap';
 import { Settings, Plus, Trash2, CloudUpload, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Calendar } from 'lucide-react';
 import { db, auth, googleProvider } from '../firebase';
-import { writeBatch, doc } from 'firebase/firestore';
+import { writeBatch, doc, getDoc } from 'firebase/firestore';
 import { signInWithEmailAndPassword, signInWithPopup, signOut, setPersistence, browserLocalPersistence, browserSessionPersistence } from 'firebase/auth';
 import { useTheme } from '../context/useTheme';
 import { useHaptics } from '../hooks/useHaptics';
@@ -151,9 +151,10 @@ const AdminDashboard = ({ isAdmin, onClose, gamesList, setGamesList, standings, 
       
       const result = await signInWithPopup(auth, googleProvider);
       
-      // Verify authorization against allowed list (case-insensitive)
-      const ALLOWED_EMAILS = (import.meta.env.VITE_ADMIN_EMAILS || '').split(',').map(e => e.trim()).filter(Boolean);
-      const isAuthorized = ALLOWED_EMAILS.some(email => email.toLowerCase() === result.user.email?.toLowerCase());
+      // Verify authorization against Firestore admin list (case-insensitive)
+      const snap = await getDoc(doc(db, 'config', 'admins'));
+      const allowedEmails = (snap.exists() ? snap.data().emails || [] : []).map(e => e.toLowerCase());
+      const isAuthorized = allowedEmails.includes(result.user.email?.toLowerCase());
       
       if (!isAuthorized) {
         await signOut(auth);

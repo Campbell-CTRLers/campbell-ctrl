@@ -26,3 +26,7 @@ dist-ssr
 *.sln
 *.sw?
 GEMINI.md
+
+# Firebase CLI config
+firebase.json
+.firebaserc
