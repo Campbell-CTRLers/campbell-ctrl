@@ -6,6 +6,7 @@ import { onAuthStateChanged } from 'firebase/auth';
 import { db, auth } from './firebase';
 import { collection, onSnapshot, writeBatch, doc } from 'firebase/firestore';
 import { SpeedInsights } from '@vercel/speed-insights/react';
+import { Analytics } from '@vercel/analytics/react';
 import { ThemeProvider, useTheme } from './context/ThemeContext';
 import Navbar from './components/Navbar';
 import AdminDashboard from './components/AdminDashboard';
@@ -180,6 +181,7 @@ export default function App() {
         />
         
         <SpeedInsights />
+        <Analytics />
       </div>
     </ThemeProvider>
   );
