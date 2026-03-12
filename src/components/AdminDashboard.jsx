@@ -77,7 +77,7 @@ const AdminDashboard = ({ isAdmin, onClose, gamesList, setGamesList, standings, 
   const [isAuthenticating, setIsAuthenticating] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
-  const [_saveErrorMsg, setSaveErrorMsg] = useState('');
+  const [, setSaveErrorMsg] = useState('');
   const [adminTab, setAdminTab] = useState('schedule');
   const [rememberMe, setRememberMe] = useState(false);
 
@@ -95,6 +95,7 @@ const AdminDashboard = ({ isAdmin, onClose, gamesList, setGamesList, standings, 
   // TRACK ORIGINAL DATA for dirty check
   const originalDataRef = useRef(null);
   const [isDirty, setIsDirty] = useState(false);
+  const [, setAuthError] = useState('');
 
   // Recompute dirty flag whenever data changes (safe: runs after render, not during)
   useEffect(() => {
@@ -115,7 +116,10 @@ const AdminDashboard = ({ isAdmin, onClose, gamesList, setGamesList, standings, 
   // Proactively set persistence when "Remember Me" changes or modal opens to avoid race conditions
   useEffect(() => {
     if (!isAuthenticated && isAdmin) {
-      setPersistence(auth, rememberMe ? browserLocalPersistence : browserSessionPersistence).catch(console.error);
+      setPersistence(auth, rememberMe ? browserLocalPersistence : browserSessionPersistence).catch((error) => {
+        console.error(error);
+        setAuthError('We could not apply your “Remember Me” preference. You may be signed out when you close the browser.');
+      });
     }
   }, [rememberMe, isAuthenticated, isAdmin]);
 
@@ -193,7 +197,8 @@ const AdminDashboard = ({ isAdmin, onClose, gamesList, setGamesList, standings, 
         localStorage.removeItem('auth_expiry');
       }
       haptics.success();
-    } catch {
+    } catch (err) {
+      console.error('Email/password login failed:', err);
       haptics.error();
       setErrorMsg('Access Denied. Invalid Credentials.');
       setPassword('');
@@ -254,7 +259,7 @@ const AdminDashboard = ({ isAdmin, onClose, gamesList, setGamesList, standings, 
   const handleAddGame = () => { 
     haptics.selection(); 
     const newId = Date.now();
-    setGamesList([...gamesList, { id: newId, game: 'Super Smash Bros', opponent: 'TBD', date: '', time: '4:00 PM', type: 'PlayVS Rank', isAlt: false }]); 
+    setGamesList([...gamesList, { id: newId, game: 'Smash Bros', opponent: 'TBD', date: '', time: '4:00 PM', type: 'PlayVS Rank', isAlt: false }]); 
     if (window.innerWidth < 768) setActiveControlId(newId);
   };
   const updateGame = (id, field, value) => setGamesList(gamesList.map(g => g.id === id ? { ...g, [field]: value } : g));
@@ -263,7 +268,7 @@ const AdminDashboard = ({ isAdmin, onClose, gamesList, setGamesList, standings, 
   const handleAddStanding = () => { 
     haptics.selection(); 
     const newId = Date.now();
-    setStandings([...standings, { id: newId, team: 'Campbell eSpartans', game: 'Super Smash Bros', wins: 0, losses: 0, leagueRank: '', leagueName: 'PlayVS', isAlt: false }]); 
+    setStandings([...standings, { id: newId, team: 'Campbell eSpartans', game: 'Smash Bros', wins: 0, losses: 0, leagueRank: '', leagueName: 'PlayVS', isAlt: false }]); 
     if (window.innerWidth < 768) setActiveControlId(newId);
   };
   const updateStanding = (id, field, value) => {
@@ -274,7 +279,7 @@ const AdminDashboard = ({ isAdmin, onClose, gamesList, setGamesList, standings, 
   const handleAddRanking = () => { 
     haptics.selection(); 
     const newId = Date.now();
-    setRankings([...rankings, { id: newId, team: 'Campbell eSpartans', game: 'Super Smash Bros', leagueRank: '', leagueName: 'PlayVS', isAlt: false }]); 
+    setRankings([...rankings, { id: newId, team: 'Campbell eSpartans', game: 'Smash Bros', leagueRank: '', leagueName: 'PlayVS', isAlt: false }]); 
     if (window.innerWidth < 768) setActiveControlId(newId);
   };
   const updateRanking = (id, field, value) => {
