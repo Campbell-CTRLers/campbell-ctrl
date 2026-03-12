@@ -77,7 +77,7 @@ const AdminDashboard = ({ isAdmin, onClose, gamesList, setGamesList, standings, 
   const [isAuthenticating, setIsAuthenticating] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
-  const [saveErrorMsg, setSaveErrorMsg] = useState('');
+  const [, setSaveErrorMsg] = useState('');
   const [adminTab, setAdminTab] = useState('schedule');
   const [rememberMe, setRememberMe] = useState(false);
 
@@ -95,7 +95,7 @@ const AdminDashboard = ({ isAdmin, onClose, gamesList, setGamesList, standings, 
   // TRACK ORIGINAL DATA for dirty check
   const originalDataRef = useRef(null);
   const [isDirty, setIsDirty] = useState(false);
-  const [authError, setAuthError] = useState('');
+  const [, setAuthError] = useState('');
 
   // Recompute dirty flag whenever data changes (safe: runs after render, not during)
   useEffect(() => {
@@ -259,7 +259,7 @@ const AdminDashboard = ({ isAdmin, onClose, gamesList, setGamesList, standings, 
   const handleAddGame = () => { 
     haptics.selection(); 
     const newId = Date.now();
-    setGamesList([...gamesList, { id: newId, game: 'Super Smash Bros', opponent: 'TBD', date: '', time: '4:00 PM', type: 'PlayVS Rank', isAlt: false }]); 
+    setGamesList([...gamesList, { id: newId, game: 'Smash Bros', opponent: 'TBD', date: '', time: '4:00 PM', type: 'PlayVS Rank', isAlt: false }]); 
     if (window.innerWidth < 768) setActiveControlId(newId);
   };
   const updateGame = (id, field, value) => setGamesList(gamesList.map(g => g.id === id ? { ...g, [field]: value } : g));
@@ -268,7 +268,7 @@ const AdminDashboard = ({ isAdmin, onClose, gamesList, setGamesList, standings, 
   const handleAddStanding = () => { 
     haptics.selection(); 
     const newId = Date.now();
-    setStandings([...standings, { id: newId, team: 'Campbell eSpartans', game: 'Super Smash Bros', wins: 0, losses: 0, leagueRank: '', leagueName: 'PlayVS', isAlt: false }]); 
+    setStandings([...standings, { id: newId, team: 'Campbell eSpartans', game: 'Smash Bros', wins: 0, losses: 0, leagueRank: '', leagueName: 'PlayVS', isAlt: false }]); 
     if (window.innerWidth < 768) setActiveControlId(newId);
   };
   const updateStanding = (id, field, value) => {
@@ -279,7 +279,7 @@ const AdminDashboard = ({ isAdmin, onClose, gamesList, setGamesList, standings, 
   const handleAddRanking = () => { 
     haptics.selection(); 
     const newId = Date.now();
-    setRankings([...rankings, { id: newId, team: 'Campbell eSpartans', game: 'Super Smash Bros', leagueRank: '', leagueName: 'PlayVS', isAlt: false }]); 
+    setRankings([...rankings, { id: newId, team: 'Campbell eSpartans', game: 'Smash Bros', leagueRank: '', leagueName: 'PlayVS', isAlt: false }]); 
     if (window.innerWidth < 768) setActiveControlId(newId);
   };
   const updateRanking = (id, field, value) => {
