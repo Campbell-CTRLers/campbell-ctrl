@@ -457,7 +457,7 @@ const AdminDashboard = ({ isAdmin, onClose, gamesList, setGamesList, standings, 
                 onClick={handleSaveToCloud} 
                 disabled={isSaving} 
                 className={cn(
-                  "p-2.5 sm:px-4 sm:py-2 rounded-2xl text-white font-bold text-sm transition-all active:scale-90 flex items-center gap-2",
+                  "min-w-[44px] min-h-[44px] p-2.5 sm:px-4 sm:py-2 rounded-2xl text-white font-bold text-sm transition-all active:scale-90 flex items-center justify-center gap-2 touch-manipulation",
                   isDirty ? "bg-accent shadow-lg shadow-accent/25" : "bg-slate/10 text-slate",
                   isSaving && "opacity-70 scale-95"
                 )}
@@ -672,16 +672,28 @@ const AdminDashboard = ({ isAdmin, onClose, gamesList, setGamesList, standings, 
           </div>
 
           {/* MOBILE BOTTOM NAVIGATION */}
-          <div className="sm:hidden fixed bottom-0 left-0 right-0 bg-background border-t border-slate/15 px-6 pt-5 pb-[calc(3rem+env(safe-area-inset-bottom,0px))] flex items-center justify-around z-40 shadow-[0_-15px_50px_rgba(0,0,0,0.7)] touch-none">
-             <button onClick={() => { haptics.selection(); setAdminTab('schedule'); }} className={cn("flex flex-col items-center gap-1.5 transition-all text-[10px] font-black uppercase tracking-tighter", adminTab === 'schedule' ? "text-accent scale-110" : "text-slate/40")}>
+          <div className="sm:hidden fixed bottom-0 left-0 right-0 bg-background border-t border-slate/15 px-6 pt-5 pb-[calc(3rem+env(safe-area-inset-bottom,0px))] flex items-center justify-around z-40 shadow-[0_-15px_50px_rgba(0,0,0,0.7)] touch-manipulation">
+             <button onClick={() => { haptics.selection(); setAdminTab('schedule'); }} className={cn("flex flex-col items-center gap-1.5 transition-all text-[10px] font-black uppercase tracking-tighter touch-manipulation", adminTab === 'schedule' ? "text-accent scale-110" : "text-slate/40")}>
                 <Calendar size={20} /><span className="leading-none">Schedule</span>
              </button>
-              <button onClick={() => { haptics.selection(); setAdminTab('standings'); }} className={cn("flex flex-col items-center gap-1.5 transition-all text-[10px] font-black uppercase tracking-tighter", adminTab === 'standings' ? "text-accent scale-110" : "text-slate/40")}>
+              <button onClick={() => { haptics.selection(); setAdminTab('standings'); }} className={cn("flex flex-col items-center gap-1.5 transition-all text-[10px] font-black uppercase tracking-tighter touch-manipulation", adminTab === 'standings' ? "text-accent scale-110" : "text-slate/40")}>
                 <Trophy size={20} />
                 <span className="leading-none">Standings</span>
               </button>
-             <button onClick={() => { haptics.selection(); setAdminTab('rankings'); }} className={cn("flex flex-col items-center gap-1.5 transition-all text-[10px] font-black uppercase tracking-tighter", adminTab === 'rankings' ? "text-accent scale-110" : "text-slate/40")}>
+             <button onClick={() => { haptics.selection(); setAdminTab('rankings'); }} className={cn("flex flex-col items-center gap-1.5 transition-all text-[10px] font-black uppercase tracking-tighter touch-manipulation", adminTab === 'rankings' ? "text-accent scale-110" : "text-slate/40")}>
                 <Settings size={20} /><span className="leading-none">Rankings</span>
+             </button>
+             <button 
+                onClick={handleSaveToCloud} 
+                disabled={isSaving}
+                className={cn(
+                  "flex flex-col items-center gap-1.5 transition-all text-[10px] font-black uppercase tracking-tighter touch-manipulation",
+                  isDirty ? "text-accent scale-110" : "text-slate/40",
+                  isSaving && "opacity-70"
+                )}
+              >
+                {isSaving ? <div className="w-5 h-5 border-2 border-accent/30 border-t-accent rounded-full animate-spin" /> : <CloudUpload size={20} />}
+                <span className="leading-none">{saveSuccess ? 'Saved!' : 'Publish'}</span>
              </button>
           </div>
         </div>
