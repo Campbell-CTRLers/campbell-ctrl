@@ -294,6 +294,11 @@ export const CustomDropdown = ({ value, onChange, options, placeholder, isEditab
   const [isOpen, setIsOpen] = useState(false);
   const [customValue, setCustomValue] = useState("");
   const containerRef = useRef(null);
+  // Lazy initializer: merges any user-saved presets from localStorage into the
+  // initial options list. The initializer runs only once at mount, which is
+  // intentional — `options` and `placeholder` are always module-level constants
+  // (GAME_OPTIONS, LEAGUE_OPTIONS…) and never change between renders. If they
+  // did change, the parent should remount this component with a new `key`.
   const [currentOptions, setCurrentOptions] = useState(() => {
     try {
       const saved = localStorage.getItem(`custom_presets_${placeholder}`);
