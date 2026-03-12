@@ -268,7 +268,10 @@ const AdminDashboard = ({ isAdmin, onClose, gamesList, setGamesList, standings, 
   const handleAddStanding = () => { 
     haptics.selection(); 
     const newId = Date.now();
-    setStandings([...standings, { id: newId, team: 'Campbell eSpartans', game: 'Smash Bros', wins: 0, losses: 0, leagueRank: '', leagueName: 'PlayVS', isAlt: false }]); 
+    const newStanding = { id: newId, team: 'Campbell eSpartans', game: 'Smash Bros', wins: 0, losses: 0, leagueRank: '', leagueName: 'PlayVS', isAlt: false };
+    setStandings([...standings, newStanding]);
+    const rankingId = Date.now() + 1;
+    setRankings([...rankings, { id: rankingId, team: 'Campbell eSpartans', game: newStanding.game, leagueRank: '', leagueName: 'PlayVS', isAlt: newStanding.isAlt }]);
     if (window.innerWidth < 768) setActiveControlId(newId);
   };
   const updateStanding = (id, field, value) => {
@@ -279,7 +282,10 @@ const AdminDashboard = ({ isAdmin, onClose, gamesList, setGamesList, standings, 
   const handleAddRanking = () => { 
     haptics.selection(); 
     const newId = Date.now();
-    setRankings([...rankings, { id: newId, team: 'Campbell eSpartans', game: 'Smash Bros', leagueRank: '', leagueName: 'PlayVS', isAlt: false }]); 
+    const newRanking = { id: newId, team: 'Campbell eSpartans', game: 'Smash Bros', leagueRank: '', leagueName: 'PlayVS', isAlt: false };
+    setRankings([...rankings, newRanking]);
+    const standingId = Date.now() + 1;
+    setStandings([...standings, { id: standingId, team: 'Campbell eSpartans', game: newRanking.game, wins: 0, losses: 0, leagueRank: '', leagueName: 'PlayVS', isAlt: newRanking.isAlt }]);
     if (window.innerWidth < 768) setActiveControlId(newId);
   };
   const updateRanking = (id, field, value) => {
