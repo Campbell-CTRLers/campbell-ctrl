@@ -20,7 +20,12 @@ export function CalendarOptions({ compact = false }) {
     let active = true;
     let createdUrl = '';
     fetch(inPersonMeetingIcs)
-      .then(r => r.text())
+      .then(r => {
+        if (!r.ok) {
+          throw new Error(`Failed to load calendar data: ${r.status} ${r.statusText}`);
+        }
+        return r.text();
+      })
       .then(text => {
         if (!active) return;
         const unfolded = text.replace(/\r?\n[ \t]/g, '');
@@ -57,12 +62,19 @@ export function CalendarOptions({ compact = false }) {
         
         const absIcsUrl = new URL('/in-person-meeting.ics', window.location.origin).href;
         setAppleUrl(absIcsUrl.replace(/^https?/, 'webcal'));
+      })
+      .catch(err => {
+        // Log the error so failures are not silent; state remains in a safe default.
+        console.error('Failed to initialize calendar options:', err);
+        if (active && createdUrl) {
+          URL.revokeObjectURL(createdUrl);
+        }
       });
     return () => { active = false; if (createdUrl) URL.revokeObjectURL(createdUrl); };
   }, []);
 
   const ready = !!(googleUrl && outlookUrl && appleUrl && blobUrl);
-  const filename = 'campbell-ctrl-meetings.ics';
+  const filename = 'in-person-meeting.ics';
   
   const calendarProviders = [
     { label: 'Google',   href: googleUrl,  target: '_blank', icon: iconGoogleCalendar },
@@ -126,6 +138,15 @@ export function CalendarOptions({ compact = false }) {
   );
 }
 
+const BACKDROP_FADE_IN_DURATION = 0.3;
+const BACKDROP_FADE_OUT_DURATION = 0.3;
+const PANEL_ENTER_DURATION = 0.45;
+const PANEL_EXIT_DURATION = 0.25;
+const BACKDROP_EASE_IN = 'power2.out';
+const BACKDROP_EASE_OUT = 'power2.in';
+const PANEL_EASE_IN = 'back.out(1.6)';
+const PANEL_EASE_OUT = 'power2.in';
+
 export function CalendarModal({ open, onClose }) {
   const backdropRef = useRef(null);
   const panelRef = useRef(null);
@@ -139,10 +160,10 @@ export function CalendarModal({ open, onClose }) {
     const bd = backdropRef.current;
     const panel = panelRef.current;
     if (!bd || !panel) return;
-    gsap.fromTo(bd, { opacity: 0 }, { opacity: 1, duration: 0.3, ease: 'power2.out' });
+    gsap.fromTo(bd, { opacity: 0 }, { opacity: 1, duration: BACKDROP_FADE_IN_DURATION, ease: BACKDROP_EASE_IN });
     gsap.fromTo(panel,
       { opacity: 0, scale: 0.85, y: 40 },
-      { opacity: 1, scale: 1, y: 0, duration: 0.45, ease: 'back.out(1.6)' }
+      { opacity: 1, scale: 1, y: 0, duration: PANEL_ENTER_DURATION, ease: PANEL_EASE_IN }
     );
   }, [open, haptics]);
 
@@ -153,8 +174,8 @@ export function CalendarModal({ open, onClose }) {
     const panel = panelRef.current;
     if (!bd || !panel) { onClose(); return; }
     setAnimating(true);
-    gsap.to(panel, { opacity: 0, scale: 0.9, y: 24, duration: 0.25, ease: 'power2.in' });
-    gsap.to(bd, { opacity: 0, duration: 0.3, ease: 'power2.in', onComplete: () => { setAnimating(false); onClose(); } });
+    gsap.to(panel, { opacity: 0, scale: 0.9, y: 24, duration: PANEL_EXIT_DURATION, ease: PANEL_EASE_OUT });
+    gsap.to(bd, { opacity: 0, duration: BACKDROP_FADE_OUT_DURATION, ease: BACKDROP_EASE_OUT, onComplete: () => { setAnimating(false); onClose(); } });
   };
 
   if (!open && !animating) return null;

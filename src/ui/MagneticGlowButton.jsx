@@ -1,6 +1,7 @@
 import React, { useRef, useState } from 'react';
 import { useHaptics } from '../hooks/useHaptics';
 import { cn } from '../utils/cn';
+import { isMobileUser } from '../utils/mobile';
 
 const MagneticGlowButton = ({ children, onClick, className, solid = false }) => {
   const buttonRef = useRef(null);
@@ -17,7 +18,7 @@ const MagneticGlowButton = ({ children, onClick, className, solid = false }) => 
     const y = e.clientY - rect.top;
 
     // Mobile/Tablet Guard - animations disabled for performance/UX
-    if (window.matchMedia("(max-width: 1024px)").matches) return;
+    if (isMobileUser) return;
 
     // Update CSS variables for the glow effect
     buttonRef.current.style.setProperty('--mouse-x', `${x}px`);
