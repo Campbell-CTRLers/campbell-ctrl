@@ -31,7 +31,7 @@ function AppInner() {
 
   const getInitialTab = () => {
     const path = window.location.pathname.replace('/', '').toLowerCase();
-    const validTabs = ['home', 'esports', 'meetings', 'legal'];
+    const validTabs = ['home', 'esports', 'meetings', 'legal', 'admin'];
     return validTabs.includes(path) ? path : 'home';
   };
 
@@ -78,8 +78,10 @@ function AppInner() {
 
     const handlePopState = () => {
       const path = window.location.pathname.replace('/', '').toLowerCase() || 'home';
-      if (path !== currentTab) {
-        handleTabChange(path, true);
+      const validTabs = ['home', 'esports', 'meetings', 'legal', 'admin'];
+      const resolvedPath = validTabs.includes(path) ? path : 'home';
+      if (resolvedPath !== currentTab) {
+        handleTabChange(resolvedPath, true);
       }
     };
     window.addEventListener('popstate', handlePopState);
@@ -167,8 +169,11 @@ function AppInner() {
       <Footer onToggleAdmin={() => setIsAdmin(true)} onNavigate={handleTabChange} />
 
       <AdminDashboard
-        isAdmin={isAdmin}
-        onClose={() => setIsAdmin(false)}
+        isAdmin={isAdmin || currentTab === 'admin'}
+        onClose={() => {
+          setIsAdmin(false);
+          if (currentTab === 'admin') handleTabChange('home');
+        }}
         gamesList={gamesList}
         setGamesList={setGamesList}
         standings={standings}
