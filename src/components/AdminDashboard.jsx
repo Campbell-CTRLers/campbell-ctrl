@@ -94,6 +94,7 @@ const AdminDashboard = ({ isAdmin, onClose, gamesList, setGamesList, standings, 
 
   // TRACK ORIGINAL DATA for dirty check
   const originalDataRef = useRef(null);
+  const hasSyncedRef = useRef(false);
   const [isDirty, setIsDirty] = useState(false);
   const [, setAuthError] = useState('');
 
@@ -182,6 +183,33 @@ const AdminDashboard = ({ isAdmin, onClose, gamesList, setGamesList, standings, 
     }
   }, [activeControlId]);
 
+  // Sync existing standings/rankings data once on dashboard open
+  useEffect(() => {
+    if (!(isAdmin && isAuthenticated)) return;
+    if (hasSyncedRef.current) return;
+    hasSyncedRef.current = true;
+    const base = Date.now() * 1000;
+    const rankingGames = new Set(rankings.map(r => r.game));
+    const standingGames = new Set(standings.map(s => s.game));
+    const newRankings = [];
+    standings.forEach((standing, index) => {
+      if (!rankingGames.has(standing.game)) {
+        newRankings.push({ id: base + index, team: 'Campbell eSpartans', game: standing.game, leagueRank: '', leagueName: 'PlayVS', isAlt: standing.isAlt });
+        rankingGames.add(standing.game);
+      }
+    });
+    const newStandings = [];
+    rankings.forEach((ranking, index) => {
+      if (!standingGames.has(ranking.game)) {
+        newStandings.push({ id: base + 10000 + index, team: 'Campbell eSpartans', game: ranking.game, wins: 0, losses: 0, leagueRank: '', leagueName: 'PlayVS', isAlt: ranking.isAlt });
+        standingGames.add(ranking.game);
+      }
+    });
+    if (newRankings.length > 0) setRankings(prev => [...prev, ...newRankings]);
+    if (newStandings.length > 0) setStandings(prev => [...prev, ...newStandings]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAdmin, isAuthenticated]);
+
   const handleLoginSubmit = async (e) => {
     e.preventDefault();
     if (!email || !password) { setErrorMsg('Email and Password required.'); return; }
@@ -267,22 +295,32 @@ const AdminDashboard = ({ isAdmin, onClose, gamesList, setGamesList, standings, 
 
   const handleAddStanding = () => { 
     haptics.selection(); 
-    const newId = Date.now();
+    const newId = Date.now() * 1000;
     setStandings([...standings, { id: newId, team: 'Campbell eSpartans', game: 'Smash Bros', wins: 0, losses: 0, leagueRank: '', leagueName: 'PlayVS', isAlt: false }]); 
+    setRankings([...rankings, { id: newId + 1, team: 'Campbell eSpartans', game: 'Smash Bros', leagueRank: '', leagueName: 'PlayVS', isAlt: false }]);
     if (window.innerWidth < 768) setActiveControlId(newId);
   };
   const updateStanding = (id, field, value) => {
+    if (field === 'game') {
+      const oldGame = standings.find(s => s.id === id)?.game;
+      setRankings(rankings.map(r => r.game === oldGame ? { ...r, game: value } : r));
+    }
     setStandings(standings.map(s => s.id === id ? { ...s, [field]: (field === 'wins' || field === 'losses') ? Number(value) : value } : s));
   };
   const deleteStanding = (id) => { haptics.light(); setStandings(standings.filter(s => s.id !== id)); if (activeControlId === id) setActiveControlId(null); };
 
   const handleAddRanking = () => { 
     haptics.selection(); 
-    const newId = Date.now();
+    const newId = Date.now() * 1000;
     setRankings([...rankings, { id: newId, team: 'Campbell eSpartans', game: 'Smash Bros', leagueRank: '', leagueName: 'PlayVS', isAlt: false }]); 
+    setStandings([...standings, { id: newId + 1, team: 'Campbell eSpartans', game: 'Smash Bros', wins: 0, losses: 0, leagueRank: '', leagueName: 'PlayVS', isAlt: false }]);
     if (window.innerWidth < 768) setActiveControlId(newId);
   };
   const updateRanking = (id, field, value) => {
+    if (field === 'game') {
+      const oldGame = rankings.find(r => r.id === id)?.game;
+      setStandings(standings.map(s => s.game === oldGame ? { ...s, game: value } : s));
+    }
     setRankings(rankings.map(r => r.id === id ? { ...r, [field]: value } : r));
   };
   const deleteRanking = (id) => { haptics.light(); setRankings(rankings.filter(r => r.id !== id)); if (activeControlId === id) setActiveControlId(null); };
