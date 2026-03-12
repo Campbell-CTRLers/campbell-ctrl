@@ -298,7 +298,7 @@ export const GlobalRankingsPanel = ({ standings = [] }) => {
 
       {/* ── Table Board ── */}
       <div className="flex-1 overflow-x-auto custom-scrollbar">
-        <table className="w-full text-left border-collapse min-w-[320px]">
+        <table className="w-full text-left border-collapse">
           <thead className="hidden sm:table-header-group">
             <tr className="border-b border-slate/10">
               <th className="pb-4 font-mono text-[9px] text-slate/30 uppercase tracking-[0.2em] pl-3">Pos</th>
@@ -314,8 +314,8 @@ export const GlobalRankingsPanel = ({ standings = [] }) => {
                   <td className="py-5 pl-3 font-mono text-xs text-slate/20 hidden sm:table-cell">{idx + 1}</td>
                   
                   <td className="py-4 sm:py-5">
-                    <div className="flex items-center gap-4">
-                      <div className="w-11 h-11 rounded-2xl bg-primary/5 flex items-center justify-center border border-slate/10 shrink-0 text-accent group-hover:scale-105 group-hover:shadow-lg group-hover:shadow-accent/5 transition-all duration-500">
+                    <div className="flex items-center gap-2 sm:gap-4">
+                      <div className="w-11 h-11 rounded-2xl bg-primary/5 flex items-center justify-center border border-slate/10 p-1.5 shrink-0 text-accent group-hover:scale-105 group-hover:shadow-lg group-hover:shadow-accent/5 transition-all duration-500">
                         <GameIcon game={team.game} size={24} />
                       </div>
                       <div className="flex flex-col min-w-0">
@@ -328,7 +328,7 @@ export const GlobalRankingsPanel = ({ standings = [] }) => {
                     </div>
                   </td>
 
-                  <td className="py-4 sm:py-5 px-4 text-right sm:text-center">
+                  <td className="py-4 sm:py-5 pl-0.5 sm:px-4 text-right sm:text-center">
                     <div className="flex flex-col items-end sm:items-center">
                       <span className="font-sans font-black text-2xl sm:text-3xl text-red-500 tabular-nums">#{team.leagueRank || '--'}</span>
                       <span className="sm:hidden font-mono text-[8px] text-slate/40 uppercase font-black tracking-tighter mt-0.5">{team.leagueName}</span>

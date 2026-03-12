@@ -6,7 +6,7 @@ import { LiveStandings } from '../components/LiveStandings';
 import { GlobalRankingsPanel } from '../components/Esports/GlobalRankingsPanel';
 import { cn } from '../utils/cn';
 
-const EsportsTab = ({ gamesList, standings }) => {
+const EsportsTab = ({ gamesList, standings, rankings }) => {
   const container = useRef(null);
 
   useEffect(() => {
@@ -19,7 +19,7 @@ const EsportsTab = ({ gamesList, standings }) => {
   }, []);
 
   return (
-    <div ref={container} className="pt-32 pb-24 px-6 md:px-16 max-w-7xl mx-auto min-h-screen">
+    <div ref={container} className="pt-32 pb-24 px-4 sm:px-6 md:px-16 max-w-7xl mx-auto min-h-screen">
       <div className="tab-header mb-16">
         <h1 className="font-sans font-bold text-5xl md:text-7xl text-primary tracking-tighter mb-4">Campbell <span className="text-accent font-drama italic">eSpartans.</span></h1>
         <p className="font-sans text-slate text-lg max-w-2xl">The official PlayVS competitive core of Campbell CTRL. View upcoming schedules, match results, and live team standings across all active rosters.</p>
@@ -27,7 +27,7 @@ const EsportsTab = ({ gamesList, standings }) => {
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch mb-12">
         {/* Full Schedule Feed */}
-        <div className="esports-card lg:col-span-7 bg-background rounded-[2rem] p-8 border border-slate/10 shadow-xl">
+        <div className="esports-card lg:col-span-7 bg-background rounded-[2rem] p-5 sm:p-8 border border-slate/10 shadow-xl">
           <div className="flex items-center gap-3 mb-8 pb-6 border-b border-slate/10">
             <Gamepad2 className="text-accent" size={28} />
             <h2 className="font-sans font-bold text-2xl text-primary">PlayVS Schedule</h2>
@@ -39,7 +39,7 @@ const EsportsTab = ({ gamesList, standings }) => {
                 return (
                   <div key={idx} className="group flex flex-col sm:flex-row sm:items-center justify-between p-5 bg-primary/5 rounded-2xl border border-transparent hover:border-slate/10 transition-colors">
                     <div className="flex items-center gap-4 mb-3 sm:mb-0">
-                      <div className="w-12 h-12 rounded-xl bg-background border border-slate/10 flex items-center justify-center text-accent shadow-sm">
+                      <div className="w-12 h-12 rounded-xl bg-background border border-slate/10 flex items-center justify-center p-1.5 shrink-0 text-accent shadow-sm">
                         <GameIcon game={game.game || game.title} size={24} />
                       </div>
                       <div>
@@ -82,7 +82,7 @@ const EsportsTab = ({ gamesList, standings }) => {
 
       {/* Global Rankings Panel */}
       <div className="esports-card w-full">
-        <GlobalRankingsPanel standings={standings} />
+        <GlobalRankingsPanel standings={rankings} />
       </div>
     </div>
   );

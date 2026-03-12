@@ -57,8 +57,9 @@ const NumberStepper = ({ value, onChange, label, color = 'accent' }) => {
 
 /* ─── GAME OPTIONS ─── */
 const GAME_OPTIONS = [
-  'Super Smash Bros', 'Rocket League', 'Marvel Rivals', 'Madden NFL 25',
-  'Splatoon', 'Mario Kart', 'League of Legends', 'OTHER'
+  "Rocket League", "Smash Bros", "Marvel Rivals", "Splatoon 3",
+  "Street Fighter", "Mario Kart 8 Delux",
+  "Pokémon UNITE", "Madden NFL", "OTHER"
 ];
 const TYPE_OPTIONS = ['PlayVS Rank', 'Scrimmage', 'Tournament', 'Casual', 'OTHER'];
 const LEAGUE_OPTIONS = ['PlayVS', 'Georgia', 'Georgia PlayVS', 'OTHER'];
@@ -67,7 +68,7 @@ const LEAGUE_OPTIONS = ['PlayVS', 'Georgia', 'Georgia PlayVS', 'OTHER'];
 /*  ADMIN DASHBOARD                                      */
 /* ═════════════════════════════════════════════════════ */
 
-const AdminDashboard = ({ isAdmin, onClose, gamesList, setGamesList, standings, setStandings, authenticatedUser, authInitialized }) => {
+const AdminDashboard = ({ isAdmin, onClose, gamesList, setGamesList, standings, setStandings, rankings, setRankings, authenticatedUser, authInitialized }) => {
   const { theme } = useTheme();
   const [isAuthenticated, setIsAuthenticated] = useState(!!authenticatedUser);
   const [email, setEmail] = useState(authenticatedUser?.email || '');
@@ -95,8 +96,8 @@ const AdminDashboard = ({ isAdmin, onClose, gamesList, setGamesList, standings, 
   const originalDataRef = useRef(null);
   const isDirty = useMemo(() => {
     if (!originalDataRef.current) return false;
-    return JSON.stringify(originalDataRef.current) !== JSON.stringify({ gamesList, standings });
-  }, [gamesList, standings]);
+    return JSON.stringify(originalDataRef.current) !== JSON.stringify({ gamesList, standings, rankings });
+  }, [gamesList, standings, rankings]);
 
   // Sync internal state with prop (needed for Firebase init on refresh)
   useEffect(() => {
@@ -127,7 +128,7 @@ const AdminDashboard = ({ isAdmin, onClose, gamesList, setGamesList, standings, 
   useEffect(() => {
     if (isAdmin && isAuthenticated && !saveSuccess && originalDataRef.current) return;
     if (isAdmin && isAuthenticated) {
-      originalDataRef.current = JSON.parse(JSON.stringify({ gamesList, standings }));
+      originalDataRef.current = JSON.parse(JSON.stringify({ gamesList, standings, rankings }));
     }
   }, [isAdmin, isAuthenticated, saveSuccess]);
 
@@ -248,7 +249,7 @@ const AdminDashboard = ({ isAdmin, onClose, gamesList, setGamesList, standings, 
     try {
       haptics.medium();
       const batch = writeBatch(db);
-      batch.set(doc(db, "global", "data"), { gamesList, standings });
+      batch.set(doc(db, "global", "data"), { gamesList, standings, rankings });
       await batch.commit();
       haptics.success();
       confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 }, colors: ['#0038A8', '#FFFFFF', '#000000'] });
@@ -281,6 +282,17 @@ const AdminDashboard = ({ isAdmin, onClose, gamesList, setGamesList, standings, 
   };
   const deleteStanding = (id) => { haptics.light(); setStandings(standings.filter(s => s.id !== id)); if (activeControlId === id) setActiveControlId(null); };
 
+  const handleAddRanking = () => { 
+    haptics.selection(); 
+    const newId = Date.now();
+    setRankings([...rankings, { id: newId, team: 'Campbell eSpartans', game: 'Super Smash Bros', leagueRank: '', leagueName: 'PlayVS', isAlt: false }]); 
+    if (window.innerWidth < 768) setActiveControlId(newId);
+  };
+  const updateRanking = (id, field, value) => {
+    setRankings(rankings.map(r => r.id === id ? { ...r, [field]: value } : r));
+  };
+  const deleteRanking = (id) => { haptics.light(); setRankings(rankings.filter(r => r.id !== id)); if (activeControlId === id) setActiveControlId(null); };
+
   const handleCloseAttempt = () => {
     haptics.rigid();
     if (isDirty) {
@@ -309,8 +321,8 @@ const AdminDashboard = ({ isAdmin, onClose, gamesList, setGamesList, standings, 
 
   const activeControlItem = useMemo(() => {
     if (!activeControlId) return null;
-    return gamesList.find(g => g.id === activeControlId) || standings.find(s => s.id === activeControlId);
-  }, [activeControlId, gamesList, standings]);
+    return gamesList.find(g => g.id === activeControlId) || standings.find(s => s.id === activeControlId) || rankings.find(r => r.id === activeControlId);
+  }, [activeControlId, gamesList, standings, rankings]);
 
   if (!isAdmin) return null;
 
@@ -464,7 +476,10 @@ const AdminDashboard = ({ isAdmin, onClose, gamesList, setGamesList, standings, 
                           <GameIcon game={g.game} size={22} />
                         </div>
                         <div className="flex flex-col min-w-0">
-                          <span className="font-sans font-black text-sm text-primary uppercase italic truncate">{g.game}</span>
+                          <div className="flex items-center gap-2">
+                             <span className="font-sans font-black text-sm text-primary uppercase italic truncate">{g.game}</span>
+                             {g.isAlt && <span className="bg-blue-500 text-white text-[8px] px-1 rounded-sm font-black leading-none py-0.5 shrink-0">ALT</span>}
+                          </div>
                           <span className="font-mono text-[9px] text-slate/40 tracking-widest uppercase truncate mt-0.5">VS {g.opponent}</span>
                         </div>
                       </div>
@@ -518,18 +533,17 @@ const AdminDashboard = ({ isAdmin, onClose, gamesList, setGamesList, standings, 
                           <GameIcon game={s.game} size={22} />
                         </div>
                         <div className="flex flex-col min-w-0">
-                          <span className="font-sans font-black text-sm text-primary uppercase italic truncate">{s.team}</span>
-                          <span className="font-mono text-[9px] text-slate/40 tracking-widest uppercase truncate mt-0.5">{s.game}</span>
+                          <div className="flex items-center gap-2">
+                             <span className="font-sans font-black text-sm text-primary uppercase italic truncate">{s.game}</span>
+                             {s.isAlt && <span className="bg-blue-500 text-white text-[8px] px-1 rounded-sm font-black leading-none py-0.5 shrink-0">ALT</span>}
+                          </div>
                         </div>
                       </div>
 
                       {/* Desktop Only Edit Fields */}
                       <div className="hidden sm:flex items-center gap-4 flex-[2]">
-                        <div className="flex-1 max-w-[180px]">
+                        <div className="flex-1 max-w-[280px]">
                            <CustomDropdown value={s.game} onChange={(v) => updateStanding(s.id, 'game', v)} options={GAME_OPTIONS} placeholder="Game" isEditable />
-                        </div>
-                        <div className="flex-1 max-w-[180px]">
-                           <AnimatedInput value={s.team} onChange={(e) => updateStanding(s.id, 'team', e.target.value)} placeholder="Team Name" className="h-10 rounded-xl pl-5" mono={false} tracking="normal" />
                         </div>
                         <div className="flex items-center gap-4 ml-auto">
                           <NumberStepper color="green" value={s.wins} onChange={(e) => updateStanding(s.id, 'wins', e.target.value)} />
@@ -555,7 +569,7 @@ const AdminDashboard = ({ isAdmin, onClose, gamesList, setGamesList, standings, 
               <div className="flex flex-col gap-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
                 <div className="flex items-center justify-between">
                   <h3 className="font-sans font-black text-lg sm:text-2xl text-primary italic uppercase tracking-tighter">Global Rankings</h3>
-                  <button onClick={handleAddStanding} className="text-accent bg-accent/5 px-4 py-2 rounded-xl text-[10px] font-mono font-black border border-accent/20 flex items-center gap-2 hover:bg-accent hover:text-white transition-all">
+                  <button onClick={handleAddRanking} className="text-accent bg-accent/5 px-4 py-2 rounded-xl text-[10px] font-mono font-black border border-accent/20 flex items-center gap-2 hover:bg-accent hover:text-white transition-all">
                     <Plus size={14} /> ADD TEAM
                   </button>
                 </div>
@@ -572,7 +586,7 @@ const AdminDashboard = ({ isAdmin, onClose, gamesList, setGamesList, standings, 
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate/5">
-                      {standings.map(s => (
+                      {rankings.map(s => (
                         <tr key={s.id} className="group hover:bg-primary/[0.02] transition-all">
                           <td className="p-4 w-12">
                              <div className="w-10 h-10 rounded-xl bg-primary/5 flex items-center justify-center border border-slate/10 overflow-hidden">
@@ -580,19 +594,19 @@ const AdminDashboard = ({ isAdmin, onClose, gamesList, setGamesList, standings, 
                              </div>
                           </td>
                            <td className="p-4 min-w-[200px]">
-                              <CustomDropdown value={s.game} onChange={(v) => updateStanding(s.id, 'game', v)} options={GAME_OPTIONS} placeholder="Game" isEditable />
+                              <CustomDropdown value={s.game} onChange={(v) => updateRanking(s.id, 'game', v)} options={GAME_OPTIONS} placeholder="Game" isEditable />
                            </td>
                            <td className="p-4 w-28">
                               <div className="relative">
                                 <span className="absolute left-3 top-1/2 -translate-y-1/2 font-mono text-xs text-red-500 font-bold">#</span>
-                                <AnimatedInput value={s.leagueRank} onChange={(e) => updateStanding(s.id, 'leagueRank', e.target.value)} className="pl-6 h-10 w-full text-center" placeholder="1" />
+                                <AnimatedInput value={s.leagueRank} onChange={(e) => updateRanking(s.id, 'leagueRank', e.target.value)} className="pl-6 h-10 w-full text-center" placeholder="1" />
                               </div>
                            </td>
                            <td className="p-4">
-                              <CustomDropdown value={s.leagueName} onChange={(v) => updateStanding(s.id, 'leagueName', v)} options={LEAGUE_OPTIONS} placeholder="League" isEditable />
+                              <CustomDropdown value={s.leagueName} onChange={(v) => updateRanking(s.id, 'leagueName', v)} options={LEAGUE_OPTIONS} placeholder="League" isEditable />
                            </td>
                            <td className="p-4 w-16 text-right">
-                              <button onClick={() => deleteStanding(s.id)} className="p-2 text-slate/20 hover:text-red-500 hover:bg-red-500/10 rounded-xl transition-all opacity-0 group-hover:opacity-100"><Trash2 size={16} /></button>
+                              <button onClick={() => deleteRanking(s.id)} className="p-2 text-slate/20 hover:text-red-500 hover:bg-red-500/10 rounded-xl transition-all opacity-0 group-hover:opacity-100"><Trash2 size={16} /></button>
                            </td>
                         </tr>
                       ))}
@@ -602,7 +616,7 @@ const AdminDashboard = ({ isAdmin, onClose, gamesList, setGamesList, standings, 
 
                 {/* Mobile Ranking Cards */}
                 <div className="sm:hidden flex flex-col gap-3">
-                   {standings.map(s => (
+                   {rankings.map(s => (
                       <div key={s.id} onClick={() => setActiveControlId(s.id)} className="group flex items-center justify-between bg-slate/5 p-4 rounded-3xl border border-slate/10">
                          <div className="flex items-center gap-4">
                             <div className="w-10 h-10 rounded-2xl bg-primary/5 flex items-center justify-center border border-slate/10 overflow-hidden shrink-0">
@@ -610,7 +624,10 @@ const AdminDashboard = ({ isAdmin, onClose, gamesList, setGamesList, standings, 
                             </div>
                             <span className="font-sans font-black text-2xl text-red-500 min-w-[1.5rem] tracking-tighter">#{s.leagueRank || '--'}</span>
                             <div className="flex flex-col min-w-0">
-                               <span className="font-sans font-black text-sm text-primary italic uppercase leading-none truncate">{s.game}</span>
+                               <div className="flex items-center gap-2">
+                                  <span className="font-sans font-black text-sm text-primary italic uppercase leading-none truncate">{s.game}</span>
+                                  {s.isAlt && <span className="bg-blue-500 text-white text-[8px] px-1 rounded-sm font-black leading-none py-0.5 shrink-0">ALT</span>}
+                               </div>
                                <span className="font-mono text-[9px] text-slate/40 mt-1 uppercase tracking-widest truncate">{s.leagueName}</span>
                             </div>
                          </div>
@@ -682,7 +699,7 @@ const AdminDashboard = ({ isAdmin, onClose, gamesList, setGamesList, standings, 
                <div className="flex flex-col">
                   <span className="font-mono text-[10px] text-accent font-black uppercase tracking-widest leading-none">Control Sheet</span>
                   <h3 className="font-sans font-black text-2xl italic uppercase tracking-tighter leading-tight mt-1 truncate max-w-[240px]">
-                    {activeControlItem.team || activeControlItem.game}
+                    {activeControlItem.game || activeControlItem.opponent}
                   </h3>
                </div>
                <button onClick={() => { haptics.light(); setActiveControlId(null); }} className="w-10 h-10 rounded-2xl bg-slate/5 flex items-center justify-center text-slate">
@@ -720,11 +737,7 @@ const AdminDashboard = ({ isAdmin, onClose, gamesList, setGamesList, standings, 
                ) : adminTab === 'standings' ? (
                  <>
                     <div className="flex flex-col gap-1.5">
-                       <label className="font-mono text-[9px] text-slate/40 uppercase pl-1">Team Identity</label>
-                       <AnimatedInput value={activeControlItem.team} onChange={(e) => updateStanding(activeControlId, 'team', e.target.value)} placeholder="Team Name" className="h-12 rounded-2xl bg-slate/5 border-none" mono={false} tracking="normal" />
-                    </div>
-                    <div className="flex flex-col gap-1.5">
-                       <label className="font-mono text-[9px] text-slate/40 uppercase pl-1">Subject Game</label>
+                       <label className="font-mono text-[9px] text-slate/40 uppercase pl-1">Team Identity (Game)</label>
                        <CustomDropdown value={activeControlItem.game} onChange={(v) => updateStanding(activeControlId, 'game', v)} options={GAME_OPTIONS} placeholder="Game" isEditable />
                     </div>
                     <div className="grid grid-cols-2 gap-10 py-2">
@@ -736,18 +749,18 @@ const AdminDashboard = ({ isAdmin, onClose, gamesList, setGamesList, standings, 
                  <>
                     <div className="flex flex-col gap-1.5">
                        <label className="font-mono text-[9px] text-slate/40 uppercase pl-1">Game Selection</label>
-                       <CustomDropdown value={activeControlItem.game} onChange={(v) => updateStanding(activeControlId, 'game', v)} options={GAME_OPTIONS} placeholder="Game" isEditable />
+                       <CustomDropdown value={activeControlItem.game} onChange={(v) => updateRanking(activeControlId, 'game', v)} options={GAME_OPTIONS} placeholder="Game" isEditable />
                     </div>
                     <div className="flex flex-col gap-1.5">
                        <label className="font-mono text-[9px] text-slate/40 uppercase pl-1">National / Regional Rank</label>
                        <div className="relative">
                           <span className="absolute left-4 top-1/2 -translate-y-1/2 font-sans font-black text-red-500 text-lg z-10 leading-none">#</span>
-                           <AnimatedInput value={activeControlItem.leagueRank} onChange={(e) => updateStanding(activeControlId, 'leagueRank', e.target.value)} placeholder="1" className="pl-14 h-12 rounded-2xl bg-slate/5 border-none font-black text-lg focus:ring-0" />
+                           <AnimatedInput value={activeControlItem.leagueRank} onChange={(e) => updateRanking(activeControlId, 'leagueRank', e.target.value)} placeholder="1" className="pl-14 h-12 rounded-2xl bg-slate/5 border-none font-black text-lg focus:ring-0" />
                        </div>
                     </div>
                     <div className="flex flex-col gap-1.5">
                        <label className="font-mono text-[9px] text-slate/40 uppercase pl-1">League Authority</label>
-                       <CustomDropdown value={activeControlItem.leagueName} onChange={(v) => updateStanding(activeControlId, 'leagueName', v)} options={LEAGUE_OPTIONS} placeholder="League" isEditable />
+                       <CustomDropdown value={activeControlItem.leagueName} onChange={(v) => updateRanking(activeControlId, 'leagueName', v)} options={LEAGUE_OPTIONS} placeholder="League" isEditable />
                     </div>
                  </>
                )}
@@ -762,7 +775,8 @@ const AdminDashboard = ({ isAdmin, onClose, gamesList, setGamesList, standings, 
                     onClick={() => {
                         haptics.selection();
                         if (adminTab === 'schedule') updateGame(activeControlId, 'isAlt', !activeControlItem.isAlt);
-                        else updateStanding(activeControlId, 'isAlt', !activeControlItem.isAlt);
+                        else if (adminTab === 'standings') updateStanding(activeControlId, 'isAlt', !activeControlItem.isAlt);
+                        else updateRanking(activeControlId, 'isAlt', !activeControlItem.isAlt);
                     }} 
                     className={cn(
                         "px-6 py-2.5 rounded-xl font-mono text-xs font-black border transition-all shadow-sm",
@@ -775,7 +789,7 @@ const AdminDashboard = ({ isAdmin, onClose, gamesList, setGamesList, standings, 
 
                <div className="grid grid-cols-2 gap-4 mt-4">
                   <button 
-                    onClick={() => { haptics.rigid(); if (adminTab === 'schedule') deleteGame(activeControlId); else deleteStanding(activeControlId); }}
+                    onClick={() => { haptics.rigid(); if (adminTab === 'schedule') deleteGame(activeControlId); else if (adminTab === "standings") deleteStanding(activeControlId); else deleteRanking(activeControlId); }}
                     className="flex-1 bg-red-500/5 text-red-500 border border-red-500/10 font-black py-4 rounded-2xl flex items-center justify-center gap-2 text-xs uppercase italic tracking-tighter"
                   >
                     <Trash2 size={16} /> Delete Record

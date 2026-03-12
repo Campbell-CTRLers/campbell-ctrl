@@ -90,6 +90,7 @@ function AppInner() {
   const [authInitialized, setAuthInitialized] = useState(false);
   const [gamesList, setGamesList] = useState([]);
   const [standings, setStandings] = useState([]);
+  const [rankings, setRankings] = useState([]);
 
 // ─── AUTH & DATA LISTENERS ───────────────────────────────────────────
 
@@ -138,6 +139,7 @@ function AppInner() {
 
         if (data.gamesList) setGamesList(filteredGames);
         if (data.standings) setStandings(data.standings);
+        if (data.rankings) setRankings(data.rankings);
       }
     });
     return () => unsub();
@@ -155,7 +157,7 @@ function AppInner() {
       <main id="main-content">
         <Suspense fallback={null}>
           {currentTab === 'home' && <HomeTab gamesList={gamesList} standings={standings} />}
-          {currentTab === 'esports' && <EsportsTab gamesList={gamesList} standings={standings} />}
+          {currentTab === 'esports' && <EsportsTab gamesList={gamesList} standings={standings} rankings={rankings} />}
           {currentTab === 'meetings' && <MeetingsTab />}
           {currentTab === 'legal' && <LegalTab />}
         </Suspense>
@@ -170,6 +172,8 @@ function AppInner() {
         setGamesList={setGamesList}
         standings={standings}
         setStandings={setStandings}
+        rankings={rankings}
+        setRankings={setRankings}
         authenticatedUser={authenticatedUser}
         authInitialized={authInitialized}
       />

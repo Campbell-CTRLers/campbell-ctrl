@@ -21,8 +21,8 @@ export const formatGameDate = (dateStr, timeStr) => {
 // eslint-disable-next-line react-refresh/only-export-components
 export const GAME_LIST = [
   "Rocket League", "Smash Bros", "Marvel Rivals", "Splatoon 3",
-  "Street Fighter 6", "Mario Kart 8 Delux", "Smash Bros ALT",
-  "Pokémon UNITE", "Madden NFL 26", "Madden NFL 26 ALT"
+  "Street Fighter", "Mario Kart 8 Delux",
+  "Pokémon UNITE", "Madden NFL"
 ];
 
 // Icon file mapping — maps game name fragments to locally stored SteamGridDB PNGs

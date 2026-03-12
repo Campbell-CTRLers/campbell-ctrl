@@ -11,7 +11,7 @@ export function LiveStandings({ standings, fullHeight }) {
   });
 
   return (
-    <div className={cn("bg-background rounded-[2rem] p-8 border border-slate/10 shadow-xl flex flex-col group", fullHeight ? "h-full" : "h-[380px]")}>
+    <div className={cn("bg-background rounded-[2rem] p-5 sm:p-8 border border-slate/10 shadow-xl flex flex-col group", fullHeight ? "h-full" : "h-[380px]")}>
       <div className="flex justify-between items-start mb-6">
         <div>
           <h3 className="font-display font-bold text-2xl text-primary mb-2 tracking-tight">CTRL Standings</h3>
@@ -24,12 +24,12 @@ export function LiveStandings({ standings, fullHeight }) {
           <div key={team.id} className="bg-primary/5 rounded-xl p-3 flex items-center transition-transform hover:scale-[1.04] hover:shadow-lg hover:bg-primary/10">
             <div className="flex items-center gap-3 flex-1 min-w-0">
               <span className="font-mono text-slate text-xs opacity-50 w-4 shrink-0">{idx + 1}.</span>
-              <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-slate/10 flex items-center justify-center shrink-0">
-                <GameIcon game={team.team} size={20} />
+              <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-slate/10 flex items-center justify-center p-1.5 shrink-0">
+                <GameIcon game={team.game} size={20} />
               </div>
               <div className="flex flex-col min-w-0">
                 <span className="font-roboto font-semibold text-primary text-sm truncate flex items-center gap-2 transition-colors">
-                  {team.team}
+                  {team.game}
                   {team.isAlt && (
                     <span className="text-[9px] font-mono font-bold bg-blue-500/10 text-blue-600 px-1.5 py-0.5 rounded-md uppercase tracking-tighter shadow-sm border border-blue-500/10">ALT</span>
                   )}
