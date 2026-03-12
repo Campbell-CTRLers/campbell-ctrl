@@ -382,6 +382,8 @@ export const CustomDropdown = ({ value, onChange, options, placeholder, isEditab
                   onChange={(e) => setCustomValue(e.target.value)}
                   placeholder={`Custom ${placeholder}...`}
                   className="border border-slate/20 w-full h-9 rounded-xl text-sm"
+                  mono={false}
+                  tracking="normal"
                 />
                 <button
                   type="submit"

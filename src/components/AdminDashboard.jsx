@@ -9,6 +9,7 @@ import { useHaptics } from '../hooks/useHaptics';
 import { cn } from '../utils/cn';
 import { CustomAnimatedDatePicker, CustomTimePicker, CustomDropdown } from '../ui/FormControls';
 import AnimatedInput from '../ui/AnimatedInput';
+import { GameIcon } from './SharedUI';
 import confetti from 'canvas-confetti';
 
 /* ─── Custom Number Stepper ─── */
@@ -459,8 +460,8 @@ const AdminDashboard = ({ isAdmin, onClose, gamesList, setGamesList, standings, 
                     >
                       {/* Summary View (Always visible) */}
                       <div className="flex items-center gap-4 flex-1 min-w-0">
-                        <div className="w-10 h-10 rounded-2xl bg-primary/5 flex items-center justify-center border border-slate/10 shrink-0 text-accent group-hover:scale-110 transition-transform">
-                          <Settings size={18} />
+                        <div className="w-10 h-10 rounded-2xl bg-primary/5 flex items-center justify-center border border-slate/10 shrink-0 group-hover:scale-110 transition-transform overflow-hidden">
+                          <GameIcon game={g.game} size={22} />
                         </div>
                         <div className="flex flex-col min-w-0">
                           <span className="font-sans font-black text-sm text-primary uppercase italic truncate">{g.game}</span>
@@ -513,7 +514,9 @@ const AdminDashboard = ({ isAdmin, onClose, gamesList, setGamesList, standings, 
                       className="group flex items-center gap-4 bg-slate/5 p-4 rounded-3xl border border-slate/10 hover:border-accent/30 transition-all cursor-pointer sm:cursor-default"
                     >
                       <div className="flex items-center gap-4 flex-1">
-                        <div className="hidden sm:flex w-10 h-10 rounded-2xl bg-primary/5 items-center justify-center border border-slate/10 font-mono text-[10px] text-slate/30 tracking-tight">STN</div>
+                        <div className="w-10 h-10 rounded-2xl bg-primary/5 flex items-center justify-center border border-slate/10 group-hover:scale-110 transition-transform overflow-hidden shrink-0">
+                          <GameIcon game={s.game} size={22} />
+                        </div>
                         <div className="flex flex-col min-w-0">
                           <span className="font-sans font-black text-sm text-primary uppercase italic truncate">{s.team}</span>
                           <span className="font-mono text-[9px] text-slate/40 tracking-widest uppercase truncate mt-0.5">{s.game}</span>
@@ -522,7 +525,7 @@ const AdminDashboard = ({ isAdmin, onClose, gamesList, setGamesList, standings, 
 
                       {/* Desktop Only Edit Fields */}
                       <div className="hidden sm:flex items-center gap-6">
-                        <AnimatedInput value={s.team} onChange={(e) => updateStanding(s.id, 'team', e.target.value)} placeholder="Team Name" className="w-[180px] h-10" />
+                        <AnimatedInput value={s.team} onChange={(e) => updateStanding(s.id, 'team', e.target.value)} placeholder="Team Name" className="w-[180px] h-10" mono={false} tracking="normal" />
                         <div className="flex items-center gap-6">
                           <NumberStepper color="green" value={s.wins} onChange={(e) => updateStanding(s.id, 'wins', e.target.value)} />
                           <NumberStepper color="red" value={s.losses} onChange={(e) => updateStanding(s.id, 'losses', e.target.value)} />
@@ -556,7 +559,8 @@ const AdminDashboard = ({ isAdmin, onClose, gamesList, setGamesList, standings, 
                   <table className="w-full text-left border-collapse">
                     <thead className="bg-[#0b0c10]/40 border-b border-slate/10">
                       <tr>
-                        <th className="p-4 font-mono text-[9px] text-slate/40 uppercase tracking-[0.2em] italic">Record</th>
+                        <th className="p-4 w-12">&nbsp;</th>
+                        <th className="p-4 font-mono text-[9px] text-slate/40 uppercase tracking-[0.2em] italic">Game</th>
                         <th className="p-4 font-mono text-[9px] text-slate/40 uppercase tracking-[0.2em] italic">Rank</th>
                         <th className="p-4 font-mono text-[9px] text-slate/40 uppercase tracking-[0.2em] italic">League</th>
                         <th className="p-4 text-center">&nbsp;</th>
@@ -565,6 +569,11 @@ const AdminDashboard = ({ isAdmin, onClose, gamesList, setGamesList, standings, 
                     <tbody className="divide-y divide-slate/5">
                       {standings.map(s => (
                         <tr key={s.id} className="group hover:bg-primary/[0.02] transition-all">
+                          <td className="p-4 w-12">
+                             <div className="w-10 h-10 rounded-xl bg-primary/5 flex items-center justify-center border border-slate/10 overflow-hidden">
+                                <GameIcon game={s.game} size={20} />
+                             </div>
+                          </td>
                            <td className="p-4 min-w-[200px]">
                               <CustomDropdown value={s.game} onChange={(v) => updateStanding(s.id, 'game', v)} options={GAME_OPTIONS} placeholder="Game" isEditable />
                            </td>
@@ -591,10 +600,13 @@ const AdminDashboard = ({ isAdmin, onClose, gamesList, setGamesList, standings, 
                    {standings.map(s => (
                       <div key={s.id} onClick={() => setActiveControlId(s.id)} className="group flex items-center justify-between bg-slate/5 p-4 rounded-3xl border border-slate/10">
                          <div className="flex items-center gap-4">
-                            <span className="font-sans font-black text-2xl text-red-500">#{s.leagueRank || '--'}</span>
-                            <div className="flex flex-col">
-                               <span className="font-sans font-black text-sm text-primary italic uppercase leading-none">{s.game}</span>
-                               <span className="font-mono text-[9px] text-slate/40 mt-1 uppercase tracking-widest">{s.leagueName}</span>
+                            <div className="w-10 h-10 rounded-2xl bg-primary/5 flex items-center justify-center border border-slate/10 overflow-hidden shrink-0">
+                               <GameIcon game={s.game} size={22} />
+                            </div>
+                            <span className="font-sans font-black text-2xl text-red-500 min-w-[1.5rem] tracking-tighter">#{s.leagueRank || '--'}</span>
+                            <div className="flex flex-col min-w-0">
+                               <span className="font-sans font-black text-sm text-primary italic uppercase leading-none truncate">{s.game}</span>
+                               <span className="font-mono text-[9px] text-slate/40 mt-1 uppercase tracking-widest truncate">{s.leagueName}</span>
                             </div>
                          </div>
                          <ChevronRight size={18} className="text-slate/20" />
@@ -683,7 +695,7 @@ const AdminDashboard = ({ isAdmin, onClose, gamesList, setGamesList, standings, 
                     </div>
                     <div className="flex flex-col gap-1.5">
                        <label className="font-mono text-[9px] text-slate/40 uppercase pl-1">Rival / Opponent</label>
-                       <AnimatedInput value={activeControlItem.opponent} onChange={(e) => updateGame(activeControlId, 'opponent', e.target.value)} placeholder="Opponent Name" className="h-12 rounded-2xl bg-slate/5 border-none" />
+                       <AnimatedInput value={activeControlItem.opponent} onChange={(e) => updateGame(activeControlId, 'opponent', e.target.value)} placeholder="Opponent Name" className="h-12 rounded-2xl bg-slate/5 border-none" mono={false} tracking="normal" />
                     </div>
                     <div className="grid grid-cols-2 gap-3">
                        <div className="flex flex-col gap-1.5">
@@ -704,7 +716,7 @@ const AdminDashboard = ({ isAdmin, onClose, gamesList, setGamesList, standings, 
                  <>
                     <div className="flex flex-col gap-1.5">
                        <label className="font-mono text-[9px] text-slate/40 uppercase pl-1">Team Identity</label>
-                       <AnimatedInput value={activeControlItem.team} onChange={(e) => updateStanding(activeControlId, 'team', e.target.value)} placeholder="Team Name" className="h-12 rounded-2xl bg-slate/5 border-none" />
+                       <AnimatedInput value={activeControlItem.team} onChange={(e) => updateStanding(activeControlId, 'team', e.target.value)} placeholder="Team Name" className="h-12 rounded-2xl bg-slate/5 border-none" mono={false} tracking="normal" />
                     </div>
                     <div className="flex flex-col gap-1.5">
                        <label className="font-mono text-[9px] text-slate/40 uppercase pl-1">Subject Game</label>
