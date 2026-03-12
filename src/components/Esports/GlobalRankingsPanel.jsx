@@ -32,16 +32,16 @@ const simplifyGameName = (name) => {
 };
 
 const SEED_DATA = [
-  { id: '1',  game: 'Rocket League',    leagueName: 'Georgia PlayVS', leagueRank: '1'  },
+  { id: '1',  game: 'Rocket League',    leagueName: 'GHSA',      leagueRank: '1'  },
   { id: '2',  game: 'Smash Bros',       leagueName: 'GEF / PlayVS',  leagueRank: '4'  },
   { id: '3',  game: 'Marvel Rivals',    leagueName: 'PlayVS',        leagueRank: '2'  },
   { id: '4',  game: 'Splatoon 3',       leagueName: 'PlayVS',        leagueRank: '8'  },
   { id: '5',  game: 'Street Fighter 6', leagueName: 'PlayVS',        leagueRank: '12' },
-  { id: '6',  game: 'Mario Kart 8',     leagueName: 'Georgia',       leagueRank: '3'  },
+  { id: '6',  game: 'Mario Kart 8',     leagueName: 'GHSA',          leagueRank: '3'  },
   { id: '7',  game: 'Smash Bros',       leagueName: 'PlayVS',        leagueRank: '1', isAlt: true },
-  { id: '8',  game: 'Pokémon UNITE',    leagueName: 'Georgia PlayVS',leagueRank: '6'  },
+  { id: '8',  game: 'Pokémon UNITE',    leagueName: 'GHSA',          leagueRank: '6'  },
   { id: '9',  game: 'Madden NFL 26',    leagueName: 'PlayVS',        leagueRank: '5'  },
-  { id: '10', game: 'Madden NFL 26',    leagueName: 'Georgia',       leagueRank: '2', isAlt: true },
+  { id: '10', game: 'Madden NFL 26',    leagueName: 'GHSA',          leagueRank: '2', isAlt: true },
 ];
 
 /**

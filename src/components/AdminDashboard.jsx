@@ -62,7 +62,7 @@ const GAME_OPTIONS = [
   "Pokémon UNITE", "Madden NFL", "OTHER"
 ];
 const TYPE_OPTIONS = ['PlayVS Rank', 'Scrimmage', 'Tournament', 'Casual', 'OTHER'];
-const LEAGUE_OPTIONS = ['PlayVS', 'Georgia', 'Georgia PlayVS', 'OTHER'];
+const LEAGUE_OPTIONS = ['PlayVS', 'GHSA', 'OTHER'];
 
 /* ═════════════════════════════════════════════════════ */
 /*  ADMIN DASHBOARD                                      */
@@ -281,6 +281,10 @@ const AdminDashboard = ({ isAdmin, onClose, gamesList, setGamesList, standings, 
       const oldGame = standings.find(s => s.id === id)?.game;
       setRankings(rankings.map(r => r.game === oldGame ? { ...r, game: value } : r));
     }
+    if (field === 'leagueName') {
+      const game = standings.find(s => s.id === id)?.game;
+      setRankings(rankings.map(r => r.game === game ? { ...r, leagueName: value } : r));
+    }
     setStandings(standings.map(s => s.id === id ? { ...s, [field]: (field === 'wins' || field === 'losses') ? Number(value) : value } : s));
   };
   const deleteStanding = (id) => { haptics.light(); setStandings(standings.filter(s => s.id !== id)); if (activeControlId === id) setActiveControlId(null); };
@@ -296,6 +300,10 @@ const AdminDashboard = ({ isAdmin, onClose, gamesList, setGamesList, standings, 
     if (field === 'game') {
       const oldGame = rankings.find(r => r.id === id)?.game;
       setStandings(standings.map(s => s.game === oldGame ? { ...s, game: value } : s));
+    }
+    if (field === 'leagueName') {
+      const game = rankings.find(r => r.id === id)?.game;
+      setStandings(standings.map(s => s.game === game ? { ...s, leagueName: value } : s));
     }
     setRankings(rankings.map(r => r.id === id ? { ...r, [field]: value } : r));
   };
@@ -538,8 +546,11 @@ const AdminDashboard = ({ isAdmin, onClose, gamesList, setGamesList, standings, 
 
                       {/* Desktop Only Edit Fields */}
                       <div className="hidden sm:flex items-center gap-4 flex-[2]">
-                        <div className="flex-1 max-w-[280px]">
+                        <div className="flex-1 max-w-[200px]">
                            <CustomDropdown value={s.game} onChange={(v) => updateStanding(s.id, 'game', v)} options={GAME_OPTIONS} placeholder="Game" isEditable />
+                        </div>
+                        <div className="w-[130px]">
+                           <CustomDropdown value={s.leagueName} onChange={(v) => updateStanding(s.id, 'leagueName', v)} options={LEAGUE_OPTIONS} placeholder="League" isEditable />
                         </div>
                         <div className="flex items-center gap-4 ml-auto">
                           <NumberStepper color="green" value={s.wins} onChange={(e) => updateStanding(s.id, 'wins', e.target.value)} />
@@ -735,6 +746,10 @@ const AdminDashboard = ({ isAdmin, onClose, gamesList, setGamesList, standings, 
                     <div className="flex flex-col gap-1.5">
                        <label className="font-mono text-[9px] text-slate/40 uppercase pl-1">Team Identity (Game)</label>
                        <CustomDropdown value={activeControlItem.game} onChange={(v) => updateStanding(activeControlId, 'game', v)} options={GAME_OPTIONS} placeholder="Game" isEditable />
+                    </div>
+                    <div className="flex flex-col gap-1.5">
+                       <label className="font-mono text-[9px] text-slate/40 uppercase pl-1">League Authority</label>
+                       <CustomDropdown value={activeControlItem.leagueName} onChange={(v) => updateStanding(activeControlId, 'leagueName', v)} options={LEAGUE_OPTIONS} placeholder="League" isEditable />
                     </div>
                     <div className="grid grid-cols-2 gap-10 py-2">
                        <NumberStepper label="Victories" color="green" value={activeControlItem.wins} onChange={(e) => updateStanding(activeControlId, 'wins', e.target.value)} />
