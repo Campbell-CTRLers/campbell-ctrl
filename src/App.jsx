@@ -23,7 +23,7 @@ const LegalTab = lazy(() => import('./pages/LegalTab'));
 
 gsap.registerPlugin(ScrollTrigger, ScrollToPlugin);
 
-
+const VALID_TABS = ['home', 'esports', 'meetings', 'legal', 'admin'];
 
 // Inner component so it can use the useMobile hook (needs MobileProvider above)
 function AppInner() {
@@ -31,8 +31,7 @@ function AppInner() {
 
   const getInitialTab = () => {
     const path = window.location.pathname.replace('/', '').toLowerCase();
-    const validTabs = ['home', 'esports', 'meetings', 'legal', 'admin'];
-    return validTabs.includes(path) ? path : 'home';
+    return VALID_TABS.includes(path) ? path : 'home';
   };
 
   const [currentTab, setCurrentTab] = useState(getInitialTab);
@@ -78,8 +77,7 @@ function AppInner() {
 
     const handlePopState = () => {
       const path = window.location.pathname.replace('/', '').toLowerCase() || 'home';
-      const validTabs = ['home', 'esports', 'meetings', 'legal', 'admin'];
-      const resolvedPath = validTabs.includes(path) ? path : 'home';
+      const resolvedPath = VALID_TABS.includes(path) ? path : 'home';
       if (resolvedPath !== currentTab) {
         handleTabChange(resolvedPath, true);
       }
