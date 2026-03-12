@@ -58,7 +58,7 @@ const NumberStepper = ({ value, onChange, label, color = 'accent' }) => {
 /* ─── GAME OPTIONS ─── */
 const GAME_OPTIONS = [
   "Rocket League", "Smash Bros", "Marvel Rivals", "Splatoon 3",
-  "Street Fighter", "Mario Kart 8 Delux",
+  "Street Fighter", "Mario Kart 8 Deluxe",
   "Pokémon UNITE", "Madden NFL", "OTHER"
 ];
 const TYPE_OPTIONS = ['PlayVS Rank', 'Scrimmage', 'Tournament', 'Casual', 'OTHER'];
