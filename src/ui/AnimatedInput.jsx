@@ -10,7 +10,7 @@ const InlineCaret = ({ error }) => (
   </span>
 );
 
-export default function AnimatedInput({ value, onChange, placeholder, type = 'text', className, error }) {
+export default function AnimatedInput({ value, onChange, placeholder, type = 'text', className, error, mono = true, tracking = 'wider' }) {
   const inputRef = useRef(null);
   const scrollContainer = useRef(null);
 
@@ -36,6 +36,8 @@ export default function AnimatedInput({ value, onChange, placeholder, type = 'te
     syncScroll();
   };
 
+  const trackingClass = tracking === 'widest' ? 'tracking-[0.15em]' : tracking === 'wider' ? 'tracking-wider' : tracking === 'tight' ? 'tracking-tight' : 'tracking-normal';
+
   // Selection state is kept current by event handlers (onFocus/onClick/onKeyUp/onSelect)
   // — no useEffect needed.
 
@@ -48,13 +50,18 @@ export default function AnimatedInput({ value, onChange, placeholder, type = 'te
       
       {/* 1. Underlying Animated Text & Caret Layer */}
       <div 
-        className="absolute inset-x-0 h-full pointer-events-none px-4 flex items-center z-0 overflow-hidden"
+        className={cn(
+          "absolute inset-0 pointer-events-none flex items-center z-0 overflow-hidden",
+          className?.match(/(p[lxryt-]|p-)\S+/g)?.join(' ') || "px-4"
+        )}
         aria-hidden="true"
       >
         <div 
           ref={scrollContainer} 
           className={cn(
-            "w-full block font-mono text-sm tracking-widest text-primary whitespace-pre transition-transform duration-75 ease-out",
+            "w-full block text-sm text-primary whitespace-pre transition-transform duration-75 ease-out",
+            mono ? "font-mono" : "font-sans",
+            trackingClass,
             isCentered ? "text-center" : "text-left"
           )}
         >
@@ -106,7 +113,10 @@ export default function AnimatedInput({ value, onChange, placeholder, type = 'te
         onFocus={() => { setIsFocused(true); updateSelection(); }}
         onBlur={() => setIsFocused(false)}
         className={cn(
-          "w-full h-full px-4 py-3 font-mono text-sm tracking-widest outline-none bg-transparent z-20 relative cursor-none opacity-0 block",
+          "w-full h-full py-3 text-sm outline-none bg-transparent z-20 relative cursor-none opacity-0 block",
+          mono ? "font-mono" : "font-sans",
+          trackingClass,
+          className?.match(/(p[lxryt-]|p-)\S+/g)?.join(' ') || "px-4",
           isCentered ? "text-center" : "text-left"
         )}
       />

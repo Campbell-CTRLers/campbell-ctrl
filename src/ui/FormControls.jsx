@@ -1,8 +1,68 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { Calendar, Clock, ChevronLeft, ChevronRight, ChevronDown, Plus } from 'lucide-react';
-import gsap from 'gsap';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
+import ReactDOM from 'react-dom';
+import { Calendar, Clock, ChevronLeft, ChevronRight, ChevronDown } from 'lucide-react';
 import { cn } from '../utils/cn';
 import { useHaptics } from '../hooks/useHaptics';
+import AnimatedInput from './AnimatedInput';
+
+// ----------------------------------------------------
+// PORTAL DROPDOWN — renders outside overflow containers
+// ----------------------------------------------------
+const DropdownPortal = ({ children, anchorRef, isOpen, onClose, minWidth }) => {
+  const [pos, setPos] = useState({ top: 0, left: 0, width: 0 });
+  const portalRef = useRef(null);
+
+  const reposition = useCallback(() => {
+    if (anchorRef.current && isOpen) {
+      const rect = anchorRef.current.getBoundingClientRect();
+      const vw = window.innerWidth;
+      const dropW = Math.max(minWidth || rect.width, rect.width);
+      const spaceRight = vw - rect.left;
+      const left = spaceRight < dropW ? Math.max(8, rect.right - dropW) : rect.left;
+      setPos({
+        top: rect.bottom + window.scrollY + 6,
+        left: left + window.scrollX,
+        width: dropW,
+      });
+    }
+  }, [anchorRef, isOpen, minWidth]);
+
+  useEffect(() => { reposition(); }, [isOpen, reposition]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    window.addEventListener('scroll', reposition, true);
+    window.addEventListener('resize', reposition);
+    return () => {
+      window.removeEventListener('scroll', reposition, true);
+      window.removeEventListener('resize', reposition);
+    };
+  }, [isOpen, reposition]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleClick = (e) => {
+      if (portalRef.current && !portalRef.current.contains(e.target) &&
+          anchorRef.current && !anchorRef.current.contains(e.target)) {
+        onClose();
+      }
+    };
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, [isOpen, onClose, anchorRef]);
+
+  if (!isOpen) return null;
+
+  return ReactDOM.createPortal(
+    <div
+      ref={portalRef}
+      style={{ position: 'absolute', top: pos.top, left: pos.left, width: pos.width, zIndex: 9999 }}
+    >
+      {children}
+    </div>,
+    document.body
+  );
+};
 
 // ----------------------------------------------------
 // CUSTOM DATE PICKER
@@ -10,12 +70,9 @@ import { useHaptics } from '../hooks/useHaptics';
 export const CustomAnimatedDatePicker = ({ value, onChange }) => {
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef(null);
-  const dropdownRef = useRef(null);
   const haptics = useHaptics();
-
   const realToday = new Date();
 
-  // Parse YYYY-MM-DD
   const [currentDate, setCurrentDate] = useState(() => {
     const d = value ? new Date(value + 'T00:00:00') : new Date();
     return d.toString() === 'Invalid Date' ? new Date() : d;
@@ -23,79 +80,42 @@ export const CustomAnimatedDatePicker = ({ value, onChange }) => {
 
   const displayDate = value ? new Date(value + 'T00:00:00') : null;
   const isValidDisplayDate = displayDate && displayDate.toString() !== 'Invalid Date';
-
-  // Format for button
   const formattedDisplay = isValidDisplayDate
     ? displayDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
     : 'Add Date';
 
-  useEffect(() => {
-    const handleClickOutside = (e) => {
-      if (containerRef.current && !containerRef.current.contains(e.target)) {
-        setIsOpen(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
   const openCalendar = () => {
-    if (isOpen) {
-      setIsOpen(false);
-      return;
-    }
+    if (isOpen) { setIsOpen(false); return; }
     haptics.selection();
     setIsOpen(true);
-    // Slight delay to allow DOM to render
-    setTimeout(() => {
-      if (dropdownRef.current) {
-        gsap.fromTo(dropdownRef.current,
-          { y: 15, opacity: 0, scale: 0.95 },
-          { y: 0, opacity: 1, scale: 1, duration: 0.3, ease: 'back.out(1.5)' }
-        );
-      }
-    }, 10);
   };
 
   const selectDate = (day, specificDate = null) => {
     const targetDate = specificDate || currentDate;
     const newDateStr = `${targetDate.getFullYear()}-${String(targetDate.getMonth() + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
     onChange(newDateStr);
-
-    // Close animation
-    if (dropdownRef.current) {
-      gsap.to(dropdownRef.current, {
-        y: 10, opacity: 0, scale: 0.95, duration: 0.2, ease: 'power2.in', onComplete: () => setIsOpen(false)
-      });
-    } else {
-      setIsOpen(false);
-    }
+    setIsOpen(false);
   };
 
   const goToToday = (e) => {
     e.stopPropagation();
     haptics.light();
     setCurrentDate(new Date());
-    selectDate(realToday.getDate(), realToday);
+    selectDate(realToday.getDate(), new Date());
   };
 
-  // Calendar logic
   const daysInMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0).getDate();
-  const firstDayOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1).getDay();
-
+  const getFirstDayOfMonth = () => {
+    const day = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1).getDay();
+    return day === 0 ? 6 : day - 1;
+  };
+  const firstDayOfMonth = getFirstDayOfMonth();
   const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
-
-  const prevMonth = (e) => {
-    e.stopPropagation();
-    setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1));
-  };
-  const nextMonth = (e) => {
-    e.stopPropagation();
-    setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1));
-  };
+  const prevMonth = (e) => { e.stopPropagation(); setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1)); };
+  const nextMonth = (e) => { e.stopPropagation(); setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1)); };
 
   return (
-    <div className="relative w-1/2" ref={containerRef}>
+    <div className="relative flex-1" ref={containerRef}>
       <button
         type="button"
         onClick={openCalendar}
@@ -109,51 +129,34 @@ export const CustomAnimatedDatePicker = ({ value, onChange }) => {
         <Calendar size={14} className={isOpen ? "text-accent" : "text-slate"} />
       </button>
 
-      {isOpen && (
-        <div
-          ref={dropdownRef}
-          className="absolute z-50 top-full mt-2 w-64 bg-background border border-slate/20 rounded-2xl shadow-2xl p-4 overflow-hidden origin-top-left"
-        >
-          {/* Header */}
+      <DropdownPortal anchorRef={containerRef} isOpen={isOpen} onClose={() => setIsOpen(false)} minWidth={288}>
+        <div className="w-72 bg-background border border-slate/20 rounded-2xl shadow-2xl p-4">
           <div className="flex items-center justify-between mb-4">
             <button type="button" onClick={(e) => { haptics.selection(); prevMonth(e); }} className="p-1 hover:bg-slate/10 rounded-full transition-colors touch-manipulation"><ChevronLeft size={16} /></button>
             <div className="flex flex-col items-center">
               <span className="font-sans font-bold text-sm text-primary leading-tight">
                 {monthNames[currentDate.getMonth()]} {currentDate.getFullYear()}
               </span>
-              <button
-                type="button"
-                onClick={goToToday}
-                className="text-[10px] font-mono text-blue-500 hover:text-blue-400 mt-0.5 transition-colors"
-              >
+              <button type="button" onClick={goToToday} className="text-[10px] font-mono text-blue-500 hover:text-blue-400 mt-0.5 transition-colors">
                 Go to Today
               </button>
             </div>
             <button type="button" onClick={(e) => { haptics.selection(); nextMonth(e); }} className="p-1 hover:bg-slate/10 rounded-full transition-colors touch-manipulation"><ChevronRight size={16} /></button>
           </div>
-
-          {/* Days Grid */}
           <div className="grid grid-cols-7 gap-1 mb-2">
-            {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map(d => (
+            {['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'].map(d => (
               <div key={d} className="text-center font-mono text-[10px] text-slate/60 font-medium">{d}</div>
             ))}
           </div>
           <div className="grid grid-cols-7 gap-1">
-            {Array(firstDayOfMonth).fill(null).map((_, i) => (
-              <div key={`empty-${i}`} />
-            ))}
+            {Array(firstDayOfMonth).fill(null).map((_, i) => <div key={`e-${i}`} />)}
             {Array(daysInMonth).fill(null).map((_, i) => {
               const day = i + 1;
               const isSelected = isValidDisplayDate && displayDate.getDate() === day && displayDate.getMonth() === currentDate.getMonth() && displayDate.getFullYear() === currentDate.getFullYear();
               const isToday = realToday.getDate() === day && realToday.getMonth() === currentDate.getMonth() && realToday.getFullYear() === currentDate.getFullYear();
-
               return (
-                <button
-                  key={day}
-                  type="button"
-                  onClick={() => { haptics.light(); selectDate(day); }}
-                  className={cn(
-                    "h-8 rounded-lg flex items-center justify-center font-mono text-xs transition-all relative overflow-hidden",
+                <button key={day} type="button" onClick={() => { haptics.light(); selectDate(day); }}
+                  className={cn("h-8 rounded-lg flex items-center justify-center font-mono text-xs transition-all",
                     isSelected ? "bg-accent text-background font-bold shadow-md scale-110 z-10" : "hover:bg-slate/10 text-primary",
                     isToday && !isSelected && "text-blue-500 font-bold border border-blue-500/30"
                   )}
@@ -164,7 +167,7 @@ export const CustomAnimatedDatePicker = ({ value, onChange }) => {
             })}
           </div>
         </div>
-      )}
+      </DropdownPortal>
     </div>
   );
 };
@@ -175,30 +178,18 @@ export const CustomAnimatedDatePicker = ({ value, onChange }) => {
 export const CustomTimePicker = ({ value, onChange }) => {
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef(null);
-  const dropdownRef = useRef(null);
   const haptics = useHaptics();
 
-  // Parse current value into components
   const parseTime = (val) => {
-    if (!val) return { hour: 12, minute: 0, period: 'PM' };
+    if (!val) return { hour: 4, minute: 0, period: 'PM' };
     const match = val.match(/^(\d{1,2}):(\d{2})\s?(AM|PM)$/i);
     if (match) return { hour: parseInt(match[1]), minute: parseInt(match[2]), period: match[3].toUpperCase() };
-    return { hour: 12, minute: 0, period: 'PM' };
+    return { hour: 4, minute: 0, period: 'PM' };
   };
 
   const [selectedHour, setSelectedHour] = useState(() => parseTime(value).hour);
   const [selectedMinute, setSelectedMinute] = useState(() => parseTime(value).minute);
   const [selectedPeriod, setSelectedPeriod] = useState(() => parseTime(value).period);
-
-  useEffect(() => {
-    const handleClickOutside = (e) => {
-      if (containerRef.current && !containerRef.current.contains(e.target)) {
-        setIsOpen(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
 
   const commitTime = (h, m, p) => {
     const displayM = m < 10 ? `0${m}` : `${m}`;
@@ -209,26 +200,16 @@ export const CustomTimePicker = ({ value, onChange }) => {
     if (isOpen) { setIsOpen(false); return; }
     haptics.selection();
     setIsOpen(true);
-    // Sync state with value on open
     const parsed = parseTime(value);
     setSelectedHour(parsed.hour);
     setSelectedMinute(parsed.minute);
     setSelectedPeriod(parsed.period);
-
-    setTimeout(() => {
-      if (dropdownRef.current) {
-        gsap.fromTo(dropdownRef.current,
-          { y: 15, opacity: 0, scale: 0.95 },
-          { y: 0, opacity: 1, scale: 1, duration: 0.3, ease: 'back.out(1.5)' }
-        );
-      }
-    }, 10);
   };
 
   const selectHour = (h) => { setSelectedHour(h); commitTime(h, selectedMinute, selectedPeriod); };
   const selectMinute = (m) => { setSelectedMinute(m); commitTime(selectedHour, m, selectedPeriod); };
-  const togglePeriod = () => {
-    const newP = selectedPeriod === 'AM' ? 'PM' : 'AM';
+  const togglePeriod = (explicit) => {
+    const newP = explicit || (selectedPeriod === 'AM' ? 'PM' : 'AM');
     setSelectedPeriod(newP);
     commitTime(selectedHour, selectedMinute, newP);
   };
@@ -237,7 +218,7 @@ export const CustomTimePicker = ({ value, onChange }) => {
   const minutes = [0, 15, 30, 45];
 
   return (
-    <div className="relative" ref={containerRef}>
+    <div className="relative flex-1" ref={containerRef}>
       <button
         type="button"
         onClick={openPicker}
@@ -247,92 +228,61 @@ export const CustomTimePicker = ({ value, onChange }) => {
           !value && "text-slate/60 italic"
         )}
       >
-        <span>{value || 'Time'}</span>
+        <span>{value || '4:00 PM'}</span>
         <Clock size={14} className={isOpen ? "text-accent" : "text-slate"} />
       </button>
 
-      {isOpen && (
-        <div
-          ref={dropdownRef}
-          className="absolute z-50 top-full mt-2 w-[220px] bg-background border border-slate/20 rounded-xl shadow-2xl p-3 origin-top"
-          style={{ right: 0 }}
-        >
-          {/* Header */}
-          <div className="text-center font-mono text-[10px] uppercase tracking-widest text-slate/50 mb-2 pb-2 border-b border-slate/10">Select Time</div>
-
+      <DropdownPortal anchorRef={containerRef} isOpen={isOpen} onClose={() => setIsOpen(false)} minWidth={220}>
+        <div className="w-[220px] bg-background border border-slate/20 rounded-xl shadow-2xl p-3">
+          <div className="flex items-center justify-between mb-2 pb-2 border-b border-slate/10">
+            <span className="font-mono text-[10px] uppercase tracking-widest text-slate/50">Select Time</span>
+            <button type="button"
+              onClick={() => { haptics.success(); commitTime(4, 0, 'PM'); setSelectedHour(4); setSelectedMinute(0); setSelectedPeriod('PM'); }}
+              className="px-2 py-0.5 bg-accent/10 hover:bg-accent/20 text-accent rounded-md font-mono text-[10px] font-bold transition-colors"
+            >4:00 PM</button>
+          </div>
           <div className="flex gap-2">
-            {/* Hour Column */}
             <div className="flex-1">
               <div className="text-center font-mono text-[10px] uppercase tracking-wider text-slate/40 mb-1">Hr</div>
               <div className="max-h-[160px] overflow-y-auto custom-scrollbar flex flex-col gap-0.5">
                 {hours.map(h => (
-                  <button
-                    key={h}
-                    type="button"
-                    onClick={() => { haptics.light(); selectHour(h); }}
-                    className={cn(
-                      "w-full py-1.5 text-center font-mono text-sm rounded-lg transition-colors",
-                      selectedHour === h
-                        ? "bg-accent/10 text-accent font-bold"
-                        : "text-primary hover:bg-slate/5"
+                  <button key={h} type="button" onClick={() => { haptics.light(); selectHour(h); }}
+                    className={cn("w-full py-1.5 text-center font-mono text-sm rounded-lg transition-colors",
+                      selectedHour === h ? "bg-accent/10 text-accent font-bold" : "text-primary hover:bg-slate/5"
                     )}
-                  >
-                    {h}
-                  </button>
+                  >{h}</button>
                 ))}
               </div>
             </div>
-
-            {/* Divider */}
-            <div className="flex items-center">
-              <span className="font-mono text-lg text-slate/30 font-bold">:</span>
-            </div>
-
-            {/* Minute Column */}
+            <div className="flex items-center"><span className="font-mono text-lg text-slate/30 font-bold">:</span></div>
             <div className="flex-1">
               <div className="text-center font-mono text-[10px] uppercase tracking-wider text-slate/40 mb-1">Min</div>
               <div className="flex flex-col gap-0.5">
                 {minutes.map(m => (
-                  <button
-                    key={m}
-                    type="button"
-                    onClick={() => { haptics.light(); selectMinute(m); }}
-                    className={cn(
-                      "w-full py-1.5 text-center font-mono text-sm rounded-lg transition-colors",
-                      selectedMinute === m
-                        ? "bg-accent/10 text-accent font-bold"
-                        : "text-primary hover:bg-slate/5"
+                  <button key={m} type="button" onClick={() => { haptics.light(); selectMinute(m); }}
+                    className={cn("w-full py-1.5 text-center font-mono text-sm rounded-lg transition-colors",
+                      selectedMinute === m ? "bg-accent/10 text-accent font-bold" : "text-primary hover:bg-slate/5"
                     )}
-                  >
-                    {m < 10 ? `0${m}` : m}
-                  </button>
+                  >{m < 10 ? `0${m}` : m}</button>
                 ))}
               </div>
             </div>
-
-            {/* AM/PM Toggle */}
             <div className="flex flex-col items-center justify-center gap-1 ml-1">
-              <div className="text-center font-mono text-[10px] uppercase tracking-wider text-slate/40 mb-1">&nbsp;</div>
-              <button
-                type="button"
-                onClick={() => { haptics.selection(); togglePeriod(); }}
-                className={cn(
-                  "px-2 py-1.5 rounded-lg font-mono text-xs font-bold transition-colors touch-manipulation active:scale-95",
+              <div className="text-[10px] mb-1">&nbsp;</div>
+              <button type="button" onClick={() => { haptics.selection(); togglePeriod('AM'); }}
+                className={cn("px-2 py-1.5 rounded-lg font-mono text-xs font-bold transition-colors touch-manipulation active:scale-95",
                   selectedPeriod === 'AM' ? "bg-accent/10 text-accent" : "text-slate/40 hover:bg-slate/5"
                 )}
               >AM</button>
-              <button
-                type="button"
-                onClick={() => { haptics.selection(); togglePeriod(); }}
-                className={cn(
-                  "px-2 py-1.5 rounded-lg font-mono text-xs font-bold transition-colors touch-manipulation active:scale-95",
+              <button type="button" onClick={() => { haptics.selection(); togglePeriod('PM'); }}
+                className={cn("px-2 py-1.5 rounded-lg font-mono text-xs font-bold transition-colors touch-manipulation active:scale-95",
                   selectedPeriod === 'PM' ? "bg-accent/10 text-accent" : "text-slate/40 hover:bg-slate/5"
                 )}
               >PM</button>
             </div>
           </div>
         </div>
-      )}
+      </DropdownPortal>
     </div>
   );
 };
@@ -344,76 +294,49 @@ export const CustomDropdown = ({ value, onChange, options, placeholder, isEditab
   const [isOpen, setIsOpen] = useState(false);
   const [customValue, setCustomValue] = useState("");
   const containerRef = useRef(null);
-  const dropdownRef = useRef(null);
-
-  // Dynamic options state to allow adding presets
-  const [currentOptions, setCurrentOptions] = useState(options);
-
-  useEffect(() => {
-    const handleClickOutside = (e) => {
-      if (containerRef.current && !containerRef.current.contains(e.target)) {
-        setIsOpen(false);
-        // Reset custom input if closed without saving
-        if (value !== "OTHER") setCustomValue("");
+  const [currentOptions, setCurrentOptions] = useState(() => {
+    try {
+      const saved = localStorage.getItem(`custom_presets_${placeholder}`);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        return [...new Set([...options.filter(o => o !== "OTHER"), ...parsed, "OTHER"])];
       }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [value]);
+    } catch (e) { console.error("Failed to parse presets", e); }
+    return options;
+  });
+  const haptics = useHaptics();
 
   const openDropdown = () => {
-    if (isOpen) {
-      setIsOpen(false);
-      return;
-    }
+    if (isOpen) { setIsOpen(false); return; }
+    haptics.selection();
     setIsOpen(true);
-    setTimeout(() => {
-      if (dropdownRef.current) {
-        gsap.fromTo(dropdownRef.current,
-          { y: 15, opacity: 0, scale: 0.95 },
-          { y: 0, opacity: 1, scale: 1, duration: 0.3, ease: 'back.out(1.5)' }
-        );
-      }
-    }, 10);
   };
 
   const selectOption = (opt) => {
+    haptics.light();
     onChange(opt);
-    if (opt !== "OTHER") {
-      closeDropdown();
-    } else {
-      setTimeout(() => {
-        const input = document.getElementById(`custom-input-${placeholder}`);
-        if (input) input.focus();
-      }, 50);
-    }
-  };
-
-  const closeDropdown = () => {
-    if (dropdownRef.current) {
-      gsap.to(dropdownRef.current, {
-        y: 10, opacity: 0, scale: 0.95, duration: 0.2, ease: 'power2.in', onComplete: () => setIsOpen(false)
-      });
-    } else {
-      setIsOpen(false);
-    }
+    if (opt !== "OTHER") setIsOpen(false);
   };
 
   const handleCustomSubmit = (e) => {
     e.preventDefault();
     if (customValue.trim()) {
       const newVal = customValue.trim();
-      setCurrentOptions([...currentOptions.filter(o => o !== "OTHER"), newVal, "OTHER"]);
+      const newPresets = [...currentOptions.filter(o => o !== "OTHER" && !options.includes(o)), newVal];
+      const merged = [...new Set([...options.filter(o => o !== "OTHER"), ...newPresets, "OTHER"])];
+      setCurrentOptions(merged);
+      localStorage.setItem(`custom_presets_${placeholder}`, JSON.stringify(newPresets));
       onChange(newVal);
       setCustomValue("");
-      closeDropdown();
+      haptics.success();
+      setIsOpen(false);
     }
   };
 
   const displayValue = value === "OTHER" ? "Custom..." : value;
 
   return (
-    <div className="relative flex-1" ref={containerRef}>
+    <div className="relative flex-1 min-w-0" ref={containerRef}>
       <button
         type="button"
         onClick={openDropdown}
@@ -427,19 +350,16 @@ export const CustomDropdown = ({ value, onChange, options, placeholder, isEditab
         <ChevronDown size={14} className={isOpen ? "text-accent rotate-180 transition-transform duration-300" : "text-slate transition-transform duration-300"} />
       </button>
 
-      {isOpen && (
-        <div
-          ref={dropdownRef}
-          className="absolute z-50 top-full mt-2 w-full min-w-[160px] max-h-[240px] overflow-y-auto custom-scrollbar bg-background border border-slate/20 rounded-xl shadow-2xl p-2 origin-top"
-        >
-          <div className="flex flex-col gap-1">
+      <DropdownPortal anchorRef={containerRef} isOpen={isOpen} onClose={() => setIsOpen(false)} minWidth={200}>
+        <div className="bg-background border border-slate/20 rounded-xl shadow-2xl p-2">
+          <div className="flex flex-col gap-1 max-h-[240px] overflow-y-auto custom-scrollbar">
             {currentOptions.map((opt) => (
               <button
                 key={opt}
                 type="button"
                 onClick={() => selectOption(opt)}
                 className={cn(
-                  "px-3 py-2 text-left font-mono text-xs rounded-lg transition-colors border",
+                  "px-3 py-2 text-left font-mono text-xs rounded-lg transition-colors border whitespace-nowrap",
                   value === opt && opt !== "OTHER"
                     ? "bg-accent/10 border-accent/20 text-accent font-bold"
                     : opt === "OTHER"
@@ -450,26 +370,30 @@ export const CustomDropdown = ({ value, onChange, options, placeholder, isEditab
                 {opt}
               </button>
             ))}
-
-            {value === "OTHER" && isEditable && (
-              <form onSubmit={handleCustomSubmit} className="mt-2 p-2 bg-slate/5 rounded-lg border border-slate/10 animate-in fade-in zoom-in duration-200">
-                <p className="font-mono text-[10px] text-slate/60 mb-1 uppercase tracking-wider">Custom Entry</p>
-                <div className="flex gap-2">
-                  <input
-                    id={`custom-input-${placeholder}`}
-                    type="text"
-                    value={customValue}
-                    onChange={(e) => setCustomValue(e.target.value)}
-                    placeholder="Type name..."
-                    className="w-full bg-background border border-slate/20 rounded px-2 py-1.5 font-sans text-xs outline-none focus:border-accent"
-                  />
-                  <button type="submit" className="bg-accent text-background p-1.5 rounded hover:scale-105 transition-transform"><Plus size={14} /></button>
-                </div>
-              </form>
-            )}
           </div>
+          {isEditable && currentOptions.includes("OTHER") && (
+            <div className="mt-3 pt-3 border-t border-slate/10">
+              <form onSubmit={handleCustomSubmit} className="flex flex-col gap-2">
+                <AnimatedInput
+                  value={customValue}
+                  onChange={(e) => setCustomValue(e.target.value)}
+                  placeholder={`Custom ${placeholder}...`}
+                  className="border border-slate/20 w-full h-9 rounded-xl text-sm"
+                  mono={false}
+                  tracking="normal"
+                />
+                <button
+                  type="submit"
+                  disabled={!customValue.trim()}
+                  className="w-full bg-accent disabled:opacity-40 text-white py-2 rounded-xl text-xs font-mono font-bold shadow-lg shadow-accent/20 active:scale-95 transition-all"
+                >
+                  Save as Preset
+                </button>
+              </form>
+            </div>
+          )}
         </div>
-      )}
+      </DropdownPortal>
     </div>
   );
 };
