@@ -95,6 +95,7 @@ const AdminDashboard = ({ isAdmin, onClose, gamesList, setGamesList, standings, 
   // TRACK ORIGINAL DATA for dirty check
   const originalDataRef = useRef(null);
   const [isDirty, setIsDirty] = useState(false);
+  const [authError, setAuthError] = useState('');
 
   // Recompute dirty flag whenever data changes (safe: runs after render, not during)
   useEffect(() => {
@@ -115,7 +116,10 @@ const AdminDashboard = ({ isAdmin, onClose, gamesList, setGamesList, standings, 
   // Proactively set persistence when "Remember Me" changes or modal opens to avoid race conditions
   useEffect(() => {
     if (!isAuthenticated && isAdmin) {
-      setPersistence(auth, rememberMe ? browserLocalPersistence : browserSessionPersistence).catch(console.error);
+      setPersistence(auth, rememberMe ? browserLocalPersistence : browserSessionPersistence).catch((error) => {
+        console.error(error);
+        setAuthError('We could not apply your “Remember Me” preference. You may be signed out when you close the browser.');
+      });
     }
   }, [rememberMe, isAuthenticated, isAdmin]);
 
