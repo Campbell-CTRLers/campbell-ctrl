@@ -15,6 +15,7 @@
         ]
       }
     ],
-    "no-descending-specificity": null
+    "no-descending-specificity": null,
+    "media-feature-range-notation": null
   }
 }
