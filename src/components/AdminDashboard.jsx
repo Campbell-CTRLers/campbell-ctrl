@@ -77,7 +77,7 @@ const AdminDashboard = ({ isAdmin, onClose, gamesList, setGamesList, standings, 
   const [isAuthenticating, setIsAuthenticating] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
-  const [_saveErrorMsg, setSaveErrorMsg] = useState('');
+  const [saveErrorMsg, setSaveErrorMsg] = useState('');
   const [adminTab, setAdminTab] = useState('schedule');
   const [rememberMe, setRememberMe] = useState(false);
 
