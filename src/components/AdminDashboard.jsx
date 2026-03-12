@@ -475,7 +475,7 @@ const AdminDashboard = ({ isAdmin, onClose, gamesList, setGamesList, standings, 
                           <CustomDropdown value={g.game} onChange={(v) => updateGame(g.id, 'game', v)} options={GAME_OPTIONS} placeholder="Game" isEditable />
                         </div>
                         <div className="flex-1 max-w-[150px]">
-                          <AnimatedInput value={g.opponent} onChange={(e) => updateGame(g.id, 'opponent', e.target.value)} placeholder="Opponent" className="h-10 rounded-xl" />
+                          <AnimatedInput value={g.opponent} onChange={(e) => updateGame(g.id, 'opponent', e.target.value)} placeholder="Opponent" className="h-10 rounded-xl pl-5" mono={false} tracking="normal" />
                         </div>
                         <div className="w-[160px]">
                           <CustomAnimatedDatePicker value={g.date} onChange={(v) => updateGame(g.id, 'date', v)} />
@@ -524,9 +524,14 @@ const AdminDashboard = ({ isAdmin, onClose, gamesList, setGamesList, standings, 
                       </div>
 
                       {/* Desktop Only Edit Fields */}
-                      <div className="hidden sm:flex items-center gap-6">
-                        <AnimatedInput value={s.team} onChange={(e) => updateStanding(s.id, 'team', e.target.value)} placeholder="Team Name" className="w-[180px] h-10" mono={false} tracking="normal" />
-                        <div className="flex items-center gap-6">
+                      <div className="hidden sm:flex items-center gap-4 flex-[2]">
+                        <div className="flex-1 max-w-[180px]">
+                           <CustomDropdown value={s.game} onChange={(v) => updateStanding(s.id, 'game', v)} options={GAME_OPTIONS} placeholder="Game" isEditable />
+                        </div>
+                        <div className="flex-1 max-w-[180px]">
+                           <AnimatedInput value={s.team} onChange={(e) => updateStanding(s.id, 'team', e.target.value)} placeholder="Team Name" className="h-10 rounded-xl pl-5" mono={false} tracking="normal" />
+                        </div>
+                        <div className="flex items-center gap-4 ml-auto">
                           <NumberStepper color="green" value={s.wins} onChange={(e) => updateStanding(s.id, 'wins', e.target.value)} />
                           <NumberStepper color="red" value={s.losses} onChange={(e) => updateStanding(s.id, 'losses', e.target.value)} />
                         </div>

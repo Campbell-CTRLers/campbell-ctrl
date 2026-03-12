@@ -199,12 +199,15 @@ export const GlobalRankingsPanel = ({ standings = [] }) => {
         </div>
 
         {/* Desktop Search */}
-        <div className="hidden sm:block w-[180px] focus-within:w-[260px] transition-all duration-500 ease-out">
+        <div className="hidden sm:block w-[180px] focus-within:w-[260px] transition-all duration-500 ease-out relative group/search">
+          <Search size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate/30 group-focus-within/search:text-accent transition-colors z-20 pointer-events-none" />
           <AnimatedInput
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search teams..."
-            className="border border-slate/10 hover:border-slate/20 focus-within:border-accent/40 h-10 rounded-2xl text-xs bg-slate/5"
+            className="border border-slate/10 hover:border-slate/20 focus-within:border-accent/40 h-10 rounded-2xl text-[11px] bg-slate/5 pl-11"
+            mono={false}
+            tracking="normal"
           />
         </div>
 
@@ -237,13 +240,14 @@ export const GlobalRankingsPanel = ({ standings = [] }) => {
           {/* Search & Actions at Top */}
           <div className="flex flex-col gap-4">
             <div className="flex items-center gap-3">
-              <div className="flex-1">
+              <div className="flex-1 relative group/search">
+                <Search size={18} className="absolute left-5 top-1/2 -translate-y-1/2 text-slate/30 z-20 pointer-events-none" />
                 <AnimatedInput
                   ref={mobileInputRef}
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Find a game..."
-                  className="border-slate/10 h-12 rounded-2xl text-base bg-primary/5"
+                  className="border-slate/10 h-14 rounded-2xl text-base bg-primary/5 pl-14"
                   mono={false}
                   tracking="normal"
                 />
