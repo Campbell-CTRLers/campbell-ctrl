@@ -193,7 +193,8 @@ const AdminDashboard = ({ isAdmin, onClose, gamesList, setGamesList, standings, 
         localStorage.removeItem('auth_expiry');
       }
       haptics.success();
-    } catch {
+    } catch (err) {
+      console.error('Email/password login failed:', err);
       haptics.error();
       setErrorMsg('Access Denied. Invalid Credentials.');
       setPassword('');
