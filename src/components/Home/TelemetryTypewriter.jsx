@@ -83,7 +83,14 @@ export const TelemetryTypewriter = ({ gamesList }) => {
                       <div className="w-7 h-7 rounded-md bg-slate/5 flex items-center justify-center flex-shrink-0 border border-slate/10">
                         <GameIcon game={g.game || g.title} size={16} />
                       </div>
-                      <p className="font-roboto text-sm font-semibold text-primary leading-tight">{displayTitle}</p>
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <p className="font-roboto text-sm font-semibold text-primary leading-tight truncate">
+                          {displayTitle}
+                        </p>
+                        {g.isAlt && (
+                          <span className="text-[8px] font-mono font-bold bg-blue-500/10 text-blue-600 px-1.5 py-0.5 rounded-md uppercase tracking-tighter shrink-0 border border-blue-500/10">ALT</span>
+                        )}
+                      </div>
                     </div>
 
                     {/* Bottom: Date left, Badge right */}

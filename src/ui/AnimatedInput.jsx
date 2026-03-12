@@ -48,7 +48,10 @@ export default function AnimatedInput({ value, onChange, placeholder, type = 'te
       
       {/* 1. Underlying Animated Text & Caret Layer */}
       <div 
-        className="absolute inset-x-0 h-full pointer-events-none px-4 flex items-center z-0 overflow-hidden"
+        className={cn(
+          "absolute inset-0 pointer-events-none flex items-center z-0 overflow-hidden",
+          className?.match(/(p[lxryt-]|p-)\S+/g)?.join(' ') || "px-4"
+        )}
         aria-hidden="true"
       >
         <div 
@@ -106,7 +109,8 @@ export default function AnimatedInput({ value, onChange, placeholder, type = 'te
         onFocus={() => { setIsFocused(true); updateSelection(); }}
         onBlur={() => setIsFocused(false)}
         className={cn(
-          "w-full h-full px-4 py-3 font-mono text-sm tracking-widest outline-none bg-transparent z-20 relative cursor-none opacity-0 block",
+          "w-full h-full py-3 font-mono text-sm tracking-widest outline-none bg-transparent z-20 relative cursor-none opacity-0 block",
+          className?.match(/(p[lxryt-]|p-)\S+/g)?.join(' ') || "px-4",
           isCentered ? "text-center" : "text-left"
         )}
       />

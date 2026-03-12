@@ -28,10 +28,10 @@ export function LiveStandings({ standings, fullHeight }) {
                 <GameIcon game={team.team} size={20} />
               </div>
               <div className="flex flex-col min-w-0">
-                <span className="font-roboto font-semibold text-primary text-sm truncate flex items-center gap-2">
-                  {team.team.replace(/\s?ALT/i, '')}
-                  {/ALT/i.test(team.team) && (
-                    <span className="text-[9px] font-mono font-bold bg-accent/10 text-accent px-1.5 py-0.5 rounded-md uppercase tracking-tighter">ALT</span>
+                <span className="font-roboto font-semibold text-primary text-sm truncate flex items-center gap-2 transition-colors">
+                  {team.team}
+                  {team.isAlt && (
+                    <span className="text-[9px] font-mono font-bold bg-blue-500/10 text-blue-600 px-1.5 py-0.5 rounded-md uppercase tracking-tighter shadow-sm border border-blue-500/10">ALT</span>
                   )}
                 </span>
               </div>

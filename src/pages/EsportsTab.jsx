@@ -27,7 +27,7 @@ const EsportsTab = ({ gamesList, standings }) => {
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch mb-12">
         {/* Full Schedule Feed */}
-        <div className="esports-card lg:col-span-8 bg-background rounded-[2rem] p-8 border border-slate/10 shadow-xl">
+        <div className="esports-card lg:col-span-7 bg-background rounded-[2rem] p-8 border border-slate/10 shadow-xl">
           <div className="flex items-center gap-3 mb-8 pb-6 border-b border-slate/10">
             <Gamepad2 className="text-accent" size={28} />
             <h2 className="font-sans font-bold text-2xl text-primary">PlayVS Schedule</h2>
@@ -75,7 +75,7 @@ const EsportsTab = ({ gamesList, standings }) => {
         </div>
 
         {/* Live Standings Panel (Reused) */}
-        <div className="esports-card lg:col-span-4">
+        <div className="esports-card lg:col-span-5">
           <div className="h-full"><LiveStandings standings={standings} fullHeight /></div>
         </div>
       </div>
