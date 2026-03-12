@@ -426,7 +426,7 @@ const AdminDashboard = ({ isAdmin, onClose, gamesList, setGamesList, standings, 
                   isSaving && "opacity-70 scale-95"
                 )}
               >
-                {isSaving ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <><CloudUpload size={18} /><span>PUBLISH!</span></>}
+                {isSaving ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <><CloudUpload size={18} /><span className="hidden sm:inline">PUBLISH!</span></>}
                 {saveSuccess && <Check size={16} className="text-green-300 ml-1" />}
               </button>
               

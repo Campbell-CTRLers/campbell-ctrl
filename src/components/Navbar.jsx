@@ -292,7 +292,6 @@ const Navbar = ({ currentTab, onNavigate }) => {
           <button onClick={() => handleNavClick('home')} className={cn("mobile-nav-item w-[85%] py-4 rounded-2xl opacity-0 -translate-y-2 text-xl font-bold transition-all touch-manipulation flex items-center justify-center", currentTab === 'home' ? "bg-accent/10 text-accent" : "text-primary hover:bg-slate-500/5")}>Home</button>
           <button onClick={() => handleNavClick('esports')} className={cn("mobile-nav-item w-[85%] py-4 rounded-2xl opacity-0 -translate-y-2 text-xl font-bold transition-all touch-manipulation flex items-center justify-center", currentTab === 'esports' ? "bg-accent/10 text-accent" : "text-primary hover:bg-slate-500/5")}>Esports</button>
           <button onClick={() => handleNavClick('meetings')} className={cn("mobile-nav-item w-[85%] py-4 rounded-2xl opacity-0 -translate-y-2 text-xl font-bold transition-all touch-manipulation flex items-center justify-center", currentTab === 'meetings' ? "bg-accent/10 text-accent" : "text-primary hover:bg-slate-500/5")}>Meetings</button>
-          <button onClick={() => handleNavClick('admin')} className={cn("mobile-nav-item w-[85%] py-4 rounded-2xl opacity-0 -translate-y-2 text-xl font-bold transition-all touch-manipulation flex items-center justify-center", currentTab === 'admin' ? "bg-accent/10 text-accent" : "text-primary hover:bg-slate-500/5")}>Admin</button>
           
           <div className="w-[90%] h-[1px] bg-slate-500/10 my-2 mobile-nav-item opacity-0"></div>
 
