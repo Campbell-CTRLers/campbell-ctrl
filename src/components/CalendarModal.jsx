@@ -4,7 +4,6 @@ import { createPortal } from 'react-dom';
 import gsap from 'gsap';
 import { X, Download } from 'lucide-react';
 import { cn } from '../utils/cn';
-import MagneticGlowButton from '../ui/MagneticGlowButton';
 import inPersonMeetingIcs from '../assets/in-person-meeting.ics?url';
 import iconGoogleCalendar from '../assets/icon-google-calendar.svg';
 import iconMicrosoftOutlook from '../assets/icon-microsoft-outlook.svg';

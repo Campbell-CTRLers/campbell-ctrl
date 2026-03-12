@@ -1,6 +1,6 @@
 import React, { useRef, useState, useEffect, useMemo } from 'react';
 import gsap from 'gsap';
-import { Settings, Plus, Trash2, CloudUpload, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Calendar, X, AlertTriangle, LogOut, Check, Trophy } from 'lucide-react';
+import { Settings, Plus, Trash2, CloudUpload, ChevronDown, ChevronRight, ChevronUp, Calendar, X, AlertTriangle, Check, Trophy } from 'lucide-react';
 import { db, auth, googleProvider } from '../firebase';
 import { writeBatch, doc, getDoc } from 'firebase/firestore';
 import { signInWithEmailAndPassword, signInWithPopup, signOut, setPersistence, browserLocalPersistence, browserSessionPersistence } from 'firebase/auth';
