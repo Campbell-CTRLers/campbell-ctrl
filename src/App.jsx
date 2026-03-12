@@ -1,4 +1,4 @@
-import React, { useEffect, useState, lazy, Suspense } from 'react';
+import React, { useEffect, useState, useCallback, lazy, Suspense } from 'react';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { ScrollToPlugin } from 'gsap/ScrollToPlugin';
@@ -38,7 +38,7 @@ function AppInner() {
   const [isTransitioning, setIsTransitioning] = useState(false);
   const haptics = useHaptics();
 
-  const handleTabChange = (newTab, isPopState = false) => {
+  const handleTabChange = useCallback((newTab, isPopState = false) => {
     if (newTab === currentTab || isTransitioning) return;
     haptics.selection();
     setIsTransitioning(true);
@@ -67,7 +67,7 @@ function AppInner() {
         setIsTransitioning(false);
         setTimeout(() => ScrollTrigger.refresh(), 50);
       });
-  };
+  }, [currentTab, isTransitioning, haptics, isMobile]);
 
   useEffect(() => {
     // If we land on '/', rewrite URL to '/home' cleanly without triggering history duplicate
@@ -83,7 +83,7 @@ function AppInner() {
     };
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
-  }, [currentTab]);
+  }, [currentTab, handleTabChange]);
 
   const [isAdmin, setIsAdmin] = useState(false);
   const [authenticatedUser, setAuthenticatedUser] = useState(null);

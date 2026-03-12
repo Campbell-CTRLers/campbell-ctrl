@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { isMobileUser } from '../hooks/useMobile';
+import { isMobileUser } from '../utils/mobile';
 
 // eslint-disable-next-line react-refresh/only-export-components
 export const ThemeContext = React.createContext({ theme: 'light', toggleTheme: () => {} });

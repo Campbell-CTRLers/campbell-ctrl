@@ -1,44 +1,32 @@
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useRef, useEffect } from 'react';
 import gsap from 'gsap';
 import { GameIcon, formatGameDate } from '../SharedUI';
 import { cn } from '../../utils/cn';
 
 export const TelemetryTypewriter = ({ gamesList }) => {
-  const [phase, setPhase] = useState('loading'); // 'loading' | 'revealing' | 'done'
-  const [visibleCount, setVisibleCount] = useState(0);
   const containerRef = useRef(null);
 
+  // Animate the newest card whenever gamesList grows
   useEffect(() => {
-    // Show data immediately, skip shimmer
-    setPhase('done');
-    setVisibleCount(gamesList.length);
-  }, [gamesList.length]);
-
-  // Animate each card as it appears
-  useEffect(() => {
-    if (phase === 'loading' || !containerRef.current) return;
+    if (!containerRef.current) return;
     const cards = containerRef.current.querySelectorAll('.feed-card');
-    cards.forEach((card, i) => {
-      if (i === visibleCount - 1) {
-        gsap.fromTo(card,
-          { y: 20, opacity: 0, scale: 0.97 },
-          { y: 0, opacity: 1, scale: 1, duration: 0.4, ease: 'back.out(1.4)' }
-        );
-      }
-    });
-  }, [visibleCount, phase]);
+    const lastCard = cards[gamesList.length - 1];
+    if (lastCard) {
+      gsap.fromTo(lastCard,
+        { y: 20, opacity: 0, scale: 0.97 },
+        { y: 0, opacity: 1, scale: 1, duration: 0.4, ease: 'back.out(1.4)' }
+      );
+    }
+  }, [gamesList.length]);
 
   return (
     <div className="bg-background rounded-[2rem] p-8 border border-slate/10 shadow-xl flex flex-col h-[380px] group">
       {/* Header */}
       <div className="mb-4">
         <div className="flex items-center gap-2 mb-2">
-          <div className={cn(
-            "w-2 h-2 rounded-full",
-            phase === 'done' ? "bg-green-500" : "bg-accent animate-pulse"
-          )}></div>
+          <div className="w-2 h-2 rounded-full bg-green-500"></div>
           <span className="font-mono text-xs font-bold text-accent uppercase tracking-widest">
-            {phase === 'loading' ? 'Syncing...' : phase === 'revealing' ? 'Loading Feed' : 'PlayVS Feed'}
+            PlayVS Feed
           </span>
         </div>
         <h3 className="font-sans font-bold text-2xl text-primary">Campbell CTRL eSpartans</h3>
@@ -47,27 +35,9 @@ export const TelemetryTypewriter = ({ gamesList }) => {
 
       {/* Feed Area */}
       <div className="flex-1 overflow-hidden relative" ref={containerRef}>
-        {/* Loading shimmer */}
-        {phase === 'loading' && (
-          <div className="flex flex-col gap-2">
-            {[0, 1, 2].map(i => (
-              <div key={i} className="flex items-center gap-3 p-3 rounded-xl bg-slate/5 animate-pulse" style={{ animationDelay: `${i * 0.15}s` }}>
-                <div className="w-8 h-8 rounded-lg bg-slate/10 flex-shrink-0"></div>
-                <div className="flex-1 space-y-1.5">
-                  <div className="h-3 bg-slate/10 rounded-full w-3/4"></div>
-                  <div className="h-2.5 bg-slate/8 rounded-full w-1/2"></div>
-                </div>
-                <div className="h-5 w-16 bg-slate/8 rounded-full"></div>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {/* Revealed items */}
-        {phase !== 'loading' && (
-          <div className="flex flex-col gap-2 overflow-y-auto custom-scrollbar h-full pr-1">
-            {gamesList.length > 0 ? (
-              gamesList.slice(0, visibleCount).map((g, i) => {
+        <div className="flex flex-col gap-2 overflow-y-auto custom-scrollbar h-full pr-1">
+          {gamesList.length > 0 ? (
+            gamesList.map((g, i) => {
                 const displayTitle = g.game ? `${g.game} vs ${g.opponent}` : g.title;
                 const dateStr = formatGameDate(g.date, g.time);
                 const matchType = (g.type || 'MATCH').toUpperCase();
@@ -124,7 +94,6 @@ export const TelemetryTypewriter = ({ gamesList }) => {
               </div>
             )}
           </div>
-        )}
       </div>
     </div>
   );

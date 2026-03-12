@@ -77,7 +77,7 @@ const AdminDashboard = ({ isAdmin, onClose, gamesList, setGamesList, standings, 
   const [isAuthenticating, setIsAuthenticating] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
-  const [saveErrorMsg, setSaveErrorMsg] = useState('');
+  const [_saveErrorMsg, setSaveErrorMsg] = useState('');
   const [adminTab, setAdminTab] = useState('schedule');
   const [rememberMe, setRememberMe] = useState(false);
 
@@ -223,24 +223,6 @@ const AdminDashboard = ({ isAdmin, onClose, gamesList, setGamesList, standings, 
       haptics.error();
       setErrorMsg(_err.code === 'auth/popup-closed-by-user' ? 'Sign-in cancelled.' : 'Authentication failed.');
     } finally { setIsAuthenticating(false); }
-  };
-
-  const handleLogout = async () => {
-    haptics.rigid();
-    if (overlayRef.current) {
-      gsap.to(overlayRef.current, {
-        opacity: 0, y: 20, filter: 'blur(10px)', duration: 0.5, ease: 'power2.in',
-        onComplete: async () => {
-          await signOut(auth);
-          setIsAuthenticated(false);
-          onClose();
-        }
-      });
-    } else {
-      await signOut(auth);
-      setIsAuthenticated(false);
-      onClose();
-    }
   };
 
   const handleSaveToCloud = async () => {

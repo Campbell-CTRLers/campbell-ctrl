@@ -1,7 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import ReactDOM from 'react-dom';
 import { Calendar, Clock, ChevronLeft, ChevronRight, ChevronDown } from 'lucide-react';
-import gsap from 'gsap';
 import { cn } from '../utils/cn';
 import { useHaptics } from '../hooks/useHaptics';
 import AnimatedInput from './AnimatedInput';
@@ -295,19 +294,22 @@ export const CustomDropdown = ({ value, onChange, options, placeholder, isEditab
   const [isOpen, setIsOpen] = useState(false);
   const [customValue, setCustomValue] = useState("");
   const containerRef = useRef(null);
-  const [currentOptions, setCurrentOptions] = useState(options);
-  const haptics = useHaptics();
-
-  useEffect(() => {
-    const saved = localStorage.getItem(`custom_presets_${placeholder}`);
-    if (saved) {
-      try {
+  // Lazy initializer: merges any user-saved presets from localStorage into the
+  // initial options list. The initializer runs only once at mount, which is
+  // intentional — `options` and `placeholder` are always module-level constants
+  // (GAME_OPTIONS, LEAGUE_OPTIONS…) and never change between renders. If they
+  // did change, the parent should remount this component with a new `key`.
+  const [currentOptions, setCurrentOptions] = useState(() => {
+    try {
+      const saved = localStorage.getItem(`custom_presets_${placeholder}`);
+      if (saved) {
         const parsed = JSON.parse(saved);
-        const merged = [...new Set([...options.filter(o => o !== "OTHER"), ...parsed, "OTHER"])];
-        setCurrentOptions(merged);
-      } catch (e) { console.error("Failed to parse presets", e); }
-    }
-  }, [options, placeholder]);
+        return [...new Set([...options.filter(o => o !== "OTHER"), ...parsed, "OTHER"])];
+      }
+    } catch (e) { console.error("Failed to parse presets", e); }
+    return options;
+  });
+  const haptics = useHaptics();
 
   const openDropdown = () => {
     if (isOpen) { setIsOpen(false); return; }

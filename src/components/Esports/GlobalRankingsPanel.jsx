@@ -48,12 +48,12 @@ const SEED_DATA = [
  * SLIDING SEGMENT GROUP
  * Uses useGSAP for robust animation of the background pill.
  */
-const SegmentGroup = React.memo(({ label, options, value, onChange, accentFn }) => {
+const SegmentGroup = React.memo(({ label, options, value, onChange }) => {
   const containerRef = useRef(null);
   const pillRef      = useRef(null);
   const haptics      = useHaptics();
 
-  const getColors = (id) => {
+  const getColors = () => {
     // Defaulting to blue as requested by user
     return { bg: 'rgba(59, 130, 246, 0.12)', border: 'rgba(59, 130, 246, 0.35)', text: '#3b82f6' };
   };

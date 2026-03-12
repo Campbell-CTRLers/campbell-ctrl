@@ -1,0 +1,116 @@
+# Lint workflow: runs ESLint and Stylelint on every push/PR to main.
+#
+# Both linters produce SARIF output that is uploaded to GitHub Advanced Security
+# (Code Scanning), so all findings — including suppressed ones — appear in the
+# Security tab and as inline PR annotations.
+#
+# CI failure behaviour:
+#   • A linting step runs with continue-on-error so SARIF is always generated.
+#   • A gate step at the end fails the job only when the linter itself exits
+#     non-zero (i.e. new *unsuppressed* errors were introduced).
+#   • Pre-existing errors that are already suppressed with eslint-disable / 
+#     stylelint-disable comments do NOT fail CI — they remain visible in GHAS.
+
+name: Lint
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+
+permissions:
+  contents: read
+
+jobs:
+  eslint:
+    name: ESLint
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write   # required to upload SARIF to Code Scanning
+      actions: read
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "lts/*"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      # continue-on-error keeps the step from aborting the job so SARIF is
+      # always generated and uploaded even when errors are present.
+      - name: Run ESLint (SARIF output)
+        id: eslint
+        run: |
+          npx eslint . \
+            -f @microsoft/eslint-formatter-sarif \
+            --output-file eslint-results.sarif
+        continue-on-error: true
+
+      - name: Upload ESLint results to GitHub Code Scanning
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: eslint-results.sarif
+          category: eslint          # distinguishes this upload from the stylelint one
+          wait-for-processing: true
+
+      # Fail the job only if ESLint actually found unsuppressed errors.
+      # Warnings and eslint-disable'd violations are visible in GHAS but do
+      # not block CI.
+      - name: Fail if ESLint found new errors
+        if: steps.eslint.outcome == 'failure'
+        run: |
+          echo "❌ ESLint found errors. Run 'npx eslint .' locally and fix them."
+          exit 1
+
+  stylelint:
+    name: Stylelint
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write   # required to upload SARIF to Code Scanning
+      actions: read
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "lts/*"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      # continue-on-error keeps the step from aborting the job so SARIF is
+      # always generated and uploaded even when errors are present.
+      - name: Run Stylelint (SARIF output)
+        id: stylelint
+        run: |
+          npx stylelint "src/**/*.css" \
+            --custom-formatter stylelint-sarif-formatter \
+            --output-file stylelint-results.sarif
+        continue-on-error: true
+
+      - name: Upload Stylelint results to GitHub Code Scanning
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: stylelint-results.sarif
+          category: stylelint       # distinguishes this upload from the eslint one
+          wait-for-processing: true
+
+      # Fail the job only if Stylelint actually found unsuppressed errors.
+      - name: Fail if Stylelint found new errors
+        if: steps.stylelint.outcome == 'failure'
+        run: |
+          echo "❌ Stylelint found errors. Run 'npm run lint:css' locally and fix them."
+          exit 1

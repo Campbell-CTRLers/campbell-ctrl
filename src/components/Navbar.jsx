@@ -1,5 +1,5 @@
 /* eslint-disable react-hooks/refs */
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useRef, useState, useEffect, useMemo } from 'react';
 import gsap from 'gsap';
 import { ArrowRight, Sun, Moon } from 'lucide-react';
 import { cn } from '../utils/cn';
@@ -146,7 +146,7 @@ const Navbar = ({ currentTab, onNavigate }) => {
   const { theme, toggleTheme } = useTheme();
   const haptics = useHaptics();
 
-  const tabRefs = { home: homeRef, esports: esportsRef, meetings: meetingsRef };
+  const tabRefs = useMemo(() => ({ home: homeRef, esports: esportsRef, meetings: meetingsRef }), []);
 
   // Helper: read current CSS variable values (theme-aware)
   const getThemeColors = () => {
@@ -202,7 +202,7 @@ const Navbar = ({ currentTab, onNavigate }) => {
       ease: 'power3.out',
       overwrite: 'auto'
     });
-  }, [currentTab, theme]);
+  }, [currentTab, theme, tabRefs]);
 
   const handleMagnetMove = (xMove, yMove) => {
     if (!indicatorRef.current) return;
