@@ -17,6 +17,20 @@ const SORT_OPTIONS = [
 
 const ROSTER_OPTIONS = ['ALL', 'VARSITY', 'ALT'];
 
+const simplifyGameName = (name) => {
+  if (!name) return "";
+  let n = name;
+  if (/smash\s+bros/i.test(n)) return "Smash Bros";
+  if (/mario\s+kart/i.test(n)) return "Mario Kart 8";
+  if (/madden/i.test(n)) return "Madden";
+  if (/pokemon|pokémon/i.test(n)) return "Pokémon";
+  if (/street\s+fighter/i.test(n)) return "Street Fighter";
+  if (/marvel\s+rivals/i.test(n)) return "Marvel Rivals";
+  if (/rocket\s+league/i.test(n)) return "Rocket League";
+  if (/splatoon/i.test(n)) return "Splatoon 3";
+  return n;
+};
+
 const SEED_DATA = [
   { id: '1',  game: 'Rocket League',    leagueName: 'Georgia PlayVS', leagueRank: '1'  },
   { id: '2',  game: 'Smash Bros',       leagueName: 'GEF / PlayVS',  leagueRank: '4'  },
@@ -173,7 +187,7 @@ export const GlobalRankingsPanel = ({ standings = [] }) => {
     <div className="bg-background rounded-[2.5rem] p-5 sm:p-8 border border-slate/15 shadow-2xl flex flex-col h-full min-h-[550px]">
       
       {/* ── Header Row ── */}
-      <div className="flex items-center justify-between mb-8">
+      <div className="flex items-center justify-between mb-6">
         <div className="flex flex-col">
           <h2 className="font-sans font-black text-2xl text-primary flex items-center gap-2.5 italic">
             <Trophy className="text-accent" size={24} />
@@ -204,7 +218,7 @@ export const GlobalRankingsPanel = ({ standings = [] }) => {
       </div>
 
       {/* ── Filter Bar (Desktop) ── */}
-      <div className="hidden sm:flex flex-wrap items-center gap-2.5 mb-8 pb-6 border-b border-slate/10">
+      <div className="hidden sm:flex flex-wrap items-center gap-2.5 mb-6 pb-6 border-b border-slate/10">
         <SegmentGroup label="League" options={leagueOptions} value={activeLeague} onChange={handleLeague} />
         <SegmentGroup label="Roster" options={ROSTER_OPTIONS} value={activeType}   onChange={handleType} accentFn={(id) => id === 'ALT' ? 'blue' : 'accent'} />
         <SegmentGroup label="Sort By" options={SORT_OPTIONS}   value={activeSortId} onChange={handleSort} />
@@ -218,14 +232,10 @@ export const GlobalRankingsPanel = ({ standings = [] }) => {
 
       {/* ── Mobile Overlay (Now full-page) ── */}
       {mobileOpen && (
-        <div className="sm:hidden fixed inset-0 z-[100] bg-background backdrop-blur-3xl flex flex-col p-6 pt-[calc(1.5rem+env(safe-area-inset-top,0px))] pb-[calc(1.5rem+env(safe-area-inset-bottom,0px))] gap-6 overflow-y-auto animate-in fade-in slide-in-from-bottom-5 duration-300">
+        <div className="sm:hidden fixed inset-0 z-[100] bg-background backdrop-blur-3xl flex flex-col p-6 pt-[calc(1rem+env(safe-area-inset-top,0px))] pb-[calc(1rem+env(safe-area-inset-bottom,0px))] gap-6 overflow-y-auto animate-in fade-in slide-in-from-bottom-5 duration-300">
+          
+          {/* Search & Actions at Top */}
           <div className="flex flex-col gap-4">
-            <SegmentGroup label="League" options={leagueOptions} value={activeLeague} onChange={handleLeague} />
-            <SegmentGroup label="Roster" options={ROSTER_OPTIONS} value={activeType}   onChange={handleType} />
-            <SegmentGroup label="Order"  options={SORT_OPTIONS}   value={activeSortId} onChange={handleSort} />
-          </div>
-
-          <div className="mt-auto flex flex-col gap-4">
             <div className="flex items-center gap-3">
               <div className="flex-1">
                 <AnimatedInput
@@ -233,23 +243,47 @@ export const GlobalRankingsPanel = ({ standings = [] }) => {
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Find a game..."
-                  className="border-slate/20 h-14 rounded-2xl text-lg bg-primary/5"
+                  className="border-slate/10 h-12 rounded-2xl text-base bg-primary/5"
+                  mono={false}
+                  tracking="normal"
                 />
               </div>
-              <button onClick={() => { haptics.light(); setMobileOpen(false); }} className="w-14 h-14 rounded-2xl bg-primary/5 flex items-center justify-center text-slate/40">
-                <X size={24} />
+              <button 
+                onClick={() => { haptics.light(); setMobileOpen(false); }} 
+                className="w-12 h-12 rounded-2xl bg-primary/5 flex items-center justify-center text-slate border border-slate/10"
+              >
+                <X size={20} />
               </button>
             </div>
-            <button onClick={() => setMobileOpen(false)} className="w-full bg-blue-500 text-white font-mono font-black text-sm py-5 rounded-2xl shadow-xl shadow-blue-500/20 active:scale-95 transition-all">
+            <button 
+              onClick={() => { haptics.success(); setMobileOpen(false); }} 
+              className="w-full bg-blue-500 text-white font-mono font-black text-xs py-3.5 rounded-2xl shadow-xl shadow-blue-500/20 active:scale-95 transition-all flex items-center justify-center gap-2"
+            >
               VIEW {filtered.length} RANKINGS
             </button>
+          </div>
+
+          <div className="h-px bg-slate/10" />
+
+          {/* Filters Secondary */}
+          <div className="flex flex-col gap-5">
+            <SegmentGroup label="League" options={leagueOptions} value={activeLeague} onChange={handleLeague} />
+            <SegmentGroup label="Roster" options={ROSTER_OPTIONS} value={activeType}   onChange={handleType} />
+            <SegmentGroup label="Order"  options={SORT_OPTIONS}   value={activeSortId} onChange={handleSort} />
+          </div>
+
+          <div className="mt-auto opacity-20 pointer-events-none">
+            <div className="flex flex-col items-center gap-2">
+              <Trophy size={40} className="text-slate/20" />
+              <span className="font-mono text-[8px] uppercase tracking-[0.3em]">Campbell Esports</span>
+            </div>
           </div>
         </div>
       )}
 
       {/* ── Mobile Active Status ── */}
       {!mobileOpen && hasFilters && (
-        <div className="sm:hidden flex items-center gap-2 mb-6 flex-wrap">
+        <div className="sm:hidden flex items-center gap-2 mb-4 flex-wrap">
           <span className="font-mono text-[8px] text-slate/30 uppercase font-black">ACTIVE:</span>
           {activeLeague !== 'ALL' && <span className="text-[9px] font-mono font-black text-accent bg-accent/10 px-2 py-1 rounded-lg">{activeLeague}</span>}
           {activeType !== 'ALL'   && <span className="text-[9px] font-mono font-black text-blue-500 bg-blue-500/10 px-2 py-1 rounded-lg">{activeType}</span>}
@@ -282,7 +316,7 @@ export const GlobalRankingsPanel = ({ standings = [] }) => {
                       </div>
                       <div className="flex flex-col min-w-0">
                         <div className="flex items-center gap-2">
-                          <span className="font-sans font-black text-base text-primary tracking-tight truncate leading-none uppercase italic">{team.game}</span>
+                          <span className="font-sans font-black text-base text-primary tracking-tight truncate leading-none uppercase italic">{simplifyGameName(team.game)}</span>
                           {team.isAlt && <span className="text-[7px] font-mono font-black bg-blue-500 text-white px-1.5 py-0.5 rounded-md shadow-sm">ALT</span>}
                         </div>
                         <span className="font-mono text-[9px] text-slate/40 uppercase tracking-widest mt-1.5">{team.leagueName}</span>
