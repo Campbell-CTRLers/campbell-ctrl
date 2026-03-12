@@ -1,6 +1,7 @@
 import React, { useRef, useEffect } from 'react';
 import gsap from 'gsap';
-import { GameIcon, formatGameDate } from '../SharedUI';
+import { GameIcon } from '../SharedUI';
+import { formatGameDate } from '../../utils/gameUtils';
 import { cn } from '../../utils/cn';
 
 export const TelemetryTypewriter = ({ gamesList }) => {

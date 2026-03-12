@@ -67,7 +67,7 @@ const SegmentGroup = React.memo(({ label, options, value, onChange }) => {
     const btn = buttons.find(b => b.getAttribute('data-id') === value);
     
     if (btn) {
-      const colors = getColors(value);
+      const colors = getColors();
       
       // Morph the pill to the button's position and size
       gsap.to(pillRef.current, {
@@ -102,7 +102,7 @@ const SegmentGroup = React.memo(({ label, options, value, onChange }) => {
           const id = typeof opt === 'object' ? opt.id : opt;
           const lbl = typeof opt === 'object' ? opt.label : opt;
           const active = id === value;
-          const colors = getColors(id);
+          const colors = getColors();
           
           return (
             <button

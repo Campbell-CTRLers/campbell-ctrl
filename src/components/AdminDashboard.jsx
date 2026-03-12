@@ -94,9 +94,14 @@ const AdminDashboard = ({ isAdmin, onClose, gamesList, setGamesList, standings, 
 
   // TRACK ORIGINAL DATA for dirty check
   const originalDataRef = useRef(null);
-  const isDirty = useMemo(() => {
-    if (!originalDataRef.current) return false;
-    return JSON.stringify(originalDataRef.current) !== JSON.stringify({ gamesList, standings, rankings });
+  const [isDirty, setIsDirty] = useState(false);
+
+  // Recompute dirty flag whenever data changes (safe: runs after render, not during)
+  useEffect(() => {
+    if (!originalDataRef.current) return;
+    setIsDirty(
+      JSON.stringify(originalDataRef.current) !== JSON.stringify({ gamesList, standings, rankings })
+    );
   }, [gamesList, standings, rankings]);
 
   // Sync internal state with prop (needed for Firebase init on refresh)
@@ -129,7 +134,9 @@ const AdminDashboard = ({ isAdmin, onClose, gamesList, setGamesList, standings, 
     if (isAdmin && isAuthenticated && !saveSuccess && originalDataRef.current) return;
     if (isAdmin && isAuthenticated) {
       originalDataRef.current = JSON.parse(JSON.stringify({ gamesList, standings, rankings }));
+      setIsDirty(false);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAdmin, isAuthenticated, saveSuccess]);
 
   // Entrance anim

@@ -1,4 +1,3 @@
-/* eslint-disable react-hooks/refs */
 import React, { useRef, useState, useEffect, useMemo } from 'react';
 import gsap from 'gsap';
 import { ArrowRight, Sun, Moon } from 'lucide-react';
@@ -48,22 +47,6 @@ const MagneticLink = ({ children, className, onMagnetMove, onMagnetLeave }) => {
     if (onMagnetLeave) onMagnetLeave();
   };
 
-  // We clone the child element to attach the ref and style to it transparently
-  const child = React.Children.only(children);
-  const clonedChild = React.cloneElement(child, {
-    ref: (node) => {
-      elementRef.current = node;
-      // Preserve original ref from the child if it exists
-      const { ref } = child;
-      if (typeof ref === 'function') {
-        ref(node);
-      } else if (ref !== null && ref !== undefined) {
-        ref.current = node;
-      }
-    },
-    style: { ...child.props.style, willChange: 'transform' }
-  });
-
   return (
     <div 
       ref={containerRef}
@@ -71,7 +54,9 @@ const MagneticLink = ({ children, className, onMagnetMove, onMagnetLeave }) => {
       onMouseLeave={handleMouseLeave}
       className={cn("relative z-10 flex items-center justify-center cursor-pointer", className)}
     >
-      {clonedChild}
+      <span ref={elementRef} style={{ willChange: 'transform' }}>
+        {children}
+      </span>
     </div>
   );
 };

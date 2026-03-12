@@ -1,7 +1,8 @@
 import React, { useRef, useEffect } from 'react';
 import gsap from 'gsap';
 import { Gamepad2 } from 'lucide-react';
-import { formatGameDate, GameIcon } from '../components/SharedUI';
+import { GameIcon } from '../components/SharedUI';
+import { formatGameDate } from '../utils/gameUtils';
 import { LiveStandings } from '../components/LiveStandings';
 import { GlobalRankingsPanel } from '../components/Esports/GlobalRankingsPanel';
 import { cn } from '../utils/cn';

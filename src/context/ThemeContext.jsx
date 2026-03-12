@@ -1,8 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { isMobileUser } from '../utils/mobile';
-
-// eslint-disable-next-line react-refresh/only-export-components
-export const ThemeContext = React.createContext({ theme: 'light', toggleTheme: () => {} });
+import { ThemeContext } from './themeContext';
 
 export const ThemeProvider = ({ children }) => {
   const [theme, setTheme] = useState(() => {
