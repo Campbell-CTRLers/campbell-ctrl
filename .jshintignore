@@ -1,0 +1,3 @@
+# JSHint does not support JSX syntax. All .jsx files are covered by ESLint
+# (eslint.config.js), which understands React JSX, React Hooks, and ES2020+.
+**/*.jsx
