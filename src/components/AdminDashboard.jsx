@@ -3,7 +3,7 @@ import gsap from 'gsap';
 import { Settings, Plus, Trash2, CloudUpload, ChevronDown, ChevronRight, ChevronUp, Calendar, X, AlertTriangle, Check, Trophy } from 'lucide-react';
 import { db, auth, googleProvider } from '../firebase';
 import { writeBatch, doc, getDoc } from 'firebase/firestore';
-import { signInWithEmailAndPassword, signInWithPopup, signOut, setPersistence, browserLocalPersistence, browserSessionPersistence } from 'firebase/auth';
+import { signInWithPopup, signOut, setPersistence, browserLocalPersistence, browserSessionPersistence } from 'firebase/auth';
 import { useTheme } from '../context/useTheme';
 import { useHaptics } from '../hooks/useHaptics';
 import { cn } from '../utils/cn';
@@ -72,7 +72,6 @@ const AdminDashboard = ({ isAdmin, onClose, gamesList, setGamesList, standings, 
   const { theme } = useTheme();
   const [isAuthenticated, setIsAuthenticated] = useState(!!authenticatedUser);
   const [email, setEmail] = useState(authenticatedUser?.email || '');
-  const [password, setPassword] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
   const [isAuthenticating, setIsAuthenticating] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -210,29 +209,6 @@ const AdminDashboard = ({ isAdmin, onClose, gamesList, setGamesList, standings, 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAdmin, isAuthenticated]);
 
-  const handleLoginSubmit = async (e) => {
-    e.preventDefault();
-    if (!email || !password) { setErrorMsg('Email and Password required.'); return; }
-    setIsAuthenticating(true);
-    setErrorMsg('');
-    const authExpiry = rememberMe ? Date.now() + 30 * 24 * 60 * 60 * 1000 : 0;
-    try {
-      haptics.light();
-      await signInWithEmailAndPassword(auth, email, password);
-      if (rememberMe) {
-        localStorage.setItem('auth_expiry', String(authExpiry));
-      } else {
-        localStorage.removeItem('auth_expiry');
-      }
-      haptics.success();
-    } catch (err) {
-      console.error('Email/password login failed:', err);
-      haptics.error();
-      setErrorMsg('Access Denied. Invalid Credentials.');
-      setPassword('');
-    } finally { setIsAuthenticating(false); }
-  };
-
   const handleGoogleSignIn = async () => {
     setIsAuthenticating(true);
     setErrorMsg('');
@@ -346,11 +322,6 @@ const AdminDashboard = ({ isAdmin, onClose, gamesList, setGamesList, standings, 
     handleClose();
   };
 
-  const btnClass = cn(
-    "text-white font-sans font-bold transition-transform active:scale-95 flex items-center justify-center gap-2",
-    theme === 'dark' ? 'bg-[rgb(0,56,168)] hover:bg-[rgb(0,46,138)]' : 'bg-[#0A0A0A] hover:bg-[#1a1a1a]'
-  );
-
   const activeControlItem = useMemo(() => {
     if (!activeControlId) return null;
     return gamesList.find(g => g.id === activeControlId) || standings.find(s => s.id === activeControlId) || rankings.find(r => r.id === activeControlId);
@@ -383,55 +354,48 @@ const AdminDashboard = ({ isAdmin, onClose, gamesList, setGamesList, standings, 
             <>
               <div className="w-16 h-16 flex items-center justify-center text-accent mb-4"><Settings size={32} /></div>
               <h2 className="font-sans font-bold text-2xl text-primary mb-1 text-center">Admin Access</h2>
-              <p className="font-sans text-slate/60 text-xs mb-8 text-center px-6">Restricted system zone. Input credentials.</p>
-              <form onSubmit={handleLoginSubmit} className="w-full flex flex-col gap-4">
-                <AnimatedInput type="text" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email" className="w-full border text-center bg-primary/5 h-12 rounded-2xl" error={!!errorMsg} />
-                <AnimatedInput type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Password" className="w-full border text-center bg-primary/5 h-12 rounded-2xl" error={!!errorMsg} />
-                {errorMsg && <span className="font-mono text-[10px] text-red-500 text-center">{errorMsg}</span>}
-                <button type="submit" disabled={isAuthenticating} className={cn(btnClass, "w-full py-3.5 rounded-2xl h-[54px]")}>
-                  {isAuthenticating ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : 'Enter Dashboard'}
-                </button>
+              <p className="font-sans text-slate/60 text-xs mb-8 text-center px-6">Sign in with your authorized Google account.</p>
 
-                <div className="flex flex-col items-center gap-4 mt-2 w-full bg-slate/5 p-4 rounded-2xl border border-slate/10">
-                  <label className="flex items-center gap-3 cursor-pointer group">
-                    <div className="relative">
-                      <input 
-                        type="checkbox" 
-                        checked={rememberMe} 
-                        onChange={(e) => {
-                          haptics.light();
-                          setRememberMe(e.target.checked);
-                        }}
-                        className="sr-only"
-                      />
-                      <div className={cn(
-                        "w-5 h-5 rounded-md border-2 transition-all duration-300 flex items-center justify-center shadow-sm",
-                        rememberMe ? "border-accent bg-accent" : "border-slate/20 bg-background group-hover:border-accent/40"
-                      )}>
-                        <div className={cn(
-                          "w-2 h-1.5 border-l-2 border-b-2 border-white -rotate-45 mb-0.5 transition-all duration-300",
-                          rememberMe ? "opacity-100 scale-100" : "opacity-0 scale-50"
-                        )} />
-                      </div>
-                    </div>
-                    <span className="font-sans text-xs font-bold text-slate/50 group-hover:text-primary transition-colors select-none">Stay signed in for 30 days</span>
-                  </label>
+              {errorMsg && <span className="font-mono text-[10px] text-red-500 text-center mb-4">{errorMsg}</span>}
 
-                  <div className="flex flex-col items-center text-center gap-0.5">
-                    <span className="font-mono text-[8px] text-accent/40 font-bold uppercase tracking-[0.2em]">Security Protocol</span>
-                    <p className="font-sans text-[9px] text-slate/30 leading-relaxed max-w-[200px]">
-                      Authentication persists for 1 month. Enable only on private devices.
-                    </p>
-                  </div>
-                </div>
-              </form>
-              <div className="flex items-center gap-4 w-full my-6 text-slate/20 font-mono text-[10px] uppercase">
-                <div className="flex-1 h-px bg-current"></div><span>Or</span><div className="flex-1 h-px bg-current"></div>
-              </div>
-              <button type="button" onClick={handleGoogleSignIn} disabled={isAuthenticating} className="w-full h-[54px] bg-background border border-slate/10 rounded-2xl flex items-center justify-center gap-3 font-bold text-sm hover:border-accent transition-all active:scale-95 shadow-sm">
-                <svg viewBox="0 0 24 24" className="w-5 h-5" xmlns="http://www.w3.org/2000/svg"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
-                Google Protocol
+              <button type="button" onClick={handleGoogleSignIn} disabled={isAuthenticating} aria-label={isAuthenticating ? 'Signing in…' : 'Sign in with Google'} aria-busy={isAuthenticating} className="w-full h-[54px] bg-background border border-slate/10 rounded-2xl flex items-center justify-center gap-3 font-bold text-sm hover:border-accent transition-all active:scale-95 shadow-sm">
+                {isAuthenticating
+                  ? <><div className="w-5 h-5 border-2 border-accent/30 border-t-accent rounded-full animate-spin" aria-hidden="true" /><span className="sr-only">Signing in…</span></>
+                  : (<><svg viewBox="0 0 24 24" className="w-5 h-5" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>Sign in with Google</>)}
               </button>
+
+              <div className="flex flex-col items-center gap-4 mt-4 w-full bg-slate/5 p-4 rounded-2xl border border-slate/10">
+                <label className="flex items-center gap-3 cursor-pointer group">
+                  <div className="relative">
+                    <input 
+                      type="checkbox" 
+                      checked={rememberMe} 
+                      onChange={(e) => {
+                        haptics.light();
+                        setRememberMe(e.target.checked);
+                      }}
+                      className="sr-only"
+                    />
+                    <div className={cn(
+                      "w-5 h-5 rounded-md border-2 transition-all duration-300 flex items-center justify-center shadow-sm",
+                      rememberMe ? "border-accent bg-accent" : "border-slate/20 bg-background group-hover:border-accent/40"
+                    )}>
+                      <div className={cn(
+                        "w-2 h-1.5 border-l-2 border-b-2 border-white -rotate-45 mb-0.5 transition-all duration-300",
+                        rememberMe ? "opacity-100 scale-100" : "opacity-0 scale-50"
+                      )} />
+                    </div>
+                  </div>
+                  <span className="font-sans text-xs font-bold text-slate/50 group-hover:text-primary transition-colors select-none">Stay signed in for 30 days</span>
+                </label>
+
+                <div className="flex flex-col items-center text-center gap-0.5">
+                  <span className="font-mono text-[8px] text-accent/40 font-bold uppercase tracking-[0.2em]">Security Protocol</span>
+                  <p className="font-sans text-[9px] text-slate/30 leading-relaxed max-w-[200px]">
+                    Authentication persists for 1 month. Enable only on private devices.
+                  </p>
+                </div>
+              </div>
             </>
           )}
         </div>
@@ -682,18 +646,6 @@ const AdminDashboard = ({ isAdmin, onClose, gamesList, setGamesList, standings, 
               </button>
              <button onClick={() => { haptics.selection(); setAdminTab('rankings'); }} className={cn("flex flex-col items-center gap-1.5 transition-all text-[10px] font-black uppercase tracking-tighter touch-manipulation", adminTab === 'rankings' ? "text-accent scale-110" : "text-slate/40")}>
                 <Settings size={20} /><span className="leading-none">Rankings</span>
-             </button>
-             <button 
-                onClick={handleSaveToCloud} 
-                disabled={isSaving}
-                className={cn(
-                  "flex flex-col items-center gap-1.5 transition-all text-[10px] font-black uppercase tracking-tighter touch-manipulation",
-                  isDirty ? "text-accent scale-110" : "text-slate/40",
-                  isSaving && "opacity-70"
-                )}
-              >
-                {isSaving ? <div className="w-5 h-5 border-2 border-accent/30 border-t-accent rounded-full animate-spin" /> : <CloudUpload size={20} />}
-                <span className="leading-none">{saveSuccess ? 'Saved!' : 'Publish'}</span>
              </button>
           </div>
         </div>
