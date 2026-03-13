@@ -46,7 +46,8 @@ export const Hero = () => {
         <img
           src="https://images.unsplash.com/photo-1542751371-adc38448a05e?q=80&w=2000&auto=format&fit=crop"
           alt="Esports Arena Gaming Setup"
-          fetchpriority="high"
+          fetchPriority="high"
+          loading="eager"
           className="hero-bg-img w-full h-full object-cover origin-center custom-hero-img transition-all duration-500"
         />
         <div className="absolute inset-0 custom-hero-gradient transition-all duration-500"></div>

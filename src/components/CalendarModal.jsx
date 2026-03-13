@@ -9,7 +9,7 @@ import iconGoogleCalendar from '../assets/icon-google-calendar.svg';
 import iconMicrosoftOutlook from '../assets/icon-microsoft-outlook.svg';
 import { useHaptics } from '../hooks/useHaptics';
 
-export function CalendarOptions({ compact = false }) {
+export function CalendarOptions({ compact = false, titleId }) {
   const containerRef = useRef(null);
   const [googleUrl, setGoogleUrl] = useState('');
   const [outlookUrl, setOutlookUrl] = useState('');
@@ -91,11 +91,11 @@ export function CalendarOptions({ compact = false }) {
       )}
     >
       <div className="text-center mb-2">
-        <h3 className="font-sans font-bold text-2xl text-primary mb-1">Add to Calendar</h3>
+        <h3 id={titleId} className="font-sans font-bold text-2xl text-primary mb-1">Add to Calendar</h3>
         <p className="font-sans text-slate text-[10px] uppercase tracking-[0.2em] opacity-40">Select your provider</p>
       </div>
 
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-3 gap-3" role="group" aria-label="Calendar provider options">
         {calendarProviders.map(({ label, href, target, icon }) => (
           <a
             key={label}
@@ -152,10 +152,13 @@ export function CalendarModal({ open, onClose }) {
   const panelRef = useRef(null);
   const haptics = useHaptics();
   const [animating, setAnimating] = useState(false);
+  const previousActiveRef = useRef(null);
+  const handleCloseRef = useRef(() => {});
 
   // Entry animation — runs after the portal mounts when open becomes true
   useEffect(() => {
     if (!open) return;
+    previousActiveRef.current = document.activeElement;
     haptics.selection();
     const bd = backdropRef.current;
     const panel = panelRef.current;
@@ -165,18 +168,35 @@ export function CalendarModal({ open, onClose }) {
       { opacity: 0, scale: 0.85, y: 40 },
       { opacity: 1, scale: 1, y: 0, duration: PANEL_ENTER_DURATION, ease: PANEL_EASE_IN }
     );
+    const t = setTimeout(() => panel.focus?.(), 150);
+    return () => clearTimeout(t);
   }, [open, haptics]);
 
-  // Exit animation — animate out then unmount
+  // Exit animation — single timeline so panel and backdrop finish together; one onComplete to avoid flicker
   const handleClose = () => {
     haptics.light();
+    previousActiveRef.current?.focus?.();
     const bd = backdropRef.current;
     const panel = panelRef.current;
     if (!bd || !panel) { onClose(); return; }
-    setAnimating(true);
-    gsap.to(panel, { opacity: 0, scale: 0.9, y: 24, duration: PANEL_EXIT_DURATION, ease: PANEL_EASE_OUT });
-    gsap.to(bd, { opacity: 0, duration: BACKDROP_FADE_OUT_DURATION, ease: BACKDROP_EASE_OUT, onComplete: () => { setAnimating(false); onClose(); } });
+    const tl = gsap.timeline({ onComplete: () => onClose() });
+    tl.to(panel, { opacity: 0, scale: 0.9, y: 24, duration: PANEL_EXIT_DURATION, ease: PANEL_EASE_OUT }, 0);
+    tl.to(bd, { opacity: 0, duration: BACKDROP_FADE_OUT_DURATION, ease: BACKDROP_EASE_OUT }, 0);
   };
+  handleCloseRef.current = handleClose;
+
+  // Escape to close
+  useEffect(() => {
+    if (!open && !animating) return;
+    const onKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        handleCloseRef.current();
+      }
+    };
+    document.addEventListener('keydown', onKeyDown);
+    return () => document.removeEventListener('keydown', onKeyDown);
+  }, [open, animating]);
 
   if (!open && !animating) return null;
 
@@ -187,14 +207,14 @@ export function CalendarModal({ open, onClose }) {
       style={{ backgroundColor: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(6px)' }}
       onMouseDown={(e) => { if (e.target === e.currentTarget) handleClose(); }}
     >
-      <div ref={panelRef} className="bg-background rounded-[2.5rem] border border-slate/15 shadow-2xl p-4 flex flex-col w-[90vw] max-w-sm overflow-hidden">
+      <div ref={panelRef} role="dialog" aria-modal="true" aria-labelledby="calendar-modal-title" tabIndex={-1} className="bg-background rounded-[2.5rem] border border-slate/15 shadow-2xl p-4 flex flex-col w-[90vw] max-w-sm overflow-hidden">
         <div className="flex items-center justify-end p-2 mb-[-20px] relative z-20">
-          <button onClick={handleClose} className="text-slate/40 hover:text-primary transition-colors p-2 bg-slate/5 rounded-full touch-manipulation active:scale-95">
+          <button type="button" onClick={handleClose} aria-label="Close calendar options" className="text-slate/40 hover:text-primary transition-colors p-2 bg-slate/5 rounded-full touch-manipulation active:scale-95">
             <X size={18} />
           </button>
         </div>
         <div className="p-4">
-          <CalendarOptions compact />
+          <CalendarOptions compact titleId="calendar-modal-title" />
         </div>
       </div>
     </div>,

@@ -79,6 +79,7 @@ const NavLink = ({ children, onClick, className, tabName, isActive, linkRef, onM
         onClick={handleClick}
         data-tab={tabName}
         className={className}
+        aria-current={isActive ? 'page' : undefined}
       >
         {children}
       </button>
@@ -211,12 +212,13 @@ const Navbar = ({ currentTab, onNavigate }) => {
     });
   };
 
-  // Dropdown animation — CSS handles container height (smooth/GPU), GSAP handles item stagger
+  // Dropdown animation — GSAP only (no transition-all on items to avoid conflict), consistent start state
   useEffect(() => {
     if (isMenuOpen) {
-      gsap.to('.mobile-nav-item', { opacity: 1, y: 0, duration: 0.35, stagger: 0.06, delay: 0.15, ease: 'power3.out', overwrite: true });
+      gsap.set('.mobile-nav-item', { opacity: 0, y: -6 });
+      gsap.to('.mobile-nav-item', { opacity: 1, y: 0, duration: 0.2, stagger: 0.03, delay: 0.05, ease: 'power2.out', overwrite: true });
     } else {
-      gsap.to('.mobile-nav-item', { opacity: 0, y: -8, duration: 0.18, ease: 'power2.in', overwrite: true });
+      gsap.to('.mobile-nav-item', { opacity: 0, y: -6, duration: 0.12, ease: 'power2.in', overwrite: true });
     }
   }, [isMenuOpen]);
 
@@ -234,9 +236,9 @@ const Navbar = ({ currentTab, onNavigate }) => {
   return (
     <nav ref={navRef} className="fixed top-6 left-1/2 -translate-x-1/2 z-40 flex flex-col px-6 py-3 w-[90%] max-w-5xl rounded-[2.5rem] md:rounded-full transition-all duration-300 border border-transparent overflow-hidden">
       <div className="flex items-center justify-between w-full h-12 shrink-0">
-        <div className="flex items-center gap-3 cursor-pointer z-10" onClick={() => handleNavClick('home')}>
-          <img src="/logo-transparent.png" className="nav-logo h-10 w-10 sm:h-12 sm:w-12 object-contain transition-all !text-transparent" alt="" />
-        </div>
+        <button type="button" onClick={() => handleNavClick('home')} className="flex items-center gap-3 cursor-pointer z-10 p-0 border-0 bg-transparent" aria-label="Campbell High Esports – home">
+          <img src="/logo-transparent.png" className="nav-logo h-10 w-10 sm:h-12 sm:w-12 object-contain transition-all !text-transparent" alt="Campbell High Esports – home" />
+        </button>
 
         <div ref={pillContainerRef} className="hidden md:flex items-center absolute left-1/2 -translate-x-1/2 gap-2 rounded-full p-1 nav-pill border border-transparent transition-colors duration-300">
           {/* Morphing active indicator */}
@@ -265,9 +267,9 @@ const Navbar = ({ currentTab, onNavigate }) => {
             onClick={toggleMenu}
             aria-label="Toggle menu"
           >
-            <span className={cn("block w-6 h-[2px] rounded-full transition-transform duration-300 origin-center bg-current", isMenuOpen ? "translate-y-[8px] rotate-45" : "")}></span>
-            <span className={cn("block w-6 h-[2px] rounded-full transition-opacity duration-300 bg-current", isMenuOpen ? "opacity-0" : "")}></span>
-            <span className={cn("block w-6 h-[2px] rounded-full transition-transform duration-300 origin-center bg-current", isMenuOpen ? "-translate-y-[8px] -rotate-45" : "")}></span>
+            <span className={cn("block w-6 h-[2px] rounded-full transition-transform duration-200 origin-center bg-current", isMenuOpen ? "translate-y-[8px] rotate-45" : "")}></span>
+            <span className={cn("block w-6 h-[2px] rounded-full transition-opacity duration-200 bg-current", isMenuOpen ? "opacity-0" : "")}></span>
+            <span className={cn("block w-6 h-[2px] rounded-full transition-transform duration-200 origin-center bg-current", isMenuOpen ? "-translate-y-[8px] -rotate-45" : "")}></span>
           </button>
         </div>
       </div>
@@ -277,21 +279,21 @@ const Navbar = ({ currentTab, onNavigate }) => {
         ref={menuRef}
         style={{
           maxHeight: isMenuOpen ? '600px' : '0px',
-          transition: 'max-height 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
+          transition: 'max-height 0.25s cubic-bezier(0.32, 0.72, 0, 1)',
           pointerEvents: isMenuOpen ? 'auto' : 'none',
         }}
         className="w-full md:hidden flex flex-col items-center justify-start font-mono z-0 overflow-hidden"
       >
         <div className="flex flex-col items-center justify-center gap-2 w-full pt-4 pb-2">
-          <button onClick={() => handleNavClick('home')} className={cn("mobile-nav-item w-[85%] py-4 rounded-2xl opacity-0 -translate-y-2 text-xl font-bold transition-all touch-manipulation flex items-center justify-center", currentTab === 'home' ? "bg-accent/10 text-accent" : "text-primary hover:bg-slate-500/5")}>Home</button>
-          <button onClick={() => handleNavClick('esports')} className={cn("mobile-nav-item w-[85%] py-4 rounded-2xl opacity-0 -translate-y-2 text-xl font-bold transition-all touch-manipulation flex items-center justify-center", currentTab === 'esports' ? "bg-accent/10 text-accent" : "text-primary hover:bg-slate-500/5")}>Esports</button>
-          <button onClick={() => handleNavClick('meetings')} className={cn("mobile-nav-item w-[85%] py-4 rounded-2xl opacity-0 -translate-y-2 text-xl font-bold transition-all touch-manipulation flex items-center justify-center", currentTab === 'meetings' ? "bg-accent/10 text-accent" : "text-primary hover:bg-slate-500/5")}>Meetings</button>
+          <button onClick={() => handleNavClick('home')} aria-current={currentTab === 'home' ? 'page' : undefined} className={cn("mobile-nav-item w-[85%] py-4 rounded-2xl text-xl font-bold touch-manipulation flex items-center justify-center", currentTab === 'home' ? "bg-accent/10 text-accent" : "text-primary hover:bg-slate-500/5")}>Home</button>
+          <button onClick={() => handleNavClick('esports')} aria-current={currentTab === 'esports' ? 'page' : undefined} className={cn("mobile-nav-item w-[85%] py-4 rounded-2xl text-xl font-bold touch-manipulation flex items-center justify-center", currentTab === 'esports' ? "bg-accent/10 text-accent" : "text-primary hover:bg-slate-500/5")}>Esports</button>
+          <button onClick={() => handleNavClick('meetings')} aria-current={currentTab === 'meetings' ? 'page' : undefined} className={cn("mobile-nav-item w-[85%] py-4 rounded-2xl text-xl font-bold touch-manipulation flex items-center justify-center", currentTab === 'meetings' ? "bg-accent/10 text-accent" : "text-primary hover:bg-slate-500/5")}>Meetings</button>
           
-          <div className="w-[90%] h-[1px] bg-slate-500/10 my-2 mobile-nav-item opacity-0"></div>
+          <div className="w-[90%] h-[1px] bg-slate-500/10 my-2 mobile-nav-item" aria-hidden="true" />
 
           <a href="https://discord.gg/HZ2bQsmaSK" target="_blank" rel="noreferrer" 
              onClick={() => haptics.light()}
-             className="mobile-nav-item opacity-0 -translate-y-2 bg-[#5865F2] text-white px-8 py-4 rounded-2xl font-sans font-bold w-[85%] flex items-center justify-center gap-3 active:scale-95 transition-all overflow-hidden group touch-manipulation shadow-lg shadow-indigo-500/20">
+             className="mobile-nav-item bg-[#5865F2] text-white px-8 py-4 rounded-2xl font-sans font-bold w-[85%] flex items-center justify-center gap-3 active:scale-95 overflow-hidden group touch-manipulation shadow-lg shadow-indigo-500/20">
             <span className="relative z-10 whitespace-nowrap">Join Discord</span>
             <ArrowRight size={20} className="relative z-10" />
           </a>

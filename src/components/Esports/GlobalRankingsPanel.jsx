@@ -15,7 +15,7 @@ const SORT_OPTIONS = [
   { id: 'name-desc', label: 'Z→A', field: 'game',      order: 'desc' },
 ];
 
-const ROSTER_OPTIONS = ['ALL', 'VARSITY', 'ALT'];
+export const ROSTER_OPTIONS = ['ALL', 'VARSITY', 'ALT', 'DEL'];
 
 const simplifyGameName = (name) => {
   if (!name) return "";
@@ -48,7 +48,7 @@ const SEED_DATA = [
  * SLIDING SEGMENT GROUP
  * Uses useGSAP for robust animation of the background pill.
  */
-const SegmentGroup = React.memo(({ label, options, value, onChange }) => {
+export const SegmentGroup = React.memo(({ label, options, value, onChange }) => {
   const containerRef = useRef(null);
   const pillRef      = useRef(null);
   const haptics      = useHaptics();
@@ -125,17 +125,38 @@ const SegmentGroup = React.memo(({ label, options, value, onChange }) => {
 });
 
 // ─── Main Component ───────────────────────────────────────────────────────────
-export const GlobalRankingsPanel = ({ standings = [] }) => {
+// standingsSource = list of teams from Standings (source of truth for which teams exist)
+// rankings = ranking rows; merged so each standing gets its (game, isAlt) ranking data
+export const GlobalRankingsPanel = ({ standingsSource = [], rankings = [], rosterFilter: controlledRoster, onRosterFilterChange }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [mobileOpen, setMobileOpen] = useState(false);
   const [activeLeague, setActiveLeague] = useState('ALL');
-  const [activeType, setActiveType] = useState('ALL');
+  const [activeTypeInternal, setActiveTypeInternal] = useState('ALL');
   const [activeSortId, setActiveSortId] = useState('rank-asc');
+  const activeType = onRosterFilterChange && controlledRoster != null ? controlledRoster : activeTypeInternal;
+  const setActiveType = onRosterFilterChange && controlledRoster != null ? onRosterFilterChange : setActiveTypeInternal;
   
   const haptics = useHaptics();
   const mobileInputRef = useRef(null);
 
-  const data = useMemo(() => standings && standings.length > 0 ? standings : SEED_DATA, [standings]);
+  const data = useMemo(() => {
+    if (standingsSource && standingsSource.length > 0) {
+      return standingsSource.map((s) => {
+        const r = rankings.find((r) => r.game === s.game && Boolean(r.isAlt) === Boolean(s.isAlt) && Boolean(r.isDel) === Boolean(s.isDel));
+        return {
+          id: r?.id ?? s.id,
+          team: s.team,
+          game: s.game,
+          isAlt: s.isAlt,
+          isDel: s.isDel,
+          leagueRank: r?.leagueRank ?? '',
+          leagueName: r?.leagueName ?? 'PlayVS',
+        };
+      });
+    }
+    if (rankings && rankings.length > 0) return rankings;
+    return SEED_DATA;
+  }, [standingsSource, rankings]);
 
   useEffect(() => {
     if (mobileOpen) setTimeout(() => mobileInputRef.current?.focus(), 150);
@@ -154,8 +175,9 @@ export const GlobalRankingsPanel = ({ standings = [] }) => {
       const ms = !q || (item.game || '').toLowerCase().includes(q);
       const ml = activeLeague === 'ALL' || item.leagueName === activeLeague;
       const mt = activeType === 'ALL'
-              || (activeType === 'ALT' && item.isAlt)
-              || (activeType === 'VARSITY' && !item.isAlt);
+              || (activeType === 'VARSITY' && !item.isAlt && !item.isDel)
+              || (activeType === 'ALT' && item.isAlt && !item.isDel)
+              || (activeType === 'DEL' && item.isDel);
       return ms && ml && mt;
     });
     
@@ -176,7 +198,7 @@ export const GlobalRankingsPanel = ({ standings = [] }) => {
     setActiveLeague('ALL');
     setActiveType('ALL');
     setActiveSortId('rank-asc');
-  }, [haptics]);
+  }, [haptics, setActiveType]);
 
   // Stable handlers for SegmentGroups
   const handleLeague = useCallback((v) => setActiveLeague(v), []);
@@ -321,7 +343,8 @@ export const GlobalRankingsPanel = ({ standings = [] }) => {
                       <div className="flex flex-col min-w-0">
                         <div className="flex items-center gap-2">
                           <span className="font-sans font-black text-base text-primary tracking-tight truncate leading-none uppercase italic">{simplifyGameName(team.game)}</span>
-                          {team.isAlt && <span className="text-[7px] font-mono font-black bg-blue-500 text-white px-1.5 py-0.5 rounded-md shadow-sm">ALT</span>}
+                          {team.isAlt && !team.isDel && <span className="text-[7px] font-mono font-black bg-blue-500 text-white px-1.5 py-0.5 rounded-md shadow-sm">ALT</span>}
+                          {team.isDel && <span className="text-[7px] font-mono font-black bg-red-500 text-white px-1.5 py-0.5 rounded-md shadow-sm">DEL</span>}
                         </div>
                         <span className="font-mono text-[9px] text-slate/40 uppercase tracking-widest mt-1.5">{team.leagueName}</span>
                       </div>
@@ -336,7 +359,9 @@ export const GlobalRankingsPanel = ({ standings = [] }) => {
                   </td>
 
                   <td className="py-5 pr-3 text-right hidden sm:table-cell">
-                    {team.isAlt ? (
+                    {team.isDel ? (
+                      <span className="inline-flex items-center gap-1.5 font-mono text-[9px] font-black text-red-500 bg-red-500/10 px-3 py-1.5 rounded-xl border border-red-500/20 shadow-sm shadow-red-500/5">DEL</span>
+                    ) : team.isAlt ? (
                       <span className="inline-flex items-center gap-1.5 font-mono text-[9px] font-black text-blue-500 bg-blue-500/10 px-3 py-1.5 rounded-xl border border-blue-500/20 shadow-sm shadow-blue-500/5">
                         <ShieldCheck size={11} /> ALTERNATE
                       </span>

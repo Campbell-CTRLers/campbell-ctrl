@@ -141,7 +141,15 @@ export function ClubMeetings() {
         </svg>
         <div className="grid grid-cols-7 gap-2 mb-3">
           {days.map((d, i) => (
-            <div key={i} className={cn("w-full aspect-square rounded-md border border-slate/20 flex items-center justify-center font-mono text-xs text-slate", i === 5 ? "day-fri" : "")}>
+            <div
+              key={i}
+              className={cn(
+                "w-full aspect-square rounded-md border flex items-center justify-center font-mono text-xs",
+                i === 5
+                  ? "day-fri bg-accent/15 border-accent/30 text-accent font-bold"
+                  : "border-slate/20 text-slate"
+              )}
+            >
               {d}
             </div>
           ))}
