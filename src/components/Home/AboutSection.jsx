@@ -4,7 +4,7 @@ import { IconUsersOpen, IconController, IconTrophyAbout } from '../AboutIcons';
 const DEFAULT_CARDS = [
   { title: 'Open to all', desc: 'From complete beginners to varsity competitors. Everyone is welcome.' },
   { title: 'Multiple games', desc: 'Rocket League, Smash Bros, Splatoon 3, Marvel Rivals, Mario Kart, and more.' },
-  { title: 'PlayVS competitive', desc: 'Official Campbell eSPARTANS rosters competing in Georgia and PlayVS leagues.' },
+  { title: 'PlayVS competitive', desc: 'Official Campbell eSpartans rosters competing in Georgia and PlayVS leagues.' },
 ];
 
 const CARD_ICONS = [IconUsersOpen, IconController, IconTrophyAbout];

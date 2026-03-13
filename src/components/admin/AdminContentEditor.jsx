@@ -6,7 +6,7 @@ import { useHaptics } from '../../hooks/useHaptics';
 const DEFAULTS = {
   hero: {
     line1: 'Campbell CTRL',
-    line2: 'eSPARTANS',
+    line2: 'eSpartans',
     description: "Campbell High School's official esports and gaming club.",
     buttonText: 'Learn More',
   },
@@ -16,7 +16,7 @@ const DEFAULTS = {
     cards: [
       { title: 'Open to all', desc: 'From complete beginners to varsity competitors. Everyone is welcome.' },
       { title: 'Multiple games', desc: 'Rocket League, Smash Bros, Splatoon 3, Marvel Rivals, Mario Kart, and more.' },
-      { title: 'PlayVS competitive', desc: 'Official Campbell eSPARTANS rosters competing in Georgia and PlayVS leagues.' },
+      { title: 'PlayVS competitive', desc: 'Official Campbell eSpartans rosters competing in Georgia and PlayVS leagues.' },
     ],
   },
 };
@@ -120,7 +120,7 @@ const AdminContentEditor = ({ siteContent, setSiteContent }) => {
               </div>
               <div>
                 <FieldLabel hint="Large accent text">Title Line 2</FieldLabel>
-                <TextInput value={content.hero.line2} onChange={(e) => update('hero', 'line2', e.target.value)} placeholder="eSPARTANS" />
+                <TextInput value={content.hero.line2} onChange={(e) => update('hero', 'line2', e.target.value)} placeholder="eSpartans" />
               </div>
               <div>
                 <FieldLabel hint="Subtitle below the title">Description</FieldLabel>

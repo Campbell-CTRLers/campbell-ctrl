@@ -4,7 +4,7 @@ export const Hero = ({ content }) => {
   const [visible, setVisible] = useState(false);
 
   const line1 = content?.line1 || 'Campbell CTRL';
-  const line2 = content?.line2 || 'eSPARTANS';
+  const line2 = content?.line2 || 'eSpartans';
   const description = content?.description || "Campbell High School\u2019s official esports and gaming club.";
   const buttonText = content?.buttonText || 'Learn More';
 
