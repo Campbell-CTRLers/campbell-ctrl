@@ -20,6 +20,7 @@ const HomeTab = lazy(() => import('./pages/HomeTab'));
 const EsportsTab = lazy(() => import('./pages/EsportsTab'));
 const MeetingsTab = lazy(() => import('./pages/MeetingsTab'));
 const LegalTab = lazy(() => import('./pages/LegalTab'));
+const AdminPage = lazy(() => import('./pages/AdminPage'));
 
 gsap.registerPlugin(ScrollTrigger, ScrollToPlugin);
 
@@ -113,6 +114,7 @@ function AppInner() {
   const [standings, setStandings] = useState([]);
   const [rankings, setRankings] = useState([]);
   const [meetings, setMeetings] = useState([]);
+  const [siteContent, setSiteContent] = useState(null);
   const [dataLoaded, setDataLoaded] = useState(false);
   const [dataError, setDataError] = useState(null);
 
@@ -173,6 +175,7 @@ function AppInner() {
           if (data.standings) setStandings(data.standings);
           if (data.rankings) setRankings(data.rankings);
           setMeetings(data.meetings || []);
+          if (data.siteContent) setSiteContent(data.siteContent);
         }
       },
       (err) => {
@@ -184,6 +187,28 @@ function AppInner() {
   }, []);
 
   // ─── RENDER ───────────────────────────────────────────────────────────
+
+  if (currentTab === 'admin') {
+    return (
+      <Suspense fallback={<div className="fixed inset-0 z-[100] bg-background flex items-center justify-center text-slate">Loading admin…</div>}>
+        <AdminPage
+          onClose={() => handleTabChange('home')}
+          gamesList={gamesList}
+          setGamesList={setGamesList}
+          standings={standings}
+          setStandings={setStandings}
+          rankings={rankings}
+          setRankings={setRankings}
+          meetings={meetings}
+          setMeetings={setMeetings}
+          siteContent={siteContent}
+          setSiteContent={setSiteContent}
+          authenticatedUser={authenticatedUser}
+          authInitialized={authInitialized}
+        />
+      </Suspense>
+    );
+  }
 
   return (
     <div className="bg-background min-h-screen font-sans selection:bg-accent selection:text-background pb-1 relative">
@@ -205,23 +230,20 @@ function AppInner() {
 
       <main id="main-content" tabIndex={-1}>
         <Suspense fallback={<div className="flex min-h-[40vh] items-center justify-center text-slate" aria-live="polite">Loading…</div>}>
-          {currentTab === 'home' && <HomeTab gamesList={gamesList} standings={standings} rankings={rankings} meetings={meetings} dataLoaded={dataLoaded} onNavigateToEsports={() => handleTabChange('esports')} />}
+          {currentTab === 'home' && <HomeTab gamesList={gamesList} standings={standings} rankings={rankings} meetings={meetings} siteContent={siteContent} dataLoaded={dataLoaded} onNavigateToEsports={() => handleTabChange('esports')} />}
           {currentTab === 'esports' && <EsportsTab gamesList={gamesList} standings={standings} rankings={rankings} dataLoaded={dataLoaded} />}
           {currentTab === 'meetings' && <MeetingsTab meetings={meetings} />}
           {currentTab === 'legal' && <LegalTab />}
         </Suspense>
       </main>
 
-      <Footer onToggleAdmin={() => setIsAdmin(true)} onNavigate={handleTabChange} />
+      <Footer onToggleAdmin={() => handleTabChange('admin')} onNavigate={handleTabChange} />
 
       <ScrollToTop />
 
       <AdminDashboard
-        isAdmin={isAdmin || currentTab === 'admin'}
-        onClose={() => {
-          setIsAdmin(false);
-          if (currentTab === 'admin') handleTabChange('home');
-        }}
+        isAdmin={isAdmin}
+        onClose={() => setIsAdmin(false)}
         gamesList={gamesList}
         setGamesList={setGamesList}
         standings={standings}
