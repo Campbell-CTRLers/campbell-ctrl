@@ -1,0 +1,198 @@
+import { forwardRef } from 'react';
+import { X, Trash2, Check } from 'lucide-react';
+import { CustomAnimatedDatePicker, CustomTimePicker, CustomDropdown } from '../../ui/FormControls';
+import AnimatedInput from '../../ui/AnimatedInput';
+import RosterPill from './RosterPill';
+import NumberStepper from './NumberStepper';
+import { getRosterType } from './constants';
+import { GAME_OPTIONS, TYPE_OPTIONS, LEAGUE_OPTIONS } from './constants';
+import { cn } from '../../utils/cn';
+
+const DAY_OPTIONS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+
+const AdminControlSheet = forwardRef(({
+  adminTab,
+  activeControlId,
+  activeControlItem,
+  onClose,
+  onRosterChange,
+  onDelete,
+  onConfirm,
+  updateGame,
+  updateStanding,
+  updateRanking,
+  updateMeeting,
+  haptics,
+}, ref) => {
+  if (!activeControlItem) return null;
+
+  const sheetTitle = adminTab === 'meetings'
+    ? (activeControlItem.title || 'Meeting')
+    : (activeControlItem.game || activeControlItem.opponent);
+
+  const toggleMeetingDay = (day) => {
+    if (!updateMeeting) return;
+    const days = Array.isArray(activeControlItem.days) ? [...activeControlItem.days] : [];
+    const idx = days.indexOf(day);
+    if (idx >= 0) days.splice(idx, 1);
+    else days.push(day);
+    days.sort((a, b) => DAY_OPTIONS.indexOf(a) - DAY_OPTIONS.indexOf(b));
+    updateMeeting(activeControlId, 'days', days);
+  };
+
+  return (
+    <div
+      className="fixed inset-0 z-[60] bg-black/40 backdrop-blur-sm flex items-end justify-center"
+      onClick={onClose}
+    >
+      <div
+        ref={ref}
+        className="fixed inset-x-0 bottom-0 z-[120] bg-background border-t border-slate/15 rounded-t-[2.5rem] p-8 pb-[calc(3rem+env(safe-area-inset-bottom,0px))] shadow-[0_-15px_60px_rgba(0,0,0,0.5)] sm:hidden max-h-[95vh] overflow-y-auto"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="w-12 h-1.5 bg-slate/10 rounded-full mx-auto shrink-0" />
+
+        <div className="flex items-center justify-between">
+          <div className="flex flex-col">
+            <span className="font-mono text-[10px] text-accent font-black uppercase tracking-widest leading-none">Control Sheet</span>
+            <h3 className="font-sans font-black text-2xl italic uppercase tracking-tighter leading-tight mt-1 truncate max-w-[240px]">
+              {sheetTitle}
+            </h3>
+          </div>
+          <button onClick={() => { haptics.light(); onClose(); }} className="w-10 h-10 rounded-2xl bg-slate/5 flex items-center justify-center text-slate">
+            <X size={20} />
+          </button>
+        </div>
+
+        <div className="flex flex-col gap-5 pt-2">
+          {adminTab === 'schedule' ? (
+            <>
+              <div className="flex flex-col gap-1.5">
+                <label className="font-mono text-[9px] text-slate/40 uppercase pl-1">Target Game</label>
+                <CustomDropdown value={activeControlItem.game} onChange={(v) => updateGame(activeControlId, 'game', v)} options={GAME_OPTIONS} placeholder="Game" isEditable />
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <label className="font-mono text-[9px] text-slate/40 uppercase pl-1">Rival / Opponent</label>
+                <AnimatedInput value={activeControlItem.opponent} onChange={(e) => updateGame(activeControlId, 'opponent', e.target.value)} placeholder="Opponent Name" className="h-12 rounded-2xl bg-slate/5 border-none" mono={false} tracking="normal" />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="flex flex-col gap-1.5">
+                  <label className="font-mono text-[9px] text-slate/40 uppercase pl-1">Launch date</label>
+                  <CustomAnimatedDatePicker value={activeControlItem.date} onChange={(v) => updateGame(activeControlId, 'date', v)} />
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <label className="font-mono text-[9px] text-slate/40 uppercase pl-1">Time</label>
+                  <CustomTimePicker value={activeControlItem.time} onChange={(v) => updateGame(activeControlId, 'time', v)} />
+                </div>
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <label className="font-mono text-[9px] text-slate/40 uppercase pl-1">Match Type</label>
+                <CustomDropdown value={activeControlItem.type} onChange={(v) => updateGame(activeControlId, 'type', v)} options={TYPE_OPTIONS} placeholder="Type" isEditable />
+              </div>
+            </>
+          ) : adminTab === 'standings' ? (
+            <>
+              <div className="flex flex-col gap-1.5">
+                <label className="font-mono text-[9px] text-slate/40 uppercase pl-1">Team Identity (Game)</label>
+                <CustomDropdown value={activeControlItem.game} onChange={(v) => updateStanding(activeControlId, 'game', v)} options={GAME_OPTIONS} placeholder="Game" isEditable />
+              </div>
+              <div className="grid grid-cols-2 gap-10 py-2">
+                <NumberStepper label="Victories" color="green" value={activeControlItem.wins} onChange={(e) => updateStanding(activeControlId, 'wins', e.target.value)} />
+                <NumberStepper label="Defeats" color="red" value={activeControlItem.losses} onChange={(e) => updateStanding(activeControlId, 'losses', e.target.value)} />
+              </div>
+            </>
+          ) : adminTab === 'meetings' ? (
+            <>
+              <div className="flex flex-col gap-1.5">
+                <label className="font-mono text-[9px] text-slate/40 uppercase pl-1">Title</label>
+                <AnimatedInput value={activeControlItem.title} onChange={(e) => updateMeeting(activeControlId, 'title', e.target.value)} placeholder="Meeting title" className="h-12 rounded-2xl bg-slate/5 border-none" mono={false} tracking="normal" />
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <label className="font-mono text-[9px] text-slate/40 uppercase pl-1">Days</label>
+                <div className="flex flex-wrap gap-2">
+                  {DAY_OPTIONS.map((d) => {
+                    const active = Array.isArray(activeControlItem.days) && activeControlItem.days.includes(d);
+                    return (
+                      <button key={d} type="button" onClick={() => { haptics.light(); toggleMeetingDay(d); }} className={cn('px-4 py-2 rounded-xl border text-sm font-mono font-bold transition-all', active ? 'bg-accent border-accent text-white' : 'border-slate/20 text-slate/60')}>
+                        {d}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="flex flex-col gap-1.5">
+                  <label className="font-mono text-[9px] text-slate/40 uppercase pl-1">Start</label>
+                  <CustomTimePicker value={activeControlItem.startTime || '3:30 PM'} onChange={(v) => updateMeeting(activeControlId, 'startTime', v)} />
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <label className="font-mono text-[9px] text-slate/40 uppercase pl-1">End</label>
+                  <CustomTimePicker value={activeControlItem.endTime || '5:30 PM'} onChange={(v) => updateMeeting(activeControlId, 'endTime', v)} />
+                </div>
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <label className="font-mono text-[9px] text-slate/40 uppercase pl-1">Location</label>
+                <AnimatedInput value={activeControlItem.location} onChange={(e) => updateMeeting(activeControlId, 'location', e.target.value)} placeholder="e.g. Learning Commons" className="h-12 rounded-2xl bg-slate/5 border-none" mono={false} tracking="normal" />
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <label className="font-mono text-[9px] text-slate/40 uppercase pl-1">Description (optional)</label>
+                <AnimatedInput value={activeControlItem.description} onChange={(e) => updateMeeting(activeControlId, 'description', e.target.value)} placeholder="Brief description" className="h-12 rounded-2xl bg-slate/5 border-none" mono={false} tracking="normal" />
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="flex flex-col gap-1.5">
+                <label className="font-mono text-[9px] text-slate/40 uppercase pl-1">Game Selection</label>
+                <CustomDropdown value={activeControlItem.game} onChange={(v) => updateRanking(activeControlId, 'game', v)} options={GAME_OPTIONS} placeholder="Game" isEditable />
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <label className="font-mono text-[9px] text-slate/40 uppercase pl-1">National / Regional Rank</label>
+                <div className="relative">
+                  <span className="absolute left-4 top-1/2 -translate-y-1/2 font-sans font-black text-red-500 text-lg z-10 leading-none">#</span>
+                  <AnimatedInput value={activeControlItem.leagueRank} onChange={(e) => updateRanking(activeControlId, 'leagueRank', e.target.value)} placeholder="1" className="pl-14 h-12 rounded-2xl bg-slate/5 border-none font-black text-lg focus:ring-0" />
+                </div>
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <label className="font-mono text-[9px] text-slate/40 uppercase pl-1">League Authority</label>
+                <CustomDropdown value={activeControlItem.leagueName} onChange={(v) => updateRanking(activeControlId, 'leagueName', v)} options={LEAGUE_OPTIONS} placeholder="League" isEditable />
+              </div>
+            </>
+          )}
+
+          {adminTab !== 'meetings' && (
+          <div className="flex flex-col gap-2 mt-4 bg-slate/5 p-4 rounded-2xl border border-slate/10">
+            <span className="font-sans font-black text-xs text-primary uppercase italic">Roster type</span>
+            <span className="font-sans text-[9px] text-slate/40">Varsity, Alternate, or Alternate&apos;s alternate (DEL).</span>
+            <div className="pt-1">
+              <RosterPill
+                value={getRosterType(activeControlItem)}
+                onChange={(v) => {
+                  haptics.selection();
+                  onRosterChange(v);
+                }}
+                size="md"
+              />
+            </div>
+          </div>
+          )}
+
+          <div className="grid grid-cols-2 gap-4 mt-4">
+            <button
+              onClick={onDelete}
+              className="flex-1 bg-red-500/5 text-red-500 border border-red-500/10 font-black py-4 rounded-2xl flex items-center justify-center gap-2 text-xs uppercase italic tracking-tighter"
+            >
+              <Trash2 size={16} /> Delete Record
+            </button>
+            <button onClick={() => { haptics.success(); onConfirm(); }} className="flex-1 bg-accent text-white font-black py-4 rounded-2xl flex items-center justify-center gap-2 text-xs uppercase italic tracking-tighter shadow-lg shadow-accent/20">
+              <Check size={18} /> Confirm
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+});
+
+AdminControlSheet.displayName = 'AdminControlSheet';
+
+export default AdminControlSheet;

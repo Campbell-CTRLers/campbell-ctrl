@@ -1,20 +1,9 @@
-import React, { useRef, useEffect } from 'react';
-import gsap from 'gsap';
+import React from 'react';
 import { ShieldAlert, FileText } from 'lucide-react';
 
 const LegalTab = () => {
-  const container = useRef(null);
-  useEffect(() => {
-    let ctx = gsap.context(() => {
-      gsap.from('.tab-header', { y: 20, opacity: 0, duration: 0.8, ease: 'power3.out', delay: 0.1 });
-      gsap.from('.legal-card', { y: 40, opacity: 0, stagger: 0.15, duration: 0.8, ease: 'power3.out', delay: 0.3 });
-    }, container);
-    window.scrollTo(0, 0);
-    return () => ctx.revert();
-  }, []);
-
   return (
-    <div ref={container} className="pt-32 pb-24 px-6 md:px-16 max-w-4xl mx-auto min-h-screen">
+    <div className="pt-32 pb-24 px-6 md:px-16 max-w-4xl mx-auto min-h-screen">
       <div className="tab-header mb-16">
         <h1 className="font-sans font-bold text-5xl md:text-7xl text-primary tracking-tighter mb-4">Legal <span className="text-accent font-drama italic">Info.</span></h1>
         <p className="font-sans text-slate text-lg max-w-2xl">Privacy policy and terms of service for the Campbell CTRL website.</p>
