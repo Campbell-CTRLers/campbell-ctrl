@@ -13,7 +13,7 @@ export function EventAddToCalendar({ event, eventType, compact = false, fullWidt
   const haptics = useHaptics();
   const popoverRef = useRef(null);
 
-  const { googleUrl, outlookUrl, blobUrl, icsText } = useMemo(() => {
+  const { googleUrl, outlookUrl, blobUrl, appleDataUri, icsText } = useMemo(() => {
     if (!event) return {};
     const ics = eventType === 'meeting' ? meetingToIcs(event) : gameToIcs(event);
     return icsToUrls(ics);
@@ -52,10 +52,7 @@ export function EventAddToCalendar({ event, eventType, compact = false, fullWidt
       }
     }
 
-    const a = document.createElement('a');
-    a.href = blobUrl;
-    a.download = filename;
-    a.click();
+    window.location.href = appleDataUri;
     close();
   };
 
@@ -93,6 +90,9 @@ export function EventAddToCalendar({ event, eventType, compact = false, fullWidt
           <span className="font-mono text-[10px] font-bold text-primary uppercase">Apple</span>
         </button>
       </div>
+      <p className="text-center font-sans text-[10px] text-slate/40 leading-relaxed px-2">
+        Tip: When Calendar opens, choose which calendar to save to (e.g. iCloud&#8209;Family).
+      </p>
       <button
         type="button"
         onClick={handleDownload}

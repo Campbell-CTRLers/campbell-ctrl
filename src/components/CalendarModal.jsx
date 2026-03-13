@@ -8,13 +8,16 @@ import inPersonMeetingIcs from '../assets/in-person-meeting.ics?url';
 import iconGoogleCalendar from '../assets/icon-google-calendar.svg';
 import iconMicrosoftOutlook from '../assets/icon-microsoft-outlook.svg';
 import { useHaptics } from '../hooks/useHaptics';
+import { icsToDataUri } from '../utils/calendarUtils';
 
 export function CalendarOptions({ compact = false, titleId }) {
   const containerRef = useRef(null);
+  const haptics = useHaptics();
   const [googleUrl, setGoogleUrl] = useState('');
   const [outlookUrl, setOutlookUrl] = useState('');
-  const [appleUrl, setAppleUrl] = useState('');
+  const [appleDataUri, setAppleDataUri] = useState('');
   const [blobUrl, setBlobUrl] = useState('');
+  const [icsText, setIcsText] = useState('');
 
   useEffect(() => {
     let active = true;
@@ -28,6 +31,7 @@ export function CalendarOptions({ compact = false, titleId }) {
       })
       .then(text => {
         if (!active) return;
+        setIcsText(text);
         const unfolded = text.replace(/\r?\n[ \t]/g, '');
         const veventMatch = unfolded.match(/BEGIN:VEVENT([\s\S]*?)END:VEVENT/);
         const vevent = veventMatch ? veventMatch[1] : unfolded;
@@ -60,11 +64,9 @@ export function CalendarOptions({ compact = false, titleId }) {
         createdUrl = URL.createObjectURL(blob);
         setBlobUrl(createdUrl);
         
-        const absIcsUrl = new URL('/in-person-meeting.ics', window.location.origin).href;
-        setAppleUrl(absIcsUrl.replace(/^https?/, 'webcal'));
+        setAppleDataUri(icsToDataUri(text));
       })
       .catch(err => {
-        // Log the error so failures are not silent; state remains in a safe default.
         console.error('Failed to initialize calendar options:', err);
         if (active && createdUrl) {
           URL.revokeObjectURL(createdUrl);
@@ -73,14 +75,28 @@ export function CalendarOptions({ compact = false, titleId }) {
     return () => { active = false; if (createdUrl) URL.revokeObjectURL(createdUrl); };
   }, []);
 
-  const ready = !!(googleUrl && outlookUrl && appleUrl && blobUrl);
+  const ready = !!(googleUrl && outlookUrl && appleDataUri && blobUrl);
   const filename = 'in-person-meeting.ics';
-  
-  const calendarProviders = [
-    { label: 'Google',   href: googleUrl,  target: '_blank', icon: iconGoogleCalendar },
-    { label: 'Outlook',  href: outlookUrl, target: '_blank', icon: iconMicrosoftOutlook },
-    { label: 'Apple',    href: appleUrl,   target: null,     icon: AppleCalendarIcon },
-  ];
+
+  const handleAppleAdd = async (e) => {
+    e.preventDefault();
+    if (!ready) return;
+    haptics.light();
+
+    const file = new File([icsText], filename, { type: 'text/calendar' });
+    const canShare = navigator.share && (navigator.canShare ? navigator.canShare({ files: [file] }) : false);
+
+    if (canShare) {
+      try {
+        await navigator.share({ files: [file], title: 'Add to Calendar' });
+        return;
+      } catch (err) {
+        if (err.name === 'AbortError') return;
+      }
+    }
+
+    window.location.href = appleDataUri;
+  };
 
   return (
     <div 
@@ -96,28 +112,48 @@ export function CalendarOptions({ compact = false, titleId }) {
       </div>
 
       <div className="grid grid-cols-3 gap-3" role="group" aria-label="Calendar provider options">
-        {calendarProviders.map(({ label, href, target, icon }) => (
-          <a
-            key={label}
-            href={ready ? href : undefined}
-            target={target ?? undefined}
-            rel={target ? 'noreferrer' : undefined}
-            className={cn(
-              'flex flex-col items-center gap-3 p-4 rounded-2xl border border-slate/10 transition-all duration-300 group text-center',
-              ready ? 'hover:border-accent/30 hover:bg-primary/5 cursor-pointer bg-slate/[0.02]' : 'opacity-40 pointer-events-none'
-            )}
-          >
-            {typeof icon === 'string' ? (
-              <img src={icon} alt={label} className="w-10 h-10 group-hover:scale-110 transition-transform" />
-            ) : (
-              <div className="w-10 h-10 group-hover:scale-110 transition-transform">
-                {React.createElement(icon)}
-              </div>
-            )}
-            <span className="font-sans font-semibold text-primary text-[10px] uppercase tracking-wider">{label}</span>
-          </a>
-        ))}
+        <a
+          href={ready ? googleUrl : undefined}
+          target="_blank"
+          rel="noreferrer"
+          className={cn(
+            'flex flex-col items-center gap-3 p-4 rounded-2xl border border-slate/10 transition-all duration-300 group text-center',
+            ready ? 'hover:border-accent/30 hover:bg-primary/5 cursor-pointer bg-slate/[0.02]' : 'opacity-40 pointer-events-none'
+          )}
+        >
+          <img src={iconGoogleCalendar} alt="Google" className="w-10 h-10 group-hover:scale-110 transition-transform" />
+          <span className="font-sans font-semibold text-primary text-[10px] uppercase tracking-wider">Google</span>
+        </a>
+        <a
+          href={ready ? outlookUrl : undefined}
+          target="_blank"
+          rel="noreferrer"
+          className={cn(
+            'flex flex-col items-center gap-3 p-4 rounded-2xl border border-slate/10 transition-all duration-300 group text-center',
+            ready ? 'hover:border-accent/30 hover:bg-primary/5 cursor-pointer bg-slate/[0.02]' : 'opacity-40 pointer-events-none'
+          )}
+        >
+          <img src={iconMicrosoftOutlook} alt="Outlook" className="w-10 h-10 group-hover:scale-110 transition-transform" />
+          <span className="font-sans font-semibold text-primary text-[10px] uppercase tracking-wider">Outlook</span>
+        </a>
+        <button
+          type="button"
+          onClick={handleAppleAdd}
+          className={cn(
+            'flex flex-col items-center gap-3 p-4 rounded-2xl border border-slate/10 transition-all duration-300 group text-center bg-transparent cursor-pointer',
+            ready ? 'hover:border-accent/30 hover:bg-primary/5 bg-slate/[0.02]' : 'opacity-40 pointer-events-none'
+          )}
+        >
+          <div className="w-10 h-10 group-hover:scale-110 transition-transform">
+            <AppleCalendarIcon />
+          </div>
+          <span className="font-sans font-semibold text-primary text-[10px] uppercase tracking-wider">Apple</span>
+        </button>
       </div>
+
+      <p className="text-center font-sans text-[10px] text-slate/40 leading-relaxed px-2">
+        Tip: When Calendar opens, choose which calendar to save to (e.g. iCloud&#8209;Family).
+      </p>
 
       <div className="flex justify-center pt-2">
         <a 
