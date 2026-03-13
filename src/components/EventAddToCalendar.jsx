@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
-import { Download, X } from 'lucide-react';
+import { IconDownload, IconX } from './icons/SvgIcons';
 import { meetingToIcs, gameToIcs, icsToUrls } from '../utils/calendarUtils';
 import iconGoogleCalendar from '../assets/icon-google-calendar.svg';
 import iconMicrosoftOutlook from '../assets/icon-microsoft-outlook.svg';
@@ -13,7 +13,7 @@ export function EventAddToCalendar({ event, eventType, compact = false, fullWidt
   const haptics = useHaptics();
   const popoverRef = useRef(null);
 
-  const { googleUrl, outlookUrl, blobUrl, icsText } = useMemo(() => {
+  const { googleUrl, outlookUrl, blobUrl, appleDataUri, icsText } = useMemo(() => {
     if (!event) return {};
     const ics = eventType === 'meeting' ? meetingToIcs(event) : gameToIcs(event);
     return icsToUrls(ics);
@@ -52,10 +52,7 @@ export function EventAddToCalendar({ event, eventType, compact = false, fullWidt
       }
     }
 
-    const a = document.createElement('a');
-    a.href = blobUrl;
-    a.download = filename;
-    a.click();
+    window.location.href = appleDataUri;
     close();
   };
 
@@ -98,7 +95,7 @@ export function EventAddToCalendar({ event, eventType, compact = false, fullWidt
         onClick={handleDownload}
         className="flex items-center justify-center gap-2 min-h-[48px] py-3 rounded-2xl border border-slate/10 hover:border-accent/30 hover:bg-accent/5 font-mono text-xs text-slate hover:text-accent transition-all touch-manipulation active:scale-[0.97]"
       >
-        <Download size={14} />
+        <IconDownload size={14} />
         Download .ics
       </button>
     </>
@@ -142,7 +139,7 @@ export function EventAddToCalendar({ event, eventType, compact = false, fullWidt
                 className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-slate/10 text-slate touch-manipulation active:scale-90"
                 aria-label="Close"
               >
-                <X size={20} />
+                <IconX size={20} />
               </button>
             </div>
             {calendarOptions}

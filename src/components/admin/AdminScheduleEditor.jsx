@@ -1,4 +1,4 @@
-import { Plus, Trash2, ChevronRight } from 'lucide-react';
+import { IconPlus, IconTrash, IconChevronRight } from '../icons/SvgIcons';
 import { CustomAnimatedDatePicker, CustomTimePicker, CustomDropdown } from '../../ui/FormControls';
 import AnimatedInput from '../../ui/AnimatedInput';
 import { GameIcon } from '../SharedUI';
@@ -18,7 +18,7 @@ const AdminScheduleEditor = ({
     <div className="flex items-center justify-between">
       <h3 className="font-sans font-black text-lg sm:text-2xl text-primary italic uppercase tracking-tighter">Esports Schedule</h3>
       <button onClick={onAddGame} className="text-accent bg-accent/5 px-4 py-2 rounded-xl text-[10px] font-mono font-black border border-accent/20 flex items-center gap-2 hover:bg-accent hover:text-white transition-all">
-        <Plus size={14} /> ADD EVENT
+        <IconPlus size={14} /> ADD EVENT
       </button>
     </div>
 
@@ -61,9 +61,9 @@ const AdminScheduleEditor = ({
           <div className="flex items-center gap-3 ml-auto shrink-0">
             <div className="hidden sm:flex items-center gap-2">
               <RosterPill value={getRosterType(g)} onChange={(v) => setGameRoster(g.id, v)} size="sm" />
-              <button onClick={(e) => { e.stopPropagation(); deleteGame(g.id); }} className="p-2 text-slate/20 hover:text-red-500 hover:bg-red-500/10 rounded-xl transition-all opacity-0 group-hover:opacity-100"><Trash2 size={16} /></button>
+              <button onClick={(e) => { e.stopPropagation(); deleteGame(g.id); }} className="p-2 text-slate/20 hover:text-red-500 hover:bg-red-500/10 rounded-xl transition-all opacity-0 group-hover:opacity-100"><IconTrash size={16} /></button>
             </div>
-            <div className="sm:hidden text-slate/30"><ChevronRight size={18} /></div>
+            <div className="sm:hidden text-slate/30"><IconChevronRight size={18} /></div>
           </div>
         </div>
       ))}

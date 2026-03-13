@@ -1,5 +1,5 @@
 import { forwardRef } from 'react';
-import { X, Trash2, Check } from 'lucide-react';
+import { IconX, IconTrash, IconCheck } from '../icons/SvgIcons';
 import { CustomAnimatedDatePicker, CustomTimePicker, CustomDropdown } from '../../ui/FormControls';
 import AnimatedInput from '../../ui/AnimatedInput';
 import RosterPill from './RosterPill';
@@ -60,7 +60,7 @@ const AdminControlSheet = forwardRef(({
             </h3>
           </div>
           <button onClick={() => { haptics.light(); onClose(); }} className="w-10 h-10 rounded-2xl bg-slate/5 flex items-center justify-center text-slate">
-            <X size={20} />
+            <IconX size={20} />
           </button>
         </div>
 
@@ -181,10 +181,10 @@ const AdminControlSheet = forwardRef(({
               onClick={onDelete}
               className="flex-1 bg-red-500/5 text-red-500 border border-red-500/10 font-black py-4 rounded-2xl flex items-center justify-center gap-2 text-xs uppercase italic tracking-tighter"
             >
-              <Trash2 size={16} /> Delete Record
+              <IconTrash size={16} /> Delete Record
             </button>
             <button onClick={() => { haptics.success(); onConfirm(); }} className="flex-1 bg-accent text-white font-black py-4 rounded-2xl flex items-center justify-center gap-2 text-xs uppercase italic tracking-tighter shadow-lg shadow-accent/20">
-              <Check size={18} /> Confirm
+              <IconCheck size={18} /> Confirm
             </button>
           </div>
         </div>

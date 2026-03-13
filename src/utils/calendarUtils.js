@@ -139,6 +139,10 @@ END:VEVENT
 END:VCALENDAR`.replace(/\n/g, '\r\n');
 }
 
+export function icsToDataUri(icsText) {
+  return 'data:text/calendar;charset=utf-8,' + encodeURIComponent(icsText);
+}
+
 export function icsToUrls(icsText) {
   const unfolded = icsText.replace(/\r?\n[ \t]/g, '');
   const veventMatch = unfolded.match(/BEGIN:VEVENT([\s\S]*?)END:VEVENT/);
@@ -174,6 +178,7 @@ export function icsToUrls(icsText) {
 
   const blob = new Blob([icsText], { type: 'text/calendar;charset=utf-8' });
   const blobUrl = URL.createObjectURL(blob);
+  const appleDataUri = icsToDataUri(icsText);
 
-  return { googleUrl, outlookUrl, blobUrl, icsText };
+  return { googleUrl, outlookUrl, blobUrl, appleDataUri, icsText };
 }

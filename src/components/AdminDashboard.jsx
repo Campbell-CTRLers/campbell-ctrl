@@ -1,6 +1,6 @@
 import React, { useRef, useState, useEffect, useMemo } from 'react';
 import gsap from 'gsap';
-import { Settings, CloudUpload, Calendar, X, Check, Trophy } from 'lucide-react';
+import { IconSettings, IconCloudUpload, IconCalendar, IconX, IconCheck, IconTrophy, IconUsers } from './icons/SvgIcons';
 import { db, auth, googleProvider } from '../firebase';
 import { writeBatch, doc, getDoc } from 'firebase/firestore';
 import { signInWithPopup, signOut, setPersistence, browserLocalPersistence, browserSessionPersistence } from 'firebase/auth';
@@ -15,7 +15,9 @@ import AdminMeetingsEditor from './admin/AdminMeetingsEditor';
 import AdminSafetySheet from './admin/AdminSafetySheet';
 import AdminControlSheet from './admin/AdminControlSheet';
 import { teamKey, sameTeam } from './admin/constants';
-import { CalendarDays } from 'lucide-react';
+
+const SHEET_DURATION = { open: 0.35, close: 0.2 };
+const SHEET_DURATION_DESKTOP = { open: 0.5, close: 0.25 };
 
 const AdminDashboard = ({ isAdmin, onClose, gamesList, setGamesList, standings, setStandings, rankings, setRankings, meetings = [], setMeetings, authenticatedUser, authInitialized }) => {
   const { theme } = useTheme();
@@ -134,13 +136,11 @@ const AdminDashboard = ({ isAdmin, onClose, gamesList, setGamesList, standings, 
   }, [adminTab, isAdmin, isAuthenticated]);
 
   const isMobileView = () => typeof window !== 'undefined' && window.innerWidth < 768;
-  const sheetDuration = { open: 0.35, close: 0.2 };
-  const sheetDurationDesktop = { open: 0.5, close: 0.25 };
 
   // Unsaved changes sheet anim
   useEffect(() => {
     if (showSafetySheet && safetySheetRef.current) {
-      const d = isMobileView() ? sheetDuration : sheetDurationDesktop;
+      const d = isMobileView() ? SHEET_DURATION : SHEET_DURATION_DESKTOP;
       gsap.fromTo(safetySheetRef.current,
         { y: '100%' },
         { y: '0%', duration: d.open, ease: 'power3.out' }
@@ -155,7 +155,7 @@ const AdminDashboard = ({ isAdmin, onClose, gamesList, setGamesList, standings, 
       onDone?.();
       return;
     }
-    const d = isMobileView() ? sheetDuration.close : sheetDurationDesktop.close;
+    const d = isMobileView() ? SHEET_DURATION.close : SHEET_DURATION_DESKTOP.close;
     gsap.to(safetySheetRef.current, {
       y: '100%',
       duration: d,
@@ -170,7 +170,7 @@ const AdminDashboard = ({ isAdmin, onClose, gamesList, setGamesList, standings, 
   // Selection/Control sheet anim
   useEffect(() => {
     if (activeControlId && controlSheetRef.current) {
-      const d = isMobileView() ? sheetDuration : sheetDurationDesktop;
+      const d = isMobileView() ? SHEET_DURATION : SHEET_DURATION_DESKTOP;
       gsap.fromTo(controlSheetRef.current,
         { y: '100%' },
         { y: '0%', duration: d.open, ease: 'power3.out' }
@@ -184,7 +184,7 @@ const AdminDashboard = ({ isAdmin, onClose, gamesList, setGamesList, standings, 
       setActiveControlId(null);
       return;
     }
-    const d = isMobileView() ? sheetDuration.close : sheetDurationDesktop.close;
+    const d = isMobileView() ? SHEET_DURATION.close : SHEET_DURATION_DESKTOP.close;
     gsap.to(controlSheetRef.current, {
       y: '100%',
       duration: d,
@@ -473,7 +473,7 @@ const AdminDashboard = ({ isAdmin, onClose, gamesList, setGamesList, standings, 
             </div>
           ) : (
             <>
-              <div className="w-16 h-16 flex items-center justify-center text-accent mb-4"><Settings size={32} /></div>
+              <div className="w-16 h-16 flex items-center justify-center text-accent mb-4"><IconSettings size={32} /></div>
               <h2 id="admin-login-title" className="font-sans font-bold text-2xl text-primary mb-1 text-center">Admin Access</h2>
               <p className="font-sans text-slate/60 text-xs mb-8 text-center px-6">Sign in with your authorized Google account.</p>
 
@@ -528,8 +528,8 @@ const AdminDashboard = ({ isAdmin, onClose, gamesList, setGamesList, standings, 
           <div className="flex items-center justify-between mb-6 sm:mb-8 shrink-0 px-6 sm:px-0 mt-4 sm:mt-0">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 sm:w-12 sm:h-12 bg-accent/10 rounded-2xl flex items-center justify-center text-accent">
-                <Settings size={22} className="sm:hidden" />
-                <Settings size={28} className="hidden sm:block" />
+                <IconSettings size={22} className="sm:hidden" />
+                <IconSettings size={28} className="hidden sm:block" />
               </div>
               <div className="flex flex-col">
                 <h2 id="admin-dash-title" className="font-sans font-black text-xl sm:text-3xl text-primary leading-none uppercase tracking-tighter italic">ADMIN DASH</h2>
@@ -548,15 +548,15 @@ const AdminDashboard = ({ isAdmin, onClose, gamesList, setGamesList, standings, 
                     isSaving && "opacity-70 scale-95"
                   )}
                 >
-                  {isSaving ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <><CloudUpload size={18} /><span className="hidden sm:inline">Publish</span></>}
-                  {saveSuccess && <Check size={16} className="text-green-300 ml-1" />}
+                  {isSaving ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <><IconCloudUpload size={18} /><span className="hidden sm:inline">Publish</span></>}
+                  {saveSuccess && <IconCheck size={16} className="text-green-300 ml-1" />}
                 </button>
 
                 <button
                   onClick={handleCloseAttempt}
                   className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-slate/5 flex items-center justify-center text-slate hover:bg-red-500/10 hover:text-red-500 transition-all border border-slate/10 active:scale-90"
                 >
-                  <X size={20} />
+                  <IconX size={20} />
                 </button>
               </div>
               {saveErrorMsg && (
@@ -625,16 +625,16 @@ const AdminDashboard = ({ isAdmin, onClose, gamesList, setGamesList, standings, 
           {/* MOBILE BOTTOM NAVIGATION */}
           <div className="sm:hidden fixed bottom-0 left-0 right-0 bg-background border-t border-slate/15 px-4 pt-5 pb-[calc(3rem+env(safe-area-inset-bottom,0px))] flex items-center justify-around z-40 shadow-[0_-15px_50px_rgba(0,0,0,0.7)] touch-manipulation">
              <button onClick={() => { haptics.selection(); setAdminTab('schedule'); }} className={cn("flex flex-col items-center gap-1.5 transition-all text-[9px] font-black uppercase tracking-tighter touch-manipulation", adminTab === 'schedule' ? "text-accent scale-110" : "text-slate opacity-40")}>
-                <Calendar size={18} /><span className="leading-none">Schedule</span>
+                <IconCalendar size={18} /><span className="leading-none">Schedule</span>
              </button>
               <button onClick={() => { haptics.selection(); setAdminTab('standings'); }} className={cn("flex flex-col items-center gap-1.5 transition-all text-[9px] font-black uppercase tracking-tighter touch-manipulation", adminTab === 'standings' ? "text-accent scale-110" : "text-slate opacity-40")}>
-                <Trophy size={18} /><span className="leading-none">Standings</span>
+                <IconTrophy size={18} /><span className="leading-none">Standings</span>
               </button>
              <button onClick={() => { haptics.selection(); setAdminTab('rankings'); }} className={cn("flex flex-col items-center gap-1.5 transition-all text-[9px] font-black uppercase tracking-tighter touch-manipulation", adminTab === 'rankings' ? "text-accent scale-110" : "text-slate opacity-40")}>
-                <Settings size={18} /><span className="leading-none">Rankings</span>
+                <IconSettings size={18} /><span className="leading-none">Rankings</span>
              </button>
              <button onClick={() => { haptics.selection(); setAdminTab('meetings'); }} className={cn("flex flex-col items-center gap-1.5 transition-all text-[9px] font-black uppercase tracking-tighter touch-manipulation", adminTab === 'meetings' ? "text-accent scale-110" : "text-slate opacity-40")}>
-                <CalendarDays size={18} /><span className="leading-none">Meetings</span>
+                <IconUsers size={18} /><span className="leading-none">Meetings</span>
              </button>
           </div>
         </div>

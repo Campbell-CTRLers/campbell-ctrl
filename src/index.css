@@ -72,9 +72,11 @@ body {
 .magnetic-btn {
   transition: opacity 0.2s ease;
 }
+
 .magnetic-btn:hover {
   opacity: 0.9;
 }
+
 .magnetic-btn:active {
   opacity: 0.95;
 }

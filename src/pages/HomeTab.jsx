@@ -4,11 +4,11 @@ import { AboutSection } from '../components/Home/AboutSection';
 import { HomeMeetingsSection } from '../components/Home/HomeMeetingsSection';
 import { HomeEsportsCompact } from '../components/Home/HomeEsportsCompact';
 
-const HomeTab = ({ gamesList, standings, rankings, meetings, dataLoaded = true, onNavigateToEsports }) => {
+const HomeTab = ({ gamesList, standings, rankings, meetings, siteContent, dataLoaded = true, onNavigateToEsports }) => {
   return (
     <div className="w-full">
-      <Hero />
-      <AboutSection />
+      <Hero content={siteContent?.hero} />
+      <AboutSection content={siteContent?.about} />
       <HomeMeetingsSection meetings={meetings} />
       <HomeEsportsCompact gamesList={gamesList} standings={standings} rankings={rankings} dataLoaded={dataLoaded} onNavigateToEsports={onNavigateToEsports} />
     </div>

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Gamepad2 } from 'lucide-react';
+import { IconGamepad } from '../components/icons/SvgIcons';
 import { EventAddToCalendar } from '../components/EventAddToCalendar';
 import { GameIcon } from '../components/SharedUI';
 import { formatGameDate } from '../utils/gameUtils';
@@ -7,21 +7,25 @@ import { LiveStandings } from '../components/LiveStandings';
 import { GlobalRankingsPanel } from '../components/Esports/GlobalRankingsPanel';
 import { cn } from '../utils/cn';
 
-const EsportsTab = ({ gamesList, standings, rankings, dataLoaded = true }) => {
+const EsportsTab = ({ gamesList, standings, rankings, dataLoaded = true, siteContent }) => {
   const [rosterFilter, setRosterFilter] = useState('ALL');
+
+  const heading = siteContent?.esports?.heading || 'Campbell';
+  const headingAccent = siteContent?.esports?.headingAccent || 'eSpartans.';
+  const description = siteContent?.esports?.description || 'The official PlayVS competitive core of Campbell CTRL. View upcoming schedules, match results, and live team standings across all active rosters.';
 
   return (
     <div className="pt-32 pb-24 px-4 sm:px-6 md:px-16 max-w-7xl mx-auto min-h-screen">
       <div className="tab-header mb-16">
-        <h1 className="font-sans font-bold text-5xl md:text-7xl text-primary tracking-tighter mb-4">Campbell <span className="text-accent font-drama italic">eSpartans.</span></h1>
-        <p className="font-sans text-slate text-lg max-w-2xl">The official PlayVS competitive core of Campbell CTRL. View upcoming schedules, match results, and live team standings across all active rosters.</p>
+        <h1 className="font-sans font-bold text-5xl md:text-7xl text-primary tracking-tighter mb-4">{heading} <span className="text-accent font-drama italic">{headingAccent}</span></h1>
+        <p className="font-sans text-slate text-lg max-w-2xl">{description}</p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch mb-12">
         {/* Full Schedule Feed */}
         <div className="esports-card lg:col-span-7 bg-background rounded-[2rem] p-5 sm:p-8 border border-slate/10 shadow-xl">
           <div className="flex items-center gap-3 mb-8 pb-6 border-b border-slate/10">
-            <Gamepad2 className="text-accent" size={28} />
+            <IconGamepad className="text-accent" size={28} />
             <h2 className="font-sans font-bold text-2xl text-primary">PlayVS Schedule</h2>
           </div>
           <div className="flex flex-col gap-4">
@@ -63,7 +67,7 @@ const EsportsTab = ({ gamesList, standings, rankings, dataLoaded = true }) => {
               })
             ) : (
               <div className="py-20 text-center bg-primary/[0.02] rounded-3xl border border-dashed border-slate/20">
-                <Gamepad2 className="mx-auto text-slate/20 mb-4" size={48} />
+                <IconGamepad className="mx-auto text-slate/20 mb-4" size={48} />
                 <h3 className="font-sans font-bold text-xl text-primary/60">No upcoming events</h3>
                 <p className="font-sans text-slate/40 text-sm mt-1">Check back later for new match schedules.</p>
               </div>
