@@ -247,7 +247,8 @@ const AdminDashboard = ({ isAdmin, onClose, gamesList, setGamesList, standings, 
     try {
       haptics.medium();
       const batch = writeBatch(db);
-      batch.set(doc(db, "global", "data"), { gamesList, standings, rankings });
+      const data = JSON.parse(JSON.stringify({ gamesList, standings, rankings }));
+      batch.set(doc(db, "global", "data"), data);
       await batch.commit();
       haptics.success();
       confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 }, colors: ['#0038A8', '#FFFFFF', '#000000'] });
