@@ -1,116 +1,23 @@
 import React, { useRef, useState, useEffect, useMemo } from 'react';
 import gsap from 'gsap';
-import { Settings, Plus, Trash2, CloudUpload, ChevronDown, ChevronRight, ChevronUp, Calendar, X, AlertTriangle, Check, Trophy, RefreshCw } from 'lucide-react';
+import { Settings, CloudUpload, Calendar, X, Check, Trophy } from 'lucide-react';
 import { db, auth, googleProvider } from '../firebase';
 import { writeBatch, doc, getDoc } from 'firebase/firestore';
 import { signInWithPopup, signOut, setPersistence, browserLocalPersistence, browserSessionPersistence } from 'firebase/auth';
 import { useTheme } from '../context/useTheme';
 import { useHaptics } from '../hooks/useHaptics';
 import { cn } from '../utils/cn';
-import { CustomAnimatedDatePicker, CustomTimePicker, CustomDropdown } from '../ui/FormControls';
-import AnimatedInput from '../ui/AnimatedInput';
-import { GameIcon } from './SharedUI';
 import confetti from 'canvas-confetti';
+import AdminScheduleEditor from './admin/AdminScheduleEditor';
+import AdminStandingsEditor from './admin/AdminStandingsEditor';
+import AdminRankingsEditor from './admin/AdminRankingsEditor';
+import AdminMeetingsEditor from './admin/AdminMeetingsEditor';
+import AdminSafetySheet from './admin/AdminSafetySheet';
+import AdminControlSheet from './admin/AdminControlSheet';
+import { teamKey, sameTeam } from './admin/constants';
+import { CalendarDays } from 'lucide-react';
 
-/* ─── Custom Number Stepper ─── */
-const NumberStepper = ({ value, onChange, label, color = 'accent' }) => {
-  const haptics = useHaptics();
-  const inc = () => {
-    haptics.selection();
-    const newVal = (Number(value) || 0) + 1;
-    onChange({ target: { value: newVal } });
-  };
-  const dec = () => {
-    haptics.selection();
-    const newVal = Math.max(0, (Number(value) || 0) - 1);
-    onChange({ target: { value: newVal } });
-  };
-
-  const bgClass = color === 'green' ? 'bg-green-500/10 border-green-500/20' : color === 'red' ? 'bg-red-500/10 border-red-500/20' : 'bg-accent/10 border-accent/20';
-  const textClass = color === 'green' ? 'text-green-600' : color === 'red' ? 'text-red-500' : 'text-accent';
-
-  return (
-    <div className="flex flex-col items-center gap-1.5 font-sans">
-      {label && <span className="text-[10px] font-mono font-bold text-slate/40 uppercase tracking-widest">{label}</span>}
-      <div className={cn("flex items-center gap-2 p-1.5 rounded-2xl border bg-background shadow-sm transition-all hover:shadow-md", bgClass)}>
-        <button 
-          type="button" 
-          onClick={dec} 
-          className="w-8 h-8 flex items-center justify-center rounded-xl bg-slate/5 hover:bg-slate/10 text-slate/60 hover:text-primary transition-all active:scale-90"
-        >
-          <ChevronDown size={14} />
-        </button>
-        <div className={cn("w-10 text-center font-mono font-bold text-lg select-none", textClass)}>
-          {value}
-        </div>
-        <button 
-          type="button" 
-          onClick={inc} 
-          className="w-8 h-8 flex items-center justify-center rounded-xl bg-slate/5 hover:bg-slate/10 text-slate/60 hover:text-primary transition-all active:scale-90"
-        >
-          <ChevronUp size={14} />
-        </button>
-      </div>
-    </div>
-  );
-};
-
-/* ─── GAME OPTIONS ─── */
-const GAME_OPTIONS = [
-  "Rocket League", "Smash Bros", "Marvel Rivals", "Splatoon 3",
-  "Street Fighter", "Mario Kart 8 Deluxe",
-  "Pokémon UNITE", "Madden NFL", "OTHER"
-];
-const TYPE_OPTIONS = ['PlayVS Rank', 'Scrimmage', 'Tournament', 'Casual', 'OTHER'];
-const LEAGUE_OPTIONS = ['PlayVS', 'Georgia', 'Georgia PlayVS', 'OTHER'];
-
-const ROSTER_TYPES = [
-  { id: 'VARSITY', label: 'Var', title: 'Varsity' },
-  { id: 'ALT', label: 'ALT', title: 'Alternate' },
-  { id: 'DEL', label: 'DEL', title: "Alternate's alternate" },
-];
-const getRosterType = (item) => (item?.isDel ? 'DEL' : item?.isAlt ? 'ALT' : 'VARSITY');
-
-/* ─── Roster type selector (single tap: Varsity / ALT / DEL) ─── */
-const RosterPill = ({ value, onChange, size = 'md' }) => {
-  const haptics = useHaptics();
-  const isCompact = size === 'sm';
-  return (
-    <div className="inline-flex gap-0.5 rounded-xl border border-slate/10 bg-primary/5 p-0.5">
-      {ROSTER_TYPES.map((opt) => {
-        const active = opt.id === value;
-        const style = active
-          ? opt.id === 'DEL'
-            ? 'bg-red-500 border-red-500/40 text-white shadow-sm'
-            : opt.id === 'ALT'
-              ? 'bg-blue-500 border-blue-500/40 text-white shadow-sm'
-              : 'bg-slate/20 border-slate/20 text-primary'
-          : 'border-transparent text-slate/40 hover:text-slate/60 hover:bg-slate/5';
-        return (
-          <button
-            key={opt.id}
-            type="button"
-            title={opt.title}
-            onClick={() => { haptics.light(); if (opt.id !== value) onChange(opt.id); }}
-            className={cn(
-              'rounded-lg border font-mono font-black transition-all duration-200 active:scale-95',
-              isCompact ? 'px-2 py-1 text-[9px]' : 'px-3 py-1.5 text-[10px]',
-              style
-            )}
-          >
-            {opt.label}
-          </button>
-        );
-      })}
-    </div>
-  );
-};
-
-/* ═════════════════════════════════════════════════════ */
-/*  ADMIN DASHBOARD                                      */
-/* ═════════════════════════════════════════════════════ */
-
-const AdminDashboard = ({ isAdmin, onClose, gamesList, setGamesList, standings, setStandings, rankings, setRankings, authenticatedUser, authInitialized }) => {
+const AdminDashboard = ({ isAdmin, onClose, gamesList, setGamesList, standings, setStandings, rankings, setRankings, meetings = [], setMeetings, authenticatedUser, authInitialized }) => {
   const { theme } = useTheme();
   const [isAuthenticated, setIsAuthenticated] = useState(!!authenticatedUser);
   const [email, setEmail] = useState(authenticatedUser?.email || '');
@@ -145,9 +52,9 @@ const AdminDashboard = ({ isAdmin, onClose, gamesList, setGamesList, standings, 
   useEffect(() => {
     if (!originalDataRef.current) return;
     setIsDirty(
-      JSON.stringify(originalDataRef.current) !== JSON.stringify({ gamesList, standings, rankings })
+      JSON.stringify(originalDataRef.current) !== JSON.stringify({ gamesList, standings, rankings, meetings })
     );
-  }, [gamesList, standings, rankings]);
+  }, [gamesList, standings, rankings, meetings]);
 
   // Sync internal state with prop (needed for Firebase init on refresh)
   useEffect(() => {
@@ -181,7 +88,7 @@ const AdminDashboard = ({ isAdmin, onClose, gamesList, setGamesList, standings, 
   useEffect(() => {
     if (isAdmin && isAuthenticated && !saveSuccess && originalDataRef.current) return;
     if (isAdmin && isAuthenticated) {
-      originalDataRef.current = JSON.parse(JSON.stringify({ gamesList, standings, rankings }));
+      originalDataRef.current = JSON.parse(JSON.stringify({ gamesList, standings, rankings, meetings }));
       setIsDirty(false);
     }
     // Reset sync ref when dashboard closes so next open re-runs standings/rankings sync
@@ -285,10 +192,6 @@ const AdminDashboard = ({ isAdmin, onClose, gamesList, setGamesList, standings, 
       onComplete: () => setActiveControlId(null)
     });
   };
-
-  // Normalized key for matching a team across standings and rankings (game + roster flags)
-  const teamKey = (item) => `${String(item?.game ?? '').trim()}\t${Boolean(item?.isAlt)}\t${Boolean(item?.isDel)}`;
-  const sameTeam = (a, b) => teamKey(a) === teamKey(b);
 
   const syncStandingsWithRankings = () => {
     haptics.light();
@@ -396,7 +299,7 @@ const AdminDashboard = ({ isAdmin, onClose, gamesList, setGamesList, standings, 
     try {
       haptics.medium();
       const batch = writeBatch(db);
-      const data = JSON.parse(JSON.stringify({ gamesList, standings, rankings }));
+      const data = JSON.parse(JSON.stringify({ gamesList, standings, rankings, meetings }));
       batch.set(doc(db, "global", "data"), data);
       await batch.commit();
       haptics.success();
@@ -492,6 +395,31 @@ const AdminDashboard = ({ isAdmin, onClose, gamesList, setGamesList, standings, 
     if (activeControlId === id) setActiveControlId(null);
   };
 
+  const handleAddMeeting = () => {
+    haptics.selection();
+    const newId = Date.now();
+    setMeetings([
+      ...meetings,
+      {
+        id: newId,
+        title: 'Club Meeting',
+        days: ['Fri'],
+        startTime: '3:30 PM',
+        endTime: '5:30 PM',
+        location: 'Learning Commons',
+        description: '',
+      },
+    ]);
+    if (window.innerWidth < 768) setActiveControlId(newId);
+  };
+  const updateMeeting = (id, field, value) =>
+    setMeetings(meetings.map((m) => (m.id === id ? { ...m, [field]: value } : m)));
+  const deleteMeeting = (id) => {
+    haptics.light();
+    setMeetings(meetings.filter((m) => m.id !== id));
+    if (activeControlId === id) setActiveControlId(null);
+  };
+
   const handleCloseAttempt = () => {
     haptics.rigid();
     if (isDirty) {
@@ -517,8 +445,8 @@ const AdminDashboard = ({ isAdmin, onClose, gamesList, setGamesList, standings, 
 
   const activeControlItem = useMemo(() => {
     if (!activeControlId) return null;
-    return gamesList.find(g => g.id === activeControlId) || standings.find(s => s.id === activeControlId) || rankings.find(r => r.id === activeControlId);
-  }, [activeControlId, gamesList, standings, rankings]);
+    return gamesList.find(g => g.id === activeControlId) || standings.find(s => s.id === activeControlId) || rankings.find(r => r.id === activeControlId) || meetings.find(m => m.id === activeControlId);
+  }, [activeControlId, gamesList, standings, rankings, meetings]);
 
   if (!isAdmin) return null;
 
@@ -642,382 +570,111 @@ const AdminDashboard = ({ isAdmin, onClose, gamesList, setGamesList, standings, 
             <button onClick={() => setAdminTab('schedule')} className={cn("px-6 py-2.5 rounded-xl font-sans font-bold text-sm transition-all", adminTab === 'schedule' ? "bg-background text-primary shadow-md border border-slate/10" : "text-slate/60 hover:text-primary hover:bg-background/50")}>Schedule</button>
             <button onClick={() => setAdminTab('standings')} className={cn("px-6 py-2.5 rounded-xl font-sans font-bold text-sm transition-all", adminTab === 'standings' ? "bg-background text-primary shadow-md border border-slate/10" : "text-slate/60 hover:text-primary hover:bg-background/50")}>Standings</button>
             <button onClick={() => setAdminTab('rankings')} className={cn("px-6 py-2.5 rounded-xl font-sans font-bold text-sm transition-all", adminTab === 'rankings' ? "bg-background text-primary shadow-md border border-slate/10" : "text-slate/60 hover:text-primary hover:bg-background/50")}>Rankings</button>
+            <button onClick={() => setAdminTab('meetings')} className={cn("px-6 py-2.5 rounded-xl font-sans font-bold text-sm transition-all", adminTab === 'meetings' ? "bg-background text-primary shadow-md border border-slate/10" : "text-slate/60 hover:text-primary hover:bg-background/50")}>Meetings</button>
           </div>
 
           {/* MAIN CONTENT AREA */}
           <div ref={tabContentRef} className="flex-1 overflow-y-auto custom-scrollbar px-6 sm:px-0 pb-64 sm:pb-64">
             
-            {/* ─── SCHEDULE EDITOR ─── */}
             {adminTab === 'schedule' && (
-              <div className="flex flex-col gap-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
-                <div className="flex items-center justify-between">
-                  <h3 className="font-sans font-black text-lg sm:text-2xl text-primary italic uppercase tracking-tighter">Esports Schedule</h3>
-                  <button onClick={handleAddGame} className="text-accent bg-accent/5 px-4 py-2 rounded-xl text-[10px] font-mono font-black border border-accent/20 flex items-center gap-2 hover:bg-accent hover:text-white transition-all">
-                    <Plus size={14} /> ADD EVENT
-                  </button>
-                </div>
-
-                <div className="grid grid-cols-1 gap-3">
-                  {gamesList.map((g) => (
-                    <div 
-                      key={g.id} 
-                      onClick={() => window.innerWidth < 768 && setActiveControlId(g.id)}
-                      className="group flex flex-wrap sm:flex-nowrap items-center gap-4 bg-slate/5 p-4 rounded-3xl border border-slate/10 hover:border-accent/30 transition-all cursor-pointer sm:cursor-default"
-                    >
-                      {/* Summary View (Always visible) */}
-                      <div className="flex items-center gap-4 flex-1 min-w-0">
-                        <div className="w-10 h-10 rounded-2xl bg-primary/5 flex items-center justify-center border border-slate/10 shrink-0 group-hover:scale-110 transition-transform overflow-hidden">
-                          <GameIcon game={g.game} size={22} />
-                        </div>
-                        <div className="flex flex-col min-w-0">
-                          <div className="flex items-center gap-2">
-                             <span className="font-sans font-black text-sm text-primary uppercase italic truncate">{g.game}</span>
-                             {g.isAlt && !g.isDel && <span className="bg-blue-500 text-white text-[8px] px-1 rounded-sm font-black leading-none py-0.5 shrink-0">ALT</span>}
-                             {g.isDel && <span className="bg-red-500 text-white text-[8px] px-1 rounded-sm font-black leading-none py-0.5 shrink-0">DEL</span>}
-                          </div>
-                          <span className="font-mono text-[9px] text-slate/40 tracking-widest uppercase truncate mt-0.5">VS {g.opponent}</span>
-                        </div>
-                      </div>
-
-                      {/* Desktop Only Fields */}
-                      <div className="hidden sm:flex items-center gap-3 flex-[2]">
-                        <div className="flex-1 max-w-[180px]">
-                          <CustomDropdown value={g.game} onChange={(v) => updateGame(g.id, 'game', v)} options={GAME_OPTIONS} placeholder="Game" isEditable />
-                        </div>
-                        <div className="flex-1 max-w-[150px]">
-                          <AnimatedInput value={g.opponent} onChange={(e) => updateGame(g.id, 'opponent', e.target.value)} placeholder="Opponent" className="h-10 rounded-xl pl-5" mono={false} tracking="normal" />
-                        </div>
-                        <div className="w-[160px]">
-                          <CustomAnimatedDatePicker value={g.date} onChange={(v) => updateGame(g.id, 'date', v)} />
-                        </div>
-                        <div className="w-[100px] min-w-[100px]">
-                          <CustomTimePicker value={g.time || '4:00 PM'} onChange={(v) => updateGame(g.id, 'time', v)} />
-                        </div>
-                      </div>
-
-                      {/* Roster type + delete (Desktop: pill + trash; Mobile: chevron opens sheet) */}
-                      <div className="flex items-center gap-3 ml-auto shrink-0">
-                        <div className="hidden sm:flex items-center gap-2">
-                          <RosterPill value={getRosterType(g)} onChange={(v) => setGameRoster(g.id, v)} size="sm" />
-                          <button onClick={(e) => { e.stopPropagation(); deleteGame(g.id); }} className="p-2 text-slate/20 hover:text-red-500 hover:bg-red-500/10 rounded-xl transition-all opacity-0 group-hover:opacity-100"><Trash2 size={16} /></button>
-                        </div>
-                        <div className="sm:hidden text-slate/30"><ChevronRight size={18} /></div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
+              <AdminScheduleEditor
+                gamesList={gamesList}
+                onAddGame={handleAddGame}
+                updateGame={updateGame}
+                setGameRoster={setGameRoster}
+                deleteGame={deleteGame}
+                setActiveControlId={setActiveControlId}
+              />
             )}
 
-            {/* ─── STANDINGS EDITOR ─── */}
             {adminTab === 'standings' && (
-              <div className="flex flex-col gap-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
-                <div className="flex items-center justify-between flex-wrap gap-2">
-                  <h3 className="font-sans font-black text-lg sm:text-2xl text-primary italic uppercase tracking-tighter">Live Standings</h3>
-                  <div className="flex items-center gap-2">
-                    <button onClick={syncStandingsWithRankings} className="text-slate bg-slate/10 px-3 py-2 rounded-xl text-[10px] font-mono font-black border border-slate/20 flex items-center gap-2 hover:bg-slate/20 hover:border-slate/30 transition-all" title="Add missing teams to the other list and remove orphans so Standings and Rankings stay in sync">
-                      <RefreshCw size={14} /> SYNC
-                    </button>
-                    <button onClick={handleAddStanding} className="text-accent bg-accent/5 px-4 py-2 rounded-xl text-[10px] font-mono font-black border border-accent/20 flex items-center gap-2 hover:bg-accent hover:text-white transition-all">
-                      <Plus size={14} /> ADD TEAM
-                    </button>
-                  </div>
-                </div>
-
-                <div className="flex flex-col gap-3">
-                  {standings.map((s) => (
-                    <div 
-                      key={s.id} 
-                      onClick={() => window.innerWidth < 768 && setActiveControlId(s.id)}
-                      className="group flex items-center gap-4 bg-slate/5 p-4 rounded-3xl border border-slate/10 hover:border-accent/30 transition-all cursor-pointer sm:cursor-default"
-                    >
-                      <div className="flex items-center gap-4 flex-1">
-                        <div className="w-10 h-10 rounded-2xl bg-primary/5 flex items-center justify-center border border-slate/10 group-hover:scale-110 transition-transform overflow-hidden shrink-0">
-                          <GameIcon game={s.game} size={22} />
-                        </div>
-                        <div className="flex flex-col min-w-0">
-                          <div className="flex items-center gap-2">
-                             <span className="font-sans font-black text-sm text-primary uppercase italic truncate">{s.game}</span>
-                             {s.isAlt && !s.isDel && <span className="bg-blue-500 text-white text-[8px] px-1 rounded-sm font-black leading-none py-0.5 shrink-0">ALT</span>}
-                             {s.isDel && <span className="bg-red-500 text-white text-[8px] px-1 rounded-sm font-black leading-none py-0.5 shrink-0">DEL</span>}
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Desktop Only Edit Fields */}
-                      <div className="hidden sm:flex items-center gap-4 flex-[2]">
-                        <div className="flex-1 max-w-[280px]">
-                           <CustomDropdown value={s.game} onChange={(v) => updateStanding(s.id, 'game', v)} options={GAME_OPTIONS} placeholder="Game" isEditable />
-                        </div>
-                        <div className="flex items-center gap-4 ml-auto">
-                          <NumberStepper color="green" value={s.wins} onChange={(e) => updateStanding(s.id, 'wins', e.target.value)} />
-                          <NumberStepper color="red" value={s.losses} onChange={(e) => updateStanding(s.id, 'losses', e.target.value)} />
-                        </div>
-                      </div>
-
-                      <div className="flex items-center gap-3 shrink-0 ml-auto">
-                        <div className="hidden sm:flex items-center gap-2">
-                          <RosterPill value={getRosterType(s)} onChange={(v) => setStandingRoster(s.id, v)} size="sm" />
-                          <button onClick={(e) => { e.stopPropagation(); deleteStanding(s.id); }} className="p-2 text-slate/20 hover:text-red-500 hover:bg-red-500/10 rounded-xl transition-all opacity-0 group-hover:opacity-100"><Trash2 size={16} /></button>
-                        </div>
-                        <div className="sm:hidden text-slate/30"><ChevronRight size={18} /></div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
+              <AdminStandingsEditor
+                standings={standings}
+                onSync={syncStandingsWithRankings}
+                onAddStanding={handleAddStanding}
+                updateStanding={updateStanding}
+                setStandingRoster={setStandingRoster}
+                deleteStanding={deleteStanding}
+                setActiveControlId={setActiveControlId}
+              />
             )}
 
-            {/* ─── RANKINGS EDITOR ─── */}
             {adminTab === 'rankings' && (
-              <div className="flex flex-col gap-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
-                <div className="flex items-center justify-between flex-wrap gap-2">
-                  <h3 className="font-sans font-black text-lg sm:text-2xl text-primary italic uppercase tracking-tighter">Global Rankings</h3>
-                  <div className="flex items-center gap-2">
-                    <button onClick={syncStandingsWithRankings} className="text-slate bg-slate/10 px-3 py-2 rounded-xl text-[10px] font-mono font-black border border-slate/20 flex items-center gap-2 hover:bg-slate/20 hover:border-slate/30 transition-all" title="Add missing teams to the other list and remove orphans so Standings and Rankings stay in sync">
-                      <RefreshCw size={14} /> SYNC
-                    </button>
-                    <button onClick={handleAddRanking} className="text-accent bg-accent/5 px-4 py-2 rounded-xl text-[10px] font-mono font-black border border-accent/20 flex items-center gap-2 hover:bg-accent hover:text-white transition-all">
-                      <Plus size={14} /> ADD TEAM
-                    </button>
-                  </div>
-                </div>
+              <AdminRankingsEditor
+                rankings={rankings}
+                onSync={syncStandingsWithRankings}
+                onAddRanking={handleAddRanking}
+                updateRanking={updateRanking}
+                setRankingRoster={setRankingRoster}
+                deleteRanking={deleteRanking}
+                setActiveControlId={setActiveControlId}
+              />
+            )}
 
-                <div className="bg-slate/5 rounded-[2rem] border border-slate/10 overflow-hidden hidden sm:block">
-                  <table className="w-full text-left border-collapse">
-                    <thead className="bg-[#0b0c10]/40 border-b border-slate/10">
-                      <tr>
-                        <th className="p-4 w-12">&nbsp;</th>
-                        <th className="p-4 font-mono text-[9px] text-slate/40 uppercase tracking-[0.2em] italic">Game</th>
-                        <th className="p-4 font-mono text-[9px] text-slate/40 uppercase tracking-[0.2em] italic">Rank</th>
-                        <th className="p-4 font-mono text-[9px] text-slate/40 uppercase tracking-[0.2em] italic">League</th>
-                        <th className="p-4 text-center w-28">Roster</th>
-                        <th className="p-4 text-center">&nbsp;</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate/5">
-                      {rankings.map(s => (
-                        <tr key={s.id} className="group hover:bg-primary/[0.02] transition-all">
-                          <td className="p-4 w-12">
-                             <div className="w-10 h-10 rounded-xl bg-primary/5 flex items-center justify-center border border-slate/10 overflow-hidden">
-                                <GameIcon game={s.game} size={20} />
-                             </div>
-                          </td>
-                           <td className="p-4 min-w-[200px]">
-                              <div className="flex items-center gap-2">
-                                <CustomDropdown value={s.game} onChange={(v) => updateRanking(s.id, 'game', v)} options={GAME_OPTIONS} placeholder="Game" isEditable />
-                                {s.isAlt && !s.isDel && <span className="bg-blue-500 text-white text-[8px] px-1 rounded-sm font-black leading-none py-0.5 shrink-0">ALT</span>}
-                                {s.isDel && <span className="bg-red-500 text-white text-[8px] px-1 rounded-sm font-black leading-none py-0.5 shrink-0">DEL</span>}
-                              </div>
-                           </td>
-                           <td className="p-4 w-28">
-                              <div className="relative">
-                                <span className="absolute left-3 top-1/2 -translate-y-1/2 font-mono text-xs text-red-500 font-bold">#</span>
-                                <AnimatedInput value={s.leagueRank} onChange={(e) => updateRanking(s.id, 'leagueRank', e.target.value)} className="pl-6 h-10 w-full text-center" placeholder="1" />
-                              </div>
-                           </td>
-                           <td className="p-4">
-                              <CustomDropdown value={s.leagueName} onChange={(v) => updateRanking(s.id, 'leagueName', v)} options={LEAGUE_OPTIONS} placeholder="League" isEditable />
-                           </td>
-                           <td className="p-4 text-center">
-                              <RosterPill value={getRosterType(s)} onChange={(v) => setRankingRoster(s.id, v)} size="sm" />
-                           </td>
-                           <td className="p-4 w-16 text-right">
-                              <button onClick={() => deleteRanking(s.id)} className="p-2 text-slate/20 hover:text-red-500 hover:bg-red-500/10 rounded-xl transition-all opacity-0 group-hover:opacity-100"><Trash2 size={16} /></button>
-                           </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-
-                {/* Mobile Ranking Cards */}
-                <div className="sm:hidden flex flex-col gap-3">
-                   {rankings.map(s => (
-                      <div key={s.id} onClick={() => setActiveControlId(s.id)} className="group flex items-center justify-between bg-slate/5 p-4 rounded-3xl border border-slate/10">
-                         <div className="flex items-center gap-4 flex-1 min-w-0">
-                            <div className="w-10 h-10 rounded-2xl bg-primary/5 flex items-center justify-center border border-slate/10 overflow-hidden shrink-0">
-                               <GameIcon game={s.game} size={22} />
-                            </div>
-                            <span className="font-sans font-black text-2xl text-red-500 min-w-[1.5rem] tracking-tighter">#{s.leagueRank || '--'}</span>
-                            <div className="flex flex-col min-w-0">
-                               <div className="flex items-center gap-2">
-                                  <span className="font-sans font-black text-sm text-primary italic uppercase leading-none truncate">{s.game}</span>
-                                  {s.isAlt && !s.isDel && <span className="bg-blue-500 text-white text-[8px] px-1 rounded-sm font-black leading-none py-0.5 shrink-0">ALT</span>}
-                                  {s.isDel && <span className="bg-red-500 text-white text-[8px] px-1 rounded-sm font-black leading-none py-0.5 shrink-0">DEL</span>}
-                               </div>
-                               <span className="font-mono text-[9px] text-slate/40 mt-1 uppercase tracking-widest truncate">{s.leagueName}</span>
-                            </div>
-                         </div>
-                         <div className="flex items-center gap-2 shrink-0" onClick={(e) => e.stopPropagation()}>
-                            <RosterPill value={getRosterType(s)} onChange={(v) => setRankingRoster(s.id, v)} size="sm" />
-                            <ChevronRight size={18} className="text-slate/20" />
-                         </div>
-                      </div>
-                   ))}
-                </div>
-              </div>
+            {adminTab === 'meetings' && (
+              <AdminMeetingsEditor
+                meetings={meetings}
+                onAddMeeting={handleAddMeeting}
+                updateMeeting={updateMeeting}
+                deleteMeeting={deleteMeeting}
+                setActiveControlId={setActiveControlId}
+              />
             )}
           </div>
 
           {/* MOBILE BOTTOM NAVIGATION */}
-          <div className="sm:hidden fixed bottom-0 left-0 right-0 bg-background border-t border-slate/15 px-6 pt-5 pb-[calc(3rem+env(safe-area-inset-bottom,0px))] flex items-center justify-around z-40 shadow-[0_-15px_50px_rgba(0,0,0,0.7)] touch-manipulation">
-             <button onClick={() => { haptics.selection(); setAdminTab('schedule'); }} className={cn("flex flex-col items-center gap-1.5 transition-all text-[10px] font-black uppercase tracking-tighter touch-manipulation", adminTab === 'schedule' ? "text-accent scale-110" : "text-slate opacity-40")}>
-                <Calendar size={20} /><span className="leading-none">Schedule</span>
+          <div className="sm:hidden fixed bottom-0 left-0 right-0 bg-background border-t border-slate/15 px-4 pt-5 pb-[calc(3rem+env(safe-area-inset-bottom,0px))] flex items-center justify-around z-40 shadow-[0_-15px_50px_rgba(0,0,0,0.7)] touch-manipulation">
+             <button onClick={() => { haptics.selection(); setAdminTab('schedule'); }} className={cn("flex flex-col items-center gap-1.5 transition-all text-[9px] font-black uppercase tracking-tighter touch-manipulation", adminTab === 'schedule' ? "text-accent scale-110" : "text-slate opacity-40")}>
+                <Calendar size={18} /><span className="leading-none">Schedule</span>
              </button>
-              <button onClick={() => { haptics.selection(); setAdminTab('standings'); }} className={cn("flex flex-col items-center gap-1.5 transition-all text-[10px] font-black uppercase tracking-tighter touch-manipulation", adminTab === 'standings' ? "text-accent scale-110" : "text-slate opacity-40")}>
-                <Trophy size={20} />
-                <span className="leading-none">Standings</span>
+              <button onClick={() => { haptics.selection(); setAdminTab('standings'); }} className={cn("flex flex-col items-center gap-1.5 transition-all text-[9px] font-black uppercase tracking-tighter touch-manipulation", adminTab === 'standings' ? "text-accent scale-110" : "text-slate opacity-40")}>
+                <Trophy size={18} /><span className="leading-none">Standings</span>
               </button>
-             <button onClick={() => { haptics.selection(); setAdminTab('rankings'); }} className={cn("flex flex-col items-center gap-1.5 transition-all text-[10px] font-black uppercase tracking-tighter touch-manipulation", adminTab === 'rankings' ? "text-accent scale-110" : "text-slate opacity-40")}>
-                <Settings size={20} /><span className="leading-none">Rankings</span>
+             <button onClick={() => { haptics.selection(); setAdminTab('rankings'); }} className={cn("flex flex-col items-center gap-1.5 transition-all text-[9px] font-black uppercase tracking-tighter touch-manipulation", adminTab === 'rankings' ? "text-accent scale-110" : "text-slate opacity-40")}>
+                <Settings size={18} /><span className="leading-none">Rankings</span>
+             </button>
+             <button onClick={() => { haptics.selection(); setAdminTab('meetings'); }} className={cn("flex flex-col items-center gap-1.5 transition-all text-[9px] font-black uppercase tracking-tighter touch-manipulation", adminTab === 'meetings' ? "text-accent scale-110" : "text-slate opacity-40")}>
+                <CalendarDays size={18} /><span className="leading-none">Meetings</span>
              </button>
           </div>
         </div>
       )}
 
-      {/* ── SAFETY SHEET (Option 1) ── */}
       {showSafetySheet && (
-        <div 
-          className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-md flex items-end sm:items-center justify-center p-0 sm:p-4"
-          onClick={() => closeSafetySheet()}
-        >
-           <div 
-            ref={safetySheetRef}
-            className="w-full sm:max-w-sm bg-background border-t sm:border border-slate/15 rounded-t-[3rem] sm:rounded-[2.5rem] p-8 pb-[calc(3rem+env(safe-area-inset-bottom,0px))] sm:pb-10 flex flex-col items-center gap-6 shadow-2xl relative"
-            onClick={e => e.stopPropagation()}
-          >
-            <div className="w-12 h-1.5 bg-slate/10 rounded-full mb-2 sm:hidden" />
-            <div className="w-16 h-16 bg-red-500/10 rounded-3xl flex items-center justify-center text-red-500">
-               <AlertTriangle size={32} />
-            </div>
-            <div className="text-center">
-               <h3 className="font-sans font-black text-xl italic uppercase tracking-tighter leading-none mb-2">Unsaved Data Alert</h3>
-               <p className="font-sans text-slate/50 text-xs px-4">Changes were detected. Discarding will permanently erase local buffer.</p>
-            </div>
-            <div className="flex flex-col w-full gap-3">
-               <button onClick={discardAndExit} className="w-full bg-red-500 text-white font-black py-4 rounded-2xl shadow-lg shadow-red-500/20 active:scale-95 transition-all italic tracking-tighter uppercase text-sm">Discard & Exit</button>
-               <button onClick={() => closeSafetySheet()} className="w-full bg-slate/5 text-slate font-black py-4 rounded-2xl active:scale-95 transition-all uppercase text-sm tracking-tighter">Keep Editing</button>
-            </div>
-          </div>
-        </div>
+        <AdminSafetySheet
+          ref={safetySheetRef}
+          onDiscard={discardAndExit}
+          onKeepEditing={() => closeSafetySheet()}
+          onBackdropClick={() => closeSafetySheet()}
+        />
       )}
 
-      {/* ── CONTROL SHEET (Option B) ── */}
       {activeControlId && activeControlItem && (
-        <div 
-          className="fixed inset-0 z-[60] bg-black/40 backdrop-blur-sm flex items-end justify-center"
-          onClick={() => closeControlSheet()}
-        >
-          <div 
-            ref={controlSheetRef} 
-            className="fixed inset-x-0 bottom-0 z-[120] bg-background border-t border-slate/15 rounded-t-[2.5rem] p-8 pb-[calc(3rem+env(safe-area-inset-bottom,0px))] shadow-[0_-15px_60px_rgba(0,0,0,0.5)] sm:hidden max-h-[95vh] overflow-y-auto"
-            onClick={e => e.stopPropagation()}
-          >
-            <div className="w-12 h-1.5 bg-slate/10 rounded-full mx-auto shrink-0" />
-            
-            <div className="flex items-center justify-between">
-               <div className="flex flex-col">
-                  <span className="font-mono text-[10px] text-accent font-black uppercase tracking-widest leading-none">Control Sheet</span>
-                  <h3 className="font-sans font-black text-2xl italic uppercase tracking-tighter leading-tight mt-1 truncate max-w-[240px]">
-                    {activeControlItem.game || activeControlItem.opponent}
-                  </h3>
-               </div>
-               <button onClick={() => { haptics.light(); closeControlSheet(); }} className="w-10 h-10 rounded-2xl bg-slate/5 flex items-center justify-center text-slate">
-                  <X size={20} />
-               </button>
-            </div>
-
-            <div className="flex flex-col gap-5 pt-2">
-               {/* Context Specific Fields */}
-               {adminTab === 'schedule' ? (
-                 <>
-                    <div className="flex flex-col gap-1.5">
-                       <label className="font-mono text-[9px] text-slate/40 uppercase pl-1">Target Game</label>
-                       <CustomDropdown value={activeControlItem.game} onChange={(v) => updateGame(activeControlId, 'game', v)} options={GAME_OPTIONS} placeholder="Game" isEditable />
-                    </div>
-                    <div className="flex flex-col gap-1.5">
-                       <label className="font-mono text-[9px] text-slate/40 uppercase pl-1">Rival / Opponent</label>
-                       <AnimatedInput value={activeControlItem.opponent} onChange={(e) => updateGame(activeControlId, 'opponent', e.target.value)} placeholder="Opponent Name" className="h-12 rounded-2xl bg-slate/5 border-none" mono={false} tracking="normal" />
-                    </div>
-                    <div className="grid grid-cols-2 gap-3">
-                       <div className="flex flex-col gap-1.5">
-                          <label className="font-mono text-[9px] text-slate/40 uppercase pl-1">Launch date</label>
-                          <CustomAnimatedDatePicker value={activeControlItem.date} onChange={(v) => updateGame(activeControlId, 'date', v)} />
-                       </div>
-                       <div className="flex flex-col gap-1.5">
-                          <label className="font-mono text-[9px] text-slate/40 uppercase pl-1">Time</label>
-                          <CustomTimePicker value={activeControlItem.time} onChange={(v) => updateGame(activeControlId, 'time', v)} />
-                       </div>
-                    </div>
-                    <div className="flex flex-col gap-1.5">
-                       <label className="font-mono text-[9px] text-slate/40 uppercase pl-1">Match Type</label>
-                       <CustomDropdown value={activeControlItem.type} onChange={(v) => updateGame(activeControlId, 'type', v)} options={TYPE_OPTIONS} placeholder="Type" isEditable />
-                    </div>
-                 </>
-               ) : adminTab === 'standings' ? (
-                 <>
-                    <div className="flex flex-col gap-1.5">
-                       <label className="font-mono text-[9px] text-slate/40 uppercase pl-1">Team Identity (Game)</label>
-                       <CustomDropdown value={activeControlItem.game} onChange={(v) => updateStanding(activeControlId, 'game', v)} options={GAME_OPTIONS} placeholder="Game" isEditable />
-                    </div>
-                    <div className="grid grid-cols-2 gap-10 py-2">
-                       <NumberStepper label="Victories" color="green" value={activeControlItem.wins} onChange={(e) => updateStanding(activeControlId, 'wins', e.target.value)} />
-                       <NumberStepper label="Defeats" color="red" value={activeControlItem.losses} onChange={(e) => updateStanding(activeControlId, 'losses', e.target.value)} />
-                    </div>
-                 </>
-               ) : (
-                 <>
-                    <div className="flex flex-col gap-1.5">
-                       <label className="font-mono text-[9px] text-slate/40 uppercase pl-1">Game Selection</label>
-                       <CustomDropdown value={activeControlItem.game} onChange={(v) => updateRanking(activeControlId, 'game', v)} options={GAME_OPTIONS} placeholder="Game" isEditable />
-                    </div>
-                    <div className="flex flex-col gap-1.5">
-                       <label className="font-mono text-[9px] text-slate/40 uppercase pl-1">National / Regional Rank</label>
-                       <div className="relative">
-                          <span className="absolute left-4 top-1/2 -translate-y-1/2 font-sans font-black text-red-500 text-lg z-10 leading-none">#</span>
-                           <AnimatedInput value={activeControlItem.leagueRank} onChange={(e) => updateRanking(activeControlId, 'leagueRank', e.target.value)} placeholder="1" className="pl-14 h-12 rounded-2xl bg-slate/5 border-none font-black text-lg focus:ring-0" />
-                       </div>
-                    </div>
-                    <div className="flex flex-col gap-1.5">
-                       <label className="font-mono text-[9px] text-slate/40 uppercase pl-1">League Authority</label>
-                       <CustomDropdown value={activeControlItem.leagueName} onChange={(v) => updateRanking(activeControlId, 'leagueName', v)} options={LEAGUE_OPTIONS} placeholder="League" isEditable />
-                    </div>
-                 </>
-               )}
-
-               {/* Roster type: one tap (Varsity / ALT / DEL) */}
-               <div className="flex flex-col gap-2 mt-4 bg-slate/5 p-4 rounded-2xl border border-slate/10">
-                  <span className="font-sans font-black text-xs text-primary uppercase italic">Roster type</span>
-                  <span className="font-sans text-[9px] text-slate/40">Varsity, Alternate, or Alternate's alternate (DEL).</span>
-                  <div className="pt-1">
-                    <RosterPill
-                      value={getRosterType(activeControlItem)}
-                      onChange={(v) => {
-                        haptics.selection();
-                        if (adminTab === 'schedule') setGameRoster(activeControlId, v);
-                        else if (adminTab === 'standings') setStandingRoster(activeControlId, v);
-                        else setRankingRoster(activeControlId, v);
-                      }}
-                      size="md"
-                    />
-                  </div>
-               </div>
-
-               <div className="grid grid-cols-2 gap-4 mt-4">
-                  <button 
-                    onClick={() => { haptics.rigid(); if (adminTab === 'schedule') deleteGame(activeControlId); else if (adminTab === "standings") deleteStanding(activeControlId); else deleteRanking(activeControlId); }}
-                    className="flex-1 bg-red-500/5 text-red-500 border border-red-500/10 font-black py-4 rounded-2xl flex items-center justify-center gap-2 text-xs uppercase italic tracking-tighter"
-                  >
-                    <Trash2 size={16} /> Delete Record
-                  </button>
-                  <button onClick={() => { haptics.success(); closeControlSheet(); }} className="flex-1 bg-accent text-white font-black py-4 rounded-2xl flex items-center justify-center gap-2 text-xs uppercase italic tracking-tighter shadow-lg shadow-accent/20">
-                    <Check size={18} /> Confirm
-                  </button>
-               </div>
-            </div>
-          </div>
-        </div>
+        <AdminControlSheet
+          ref={controlSheetRef}
+          adminTab={adminTab}
+          activeControlId={activeControlId}
+          activeControlItem={activeControlItem}
+          onClose={closeControlSheet}
+          onRosterChange={(v) => {
+            if (adminTab === 'schedule') setGameRoster(activeControlId, v);
+            else if (adminTab === 'standings') setStandingRoster(activeControlId, v);
+            else setRankingRoster(activeControlId, v);
+          }}
+          onDelete={() => {
+            haptics.rigid();
+            if (adminTab === 'schedule') deleteGame(activeControlId);
+            else if (adminTab === 'standings') deleteStanding(activeControlId);
+            else if (adminTab === 'rankings') deleteRanking(activeControlId);
+            else if (adminTab === 'meetings') deleteMeeting(activeControlId);
+          }}
+          onConfirm={closeControlSheet}
+          updateGame={updateGame}
+          updateStanding={updateStanding}
+          updateRanking={updateRanking}
+          updateMeeting={adminTab === 'meetings' ? updateMeeting : undefined}
+          haptics={haptics}
+        />
       )}
     </div>
   );

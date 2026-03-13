@@ -1,41 +1,10 @@
-import React, { useRef, useEffect } from 'react';
-import gsap from 'gsap';
+import React, { useRef } from 'react';
 import { GameIcon } from '../SharedUI';
 import { formatGameDate } from '../../utils/gameUtils';
 import { cn } from '../../utils/cn';
 
 export const TelemetryTypewriter = ({ gamesList }) => {
   const containerRef = useRef(null);
-  const prevLengthRef = useRef(-1);
-
-  // Animate only when the list actually grows (new card added), not on every snapshot.
-  // On first mount (prevLengthRef === -1), animate all existing cards so they become visible.
-  useEffect(() => {
-    if (!containerRef.current) return;
-    const len = gamesList.length;
-    const cards = containerRef.current.querySelectorAll('.feed-card');
-    const isInitialMount = prevLengthRef.current === -1;
-
-    if (isInitialMount) {
-      prevLengthRef.current = len;
-      if (len === 0) return;
-      gsap.fromTo(cards,
-        { y: 20, opacity: 0, scale: 0.97 },
-        { y: 0, opacity: 1, scale: 1, duration: 0.4, ease: 'back.out(1.4)', stagger: 0.06 }
-      );
-      return;
-    }
-
-    if (len <= prevLengthRef.current) return;
-    prevLengthRef.current = len;
-    const lastCard = cards[len - 1];
-    if (lastCard) {
-      gsap.fromTo(lastCard,
-        { y: 20, opacity: 0, scale: 0.97 },
-        { y: 0, opacity: 1, scale: 1, duration: 0.4, ease: 'back.out(1.4)' }
-      );
-    }
-  }, [gamesList.length]);
 
   return (
     <div className="bg-background rounded-[2rem] p-8 border border-slate/10 shadow-xl flex flex-col h-[380px] group">
@@ -64,7 +33,6 @@ export const TelemetryTypewriter = ({ gamesList }) => {
                   <div
                     key={g.id || i}
                     className="feed-card p-3 rounded-xl bg-slate/[0.03] border border-slate/[0.06] hover:bg-slate/[0.06] transition-colors"
-                    style={{ opacity: 0 }}
                   >
                     {/* Top: Icon + Title */}
                     <div className="flex items-center gap-2.5">

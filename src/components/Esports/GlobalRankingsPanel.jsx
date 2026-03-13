@@ -125,9 +125,11 @@ export const SegmentGroup = React.memo(({ label, options, value, onChange }) => 
 });
 
 // ─── Main Component ───────────────────────────────────────────────────────────
+const CARD_HEADER_CLASS = "font-sans font-bold text-sm text-primary uppercase tracking-tight";
+
 // standingsSource = list of teams from Standings (source of truth for which teams exist)
 // rankings = ranking rows; merged so each standing gets its (game, isAlt) ranking data
-export const GlobalRankingsPanel = ({ standingsSource = [], rankings = [], rosterFilter: controlledRoster, onRosterFilterChange }) => {
+export const GlobalRankingsPanel = ({ standingsSource = [], rankings = [], rosterFilter: controlledRoster, onRosterFilterChange, compact, noCard }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [mobileOpen, setMobileOpen] = useState(false);
   const [activeLeague, setActiveLeague] = useState('ALL');
@@ -205,44 +207,43 @@ export const GlobalRankingsPanel = ({ standingsSource = [], rankings = [], roste
   const handleType = useCallback((v) => setActiveType(v), []);
   const handleSort = useCallback((v) => setActiveSortId(v), []);
 
-  return (
-    <div className="bg-background rounded-[2.5rem] p-5 sm:p-8 border border-slate/15 shadow-2xl flex flex-col h-full min-h-[550px]">
-      
+  const innerContent = (
+    <>
       {/* ── Header Row ── */}
-      <div className="flex items-center justify-between mb-6">
+      <div className={cn("flex items-center justify-between", compact ? "mb-3" : "mb-6")}>
         <div className="flex flex-col">
-          <h2 className="font-sans font-black text-2xl text-primary flex items-center gap-2.5 italic">
-            <Trophy className="text-accent" size={24} />
-            GLOBAL RANKINGS
+          <h2 className={cn(compact && noCard ? CARD_HEADER_CLASS : "font-sans font-black text-primary flex items-center gap-2", compact && noCard ? "" : "italic", compact && !noCard ? "text-sm italic" : compact ? "" : "text-2xl")}>
+            {compact && noCard ? "Global Rankings" : <><Trophy className="text-accent" size={compact ? 16 : 24} /> GLOBAL RANKINGS</>}
           </h2>
-          <span className="font-mono text-[9px] text-slate/40 tracking-[0.2em] uppercase mt-1 hidden sm:block">
-            Cross-Roster Regional Leaderboard
-          </span>
+          {!compact && <span className="font-mono text-[9px] text-slate/40 tracking-[0.2em] uppercase mt-1 hidden sm:block">Cross-Roster Regional Leaderboard</span>}
         </div>
 
-        {/* Desktop Search */}
-        <div className="hidden sm:block w-[180px] focus-within:w-[260px] transition-all duration-500 ease-out relative group/search">
-          <Search size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate/30 group-focus-within/search:text-accent transition-colors z-20 pointer-events-none" />
-          <AnimatedInput
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search teams..."
-            className="border border-slate/10 hover:border-slate/20 focus-within:border-accent/40 h-10 rounded-2xl text-[11px] bg-slate/5 pl-11"
-            mono={false}
-            tracking="normal"
-          />
-        </div>
-
-        {/* Mobile Search Toggle */}
-        <button
-          onClick={() => { haptics.medium(); setMobileOpen(true); }}
-          className="sm:hidden w-12 h-12 rounded-2xl bg-primary/5 flex items-center justify-center text-slate border border-slate/10"
-        >
-          <Search size={20} />
-        </button>
+        {/* Desktop Search & Mobile Toggle - hidden in compact */}
+        {!compact && (
+          <>
+            <div className="hidden sm:block w-[180px] focus-within:w-[260px] transition-all duration-500 ease-out relative group/search">
+              <Search size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate/30 group-focus-within/search:text-accent transition-colors z-20 pointer-events-none" />
+              <AnimatedInput
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search teams..."
+                className="border border-slate/10 hover:border-slate/20 focus-within:border-accent/40 h-10 rounded-2xl text-[11px] bg-slate/5 pl-11"
+                mono={false}
+                tracking="normal"
+              />
+            </div>
+            <button
+              onClick={() => { haptics.medium(); setMobileOpen(true); }}
+              className="sm:hidden w-12 h-12 rounded-2xl bg-primary/5 flex items-center justify-center text-slate border border-slate/10"
+            >
+              <Search size={20} />
+            </button>
+          </>
+        )}
       </div>
 
-      {/* ── Filter Bar (Desktop) ── */}
+      {/* ── Filter Bar (Desktop) - simplified in compact ── */}
+      {!compact && (
       <div className="hidden sm:flex flex-wrap items-center gap-2.5 mb-6 pb-6 border-b border-slate/10">
         <SegmentGroup label="League" options={leagueOptions} value={activeLeague} onChange={handleLeague} />
         <SegmentGroup label="Roster" options={ROSTER_OPTIONS} value={activeType}   onChange={handleType} accentFn={(id) => id === 'ALT' ? 'blue' : 'accent'} />
@@ -254,10 +255,11 @@ export const GlobalRankingsPanel = ({ standingsSource = [], rankings = [], roste
           </button>
         )}
       </div>
+      )}
 
-      {/* ── Mobile Overlay (Now full-page) ── */}
-      {mobileOpen && (
-        <div className="sm:hidden fixed inset-0 z-[100] bg-background backdrop-blur-3xl flex flex-col p-6 pt-[calc(1rem+env(safe-area-inset-top,0px))] pb-[calc(1rem+env(safe-area-inset-bottom,0px))] gap-6 overflow-y-auto animate-in fade-in slide-in-from-bottom-5 duration-300">
+      {/* ── Mobile Overlay (Now full-page) - hidden in compact ── */}
+      {!compact && mobileOpen && (
+        <div className="sm:hidden fixed inset-0 z-[100] bg-background backdrop-blur-3xl flex flex-col p-6 pt-[calc(1rem+env(safe-area-inset-top,0px))] pb-[calc(1rem+env(safe-area-inset-bottom,0px))] gap-6 overflow-y-auto">
           
           {/* Search & Actions at Top */}
           <div className="flex flex-col gap-4">
@@ -307,8 +309,8 @@ export const GlobalRankingsPanel = ({ standingsSource = [], rankings = [], roste
         </div>
       )}
 
-      {/* ── Mobile Active Status ── */}
-      {!mobileOpen && hasFilters && (
+      {/* ── Mobile Active Status - hidden in compact ── */}
+      {!compact && !mobileOpen && hasFilters && (
         <div className="sm:hidden flex items-center gap-2 mb-4 flex-wrap">
           <span className="font-mono text-[8px] text-slate/30 uppercase font-black">ACTIVE:</span>
           {activeLeague !== 'ALL' && <span className="text-[9px] font-mono font-black text-accent bg-accent/10 px-2 py-1 rounded-lg">{activeLeague}</span>}
@@ -323,41 +325,39 @@ export const GlobalRankingsPanel = ({ standingsSource = [], rankings = [], roste
         <table className="w-full text-left border-collapse">
           <thead className="hidden sm:table-header-group">
             <tr className="border-b border-slate/10">
-              <th className="pb-4 font-mono text-[9px] text-slate/30 uppercase tracking-[0.2em] pl-3">Pos</th>
-              <th className="pb-4 font-mono text-[9px] text-slate/30 uppercase tracking-[0.2em]">Competitor</th>
-              <th className="pb-4 font-mono text-[9px] text-slate/30 uppercase tracking-[0.2em] text-center">Placement</th>
-              <th className="pb-4 font-mono text-[9px] text-slate/30 uppercase tracking-[0.2em] text-right pr-3">Category</th>
+              <th className={cn("font-mono text-[9px] text-slate/30 uppercase tracking-[0.2em] pl-3", compact ? "pb-2" : "pb-4")}>Pos</th>
+              <th className={cn("font-mono text-[9px] text-slate/30 uppercase tracking-[0.2em]", compact ? "pb-2" : "pb-4")}>Competitor</th>
+              <th className={cn("font-mono text-[9px] text-slate/30 uppercase tracking-[0.2em] text-center", compact ? "pb-2" : "pb-4")}>#</th>
+              {!compact && <th className="pb-4 font-mono text-[9px] text-slate/30 uppercase tracking-[0.2em] text-right pr-3">Category</th>}
             </tr>
           </thead>
           <tbody className="divide-y divide-slate/5">
             {filtered.length > 0 ? (
               filtered.map((team, idx) => (
-                <tr key={team.id} className="group hover:bg-primary/[0.03] transition-all duration-300">
-                  <td className="py-5 pl-3 font-mono text-xs text-slate/20 hidden sm:table-cell">{idx + 1}</td>
+                <tr key={team.id} className={cn("group transition-all", compact ? "" : "hover:bg-primary/[0.03] duration-300")}>
+                  <td className={cn("font-mono text-xs text-slate/20 hidden sm:table-cell pl-3", compact ? "py-2" : "py-5")}>{idx + 1}</td>
                   
-                  <td className="py-4 sm:py-5">
-                    <div className="flex items-center gap-2 sm:gap-4">
-                      <div className="w-11 h-11 rounded-2xl bg-primary/5 flex items-center justify-center border border-slate/10 p-1.5 shrink-0 text-accent group-hover:scale-105 group-hover:shadow-lg group-hover:shadow-accent/5 transition-all duration-500">
-                        <GameIcon game={team.game} size={24} />
+                  <td className={compact ? "py-2" : "py-4 sm:py-5"}>
+                    <div className={cn("flex items-center gap-2 min-w-0", !compact && "sm:gap-4")}>
+                      <div className={cn("rounded-lg bg-primary/5 flex items-center justify-center border border-slate/10 shrink-0 text-accent", compact ? "w-7 h-7 p-1" : "w-11 h-11 rounded-2xl p-1.5 group-hover:scale-105")}>
+                        <GameIcon game={team.game} size={compact ? 14 : 24} />
                       </div>
                       <div className="flex flex-col min-w-0">
-                        <div className="flex items-center gap-2">
-                          <span className="font-sans font-black text-base text-primary tracking-tight truncate leading-none uppercase italic">{simplifyGameName(team.game)}</span>
-                          {team.isAlt && !team.isDel && <span className="text-[7px] font-mono font-black bg-blue-500 text-white px-1.5 py-0.5 rounded-md shadow-sm">ALT</span>}
-                          {team.isDel && <span className="text-[7px] font-mono font-black bg-red-500 text-white px-1.5 py-0.5 rounded-md shadow-sm">DEL</span>}
+                        <div className="flex items-center gap-1">
+                          <span className={cn("font-sans font-black text-primary tracking-tight truncate leading-none uppercase italic", compact ? "text-xs" : "text-base")}>{simplifyGameName(team.game)}</span>
+                          {team.isAlt && !team.isDel && <span className="text-[7px] font-mono font-black bg-blue-500 text-white px-1 py-0.5 rounded shrink-0">ALT</span>}
+                          {team.isDel && <span className="text-[7px] font-mono font-black bg-red-500 text-white px-1 py-0.5 rounded shrink-0">DEL</span>}
                         </div>
-                        <span className="font-mono text-[9px] text-slate/40 uppercase tracking-widest mt-1.5">{team.leagueName}</span>
+                        {!compact && <span className="font-mono text-[9px] text-slate/40 uppercase tracking-widest mt-1.5">{team.leagueName}</span>}
                       </div>
                     </div>
                   </td>
 
-                  <td className="py-4 sm:py-5 pl-0.5 sm:px-4 text-right sm:text-center">
-                    <div className="flex flex-col items-end sm:items-center">
-                      <span className="font-sans font-black text-2xl sm:text-3xl text-red-500 tabular-nums">#{team.leagueRank || '--'}</span>
-                      <span className="sm:hidden font-mono text-[8px] text-slate/40 uppercase font-black tracking-tighter mt-0.5">{team.leagueName}</span>
-                    </div>
+                  <td className={cn("pl-0.5 text-right", compact ? "py-2 sm:px-2" : "py-4 sm:py-5 sm:px-4 sm:text-center")}>
+                    <span className={cn("font-sans font-black text-red-500 tabular-nums", compact ? "text-sm" : "text-2xl sm:text-3xl")}>#{team.leagueRank || '--'}</span>
                   </td>
 
+                  {!compact && (
                   <td className="py-5 pr-3 text-right hidden sm:table-cell">
                     {team.isDel ? (
                       <span className="inline-flex items-center gap-1.5 font-mono text-[9px] font-black text-red-500 bg-red-500/10 px-3 py-1.5 rounded-xl border border-red-500/20 shadow-sm shadow-red-500/5">DEL</span>
@@ -369,6 +369,7 @@ export const GlobalRankingsPanel = ({ standingsSource = [], rankings = [], roste
                       <span className="font-mono text-[9px] font-black text-slate/30 bg-primary/5 px-3 py-1.5 rounded-xl border border-slate/10">VARSITY</span>
                     )}
                   </td>
+                  )}
                 </tr>
               ))
             ) : (
@@ -385,6 +386,20 @@ export const GlobalRankingsPanel = ({ standingsSource = [], rankings = [], roste
           </tbody>
         </table>
       </div>
+    </>
+  );
+
+  if (compact && noCard) {
+    return (
+      <div className="flex flex-col h-full min-h-0">
+        {innerContent}
+      </div>
+    );
+  }
+
+  return (
+    <div className={cn("bg-background rounded-2xl border border-slate/10 flex flex-col h-full min-h-0", compact ? "p-4 shadow-sm" : "rounded-[2.5rem] p-5 sm:p-8 border-slate/15 shadow-2xl min-h-[550px]")}>
+      {innerContent}
     </div>
   );
 };

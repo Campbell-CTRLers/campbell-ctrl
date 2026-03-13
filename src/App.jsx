@@ -11,9 +11,9 @@ import { useMobile } from './hooks/useMobile';
 import Navbar from './components/Navbar';
 import AdminDashboard from './components/AdminDashboard';
 import { useHaptics } from './hooks/useHaptics';
-import CustomCursor from './ui/CustomCursor';
 import Footer from './components/Footer';
 import { BackdropDecoration } from './components/BackdropDecoration';
+import { ScrollToTop } from './components/ScrollToTop';
 
 // Lazy-load tabs — only the active tab's JS is downloaded
 const HomeTab = lazy(() => import('./pages/HomeTab'));
@@ -112,6 +112,7 @@ function AppInner() {
   const [gamesList, setGamesList] = useState([]);
   const [standings, setStandings] = useState([]);
   const [rankings, setRankings] = useState([]);
+  const [meetings, setMeetings] = useState([]);
   const [dataLoaded, setDataLoaded] = useState(false);
   const [dataError, setDataError] = useState(null);
 
@@ -171,6 +172,7 @@ function AppInner() {
           if (data.gamesList) setGamesList(filteredGames);
           if (data.standings) setStandings(data.standings);
           if (data.rankings) setRankings(data.rankings);
+          setMeetings(data.meetings || []);
         }
       },
       (err) => {
@@ -192,7 +194,6 @@ function AppInner() {
         Skip to main content
       </a>
       <BackdropDecoration />
-      <CustomCursor />
 
       <Navbar currentTab={currentTab} onNavigate={handleTabChange} />
 
@@ -204,14 +205,16 @@ function AppInner() {
 
       <main id="main-content" tabIndex={-1}>
         <Suspense fallback={<div className="flex min-h-[40vh] items-center justify-center text-slate" aria-live="polite">Loading…</div>}>
-          {currentTab === 'home' && <HomeTab gamesList={gamesList} standings={standings} dataLoaded={dataLoaded} />}
+          {currentTab === 'home' && <HomeTab gamesList={gamesList} standings={standings} rankings={rankings} meetings={meetings} dataLoaded={dataLoaded} onNavigateToEsports={() => handleTabChange('esports')} />}
           {currentTab === 'esports' && <EsportsTab gamesList={gamesList} standings={standings} rankings={rankings} dataLoaded={dataLoaded} />}
-          {currentTab === 'meetings' && <MeetingsTab />}
+          {currentTab === 'meetings' && <MeetingsTab meetings={meetings} />}
           {currentTab === 'legal' && <LegalTab />}
         </Suspense>
       </main>
 
       <Footer onToggleAdmin={() => setIsAdmin(true)} onNavigate={handleTabChange} />
+
+      <ScrollToTop />
 
       <AdminDashboard
         isAdmin={isAdmin || currentTab === 'admin'}
@@ -225,6 +228,8 @@ function AppInner() {
         setStandings={setStandings}
         rankings={rankings}
         setRankings={setRankings}
+        meetings={meetings}
+        setMeetings={setMeetings}
         authenticatedUser={authenticatedUser}
         authInitialized={authInitialized}
       />
