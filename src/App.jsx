@@ -5,7 +5,7 @@ import { ScrollToPlugin } from 'gsap/ScrollToPlugin';
 import { onAuthStateChanged } from 'firebase/auth';
 import { db, auth } from './firebase';
 import { onSnapshot, doc, getDoc } from 'firebase/firestore';
-import { ThemeProvider } from './context/ThemeContext';
+import { ThemeProvider } from './context/ThemeContext.jsx';
 import { MobileProvider } from './context/MobileProvider';
 import { useMobile } from './hooks/useMobile';
 import Navbar from './components/Navbar';
