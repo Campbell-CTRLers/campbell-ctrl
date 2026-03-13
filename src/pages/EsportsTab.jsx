@@ -7,14 +7,18 @@ import { LiveStandings } from '../components/LiveStandings';
 import { GlobalRankingsPanel } from '../components/Esports/GlobalRankingsPanel';
 import { cn } from '../utils/cn';
 
-const EsportsTab = ({ gamesList, standings, rankings, dataLoaded = true }) => {
+const EsportsTab = ({ gamesList, standings, rankings, dataLoaded = true, siteContent }) => {
   const [rosterFilter, setRosterFilter] = useState('ALL');
+
+  const heading = siteContent?.esports?.heading || 'Campbell';
+  const headingAccent = siteContent?.esports?.headingAccent || 'eSpartans.';
+  const description = siteContent?.esports?.description || 'The official PlayVS competitive core of Campbell CTRL. View upcoming schedules, match results, and live team standings across all active rosters.';
 
   return (
     <div className="pt-32 pb-24 px-4 sm:px-6 md:px-16 max-w-7xl mx-auto min-h-screen">
       <div className="tab-header mb-16">
-        <h1 className="font-sans font-bold text-5xl md:text-7xl text-primary tracking-tighter mb-4">Campbell <span className="text-accent font-drama italic">eSpartans.</span></h1>
-        <p className="font-sans text-slate text-lg max-w-2xl">The official PlayVS competitive core of Campbell CTRL. View upcoming schedules, match results, and live team standings across all active rosters.</p>
+        <h1 className="font-sans font-bold text-5xl md:text-7xl text-primary tracking-tighter mb-4">{heading} <span className="text-accent font-drama italic">{headingAccent}</span></h1>
+        <p className="font-sans text-slate text-lg max-w-2xl">{description}</p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch mb-12">

@@ -231,8 +231,8 @@ function AppInner() {
       <main id="main-content" tabIndex={-1}>
         <Suspense fallback={<div className="flex min-h-[40vh] items-center justify-center text-slate" aria-live="polite">Loading…</div>}>
           {currentTab === 'home' && <HomeTab gamesList={gamesList} standings={standings} rankings={rankings} meetings={meetings} siteContent={siteContent} dataLoaded={dataLoaded} onNavigateToEsports={() => handleTabChange('esports')} />}
-          {currentTab === 'esports' && <EsportsTab gamesList={gamesList} standings={standings} rankings={rankings} dataLoaded={dataLoaded} />}
-          {currentTab === 'meetings' && <MeetingsTab meetings={meetings} />}
+          {currentTab === 'esports' && <EsportsTab gamesList={gamesList} standings={standings} rankings={rankings} dataLoaded={dataLoaded} siteContent={siteContent} />}
+          {currentTab === 'meetings' && <MeetingsTab meetings={meetings} siteContent={siteContent} />}
           {currentTab === 'legal' && <LegalTab />}
         </Suspense>
       </main>

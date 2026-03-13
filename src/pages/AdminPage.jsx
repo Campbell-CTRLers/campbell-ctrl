@@ -536,7 +536,7 @@ const AdminPage = ({
             <AdminMeetingsEditor meetings={meetings} onAddMeeting={handleAddMeeting} updateMeeting={updateMeeting} deleteMeeting={deleteMeeting} setActiveControlId={setActiveControlId} />
           )}
           {adminTab === 'content' && (
-            <AdminContentEditor siteContent={siteContent} setSiteContent={setSiteContent} />
+            <AdminContentEditor siteContent={siteContent} setSiteContent={setSiteContent} isMobile={isMobileView()} />
           )}
         </div>
 
