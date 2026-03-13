@@ -76,7 +76,7 @@ const AdminDashboard = ({ isAdmin, onClose, gamesList, setGamesList, standings, 
   const [isAuthenticating, setIsAuthenticating] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
-  const [, setSaveErrorMsg] = useState('');
+  const [saveErrorMsg, setSaveErrorMsg] = useState('');
   const [adminTab, setAdminTab] = useState('schedule');
   const [rememberMe, setRememberMe] = useState(false);
 
@@ -416,26 +416,31 @@ const AdminDashboard = ({ isAdmin, onClose, gamesList, setGamesList, standings, 
               </div>
             </div>
 
-            <div className="flex items-center gap-2">
-              <button 
-                onClick={handleSaveToCloud} 
-                disabled={isSaving} 
-                className={cn(
-                  "min-w-[44px] min-h-[44px] p-2.5 sm:px-4 sm:py-2 rounded-2xl text-white font-bold text-sm transition-all active:scale-90 flex items-center justify-center gap-2 touch-manipulation",
-                  isDirty ? "bg-accent shadow-lg shadow-accent/25" : "bg-slate/10 text-slate",
-                  isSaving && "opacity-70 scale-95"
-                )}
-              >
-                {isSaving ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <><CloudUpload size={18} /><span className="hidden sm:inline">PUBLISH!</span></>}
-                {saveSuccess && <Check size={16} className="text-green-300 ml-1" />}
-              </button>
-              
-              <button 
-                onClick={handleCloseAttempt}
-                className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-slate/5 flex items-center justify-center text-slate hover:bg-red-500/10 hover:text-red-500 transition-all border border-slate/10 active:scale-90"
-              >
-                <X size={20} />
-              </button>
+            <div className="flex flex-col items-end gap-1">
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={handleSaveToCloud}
+                  disabled={isSaving}
+                  className={cn(
+                    "min-w-[44px] min-h-[44px] p-2.5 sm:px-4 sm:py-2 rounded-2xl text-white font-bold text-sm transition-all active:scale-90 flex items-center justify-center gap-2 touch-manipulation",
+                    isDirty ? "bg-accent shadow-lg shadow-accent/25" : "bg-slate/10 text-slate",
+                    isSaving && "opacity-70 scale-95"
+                  )}
+                >
+                  {isSaving ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <><CloudUpload size={18} /><span className="hidden sm:inline">Publish</span></>}
+                  {saveSuccess && <Check size={16} className="text-green-300 ml-1" />}
+                </button>
+
+                <button
+                  onClick={handleCloseAttempt}
+                  className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-slate/5 flex items-center justify-center text-slate hover:bg-red-500/10 hover:text-red-500 transition-all border border-slate/10 active:scale-90"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+              {saveErrorMsg && (
+                <span className="font-mono text-[9px] text-red-400 text-right max-w-[160px] leading-tight">{saveErrorMsg}</span>
+              )}
             </div>
           </div>
 
@@ -637,14 +642,14 @@ const AdminDashboard = ({ isAdmin, onClose, gamesList, setGamesList, standings, 
 
           {/* MOBILE BOTTOM NAVIGATION */}
           <div className="sm:hidden fixed bottom-0 left-0 right-0 bg-background border-t border-slate/15 px-6 pt-5 pb-[calc(3rem+env(safe-area-inset-bottom,0px))] flex items-center justify-around z-40 shadow-[0_-15px_50px_rgba(0,0,0,0.7)] touch-manipulation">
-             <button onClick={() => { haptics.selection(); setAdminTab('schedule'); }} className={cn("flex flex-col items-center gap-1.5 transition-all text-[10px] font-black uppercase tracking-tighter touch-manipulation", adminTab === 'schedule' ? "text-accent scale-110" : "text-slate/40")}>
+             <button onClick={() => { haptics.selection(); setAdminTab('schedule'); }} className={cn("flex flex-col items-center gap-1.5 transition-all text-[10px] font-black uppercase tracking-tighter touch-manipulation", adminTab === 'schedule' ? "text-accent scale-110" : "text-slate opacity-40")}>
                 <Calendar size={20} /><span className="leading-none">Schedule</span>
              </button>
-              <button onClick={() => { haptics.selection(); setAdminTab('standings'); }} className={cn("flex flex-col items-center gap-1.5 transition-all text-[10px] font-black uppercase tracking-tighter touch-manipulation", adminTab === 'standings' ? "text-accent scale-110" : "text-slate/40")}>
+              <button onClick={() => { haptics.selection(); setAdminTab('standings'); }} className={cn("flex flex-col items-center gap-1.5 transition-all text-[10px] font-black uppercase tracking-tighter touch-manipulation", adminTab === 'standings' ? "text-accent scale-110" : "text-slate opacity-40")}>
                 <Trophy size={20} />
                 <span className="leading-none">Standings</span>
               </button>
-             <button onClick={() => { haptics.selection(); setAdminTab('rankings'); }} className={cn("flex flex-col items-center gap-1.5 transition-all text-[10px] font-black uppercase tracking-tighter touch-manipulation", adminTab === 'rankings' ? "text-accent scale-110" : "text-slate/40")}>
+             <button onClick={() => { haptics.selection(); setAdminTab('rankings'); }} className={cn("flex flex-col items-center gap-1.5 transition-all text-[10px] font-black uppercase tracking-tighter touch-manipulation", adminTab === 'rankings' ? "text-accent scale-110" : "text-slate opacity-40")}>
                 <Settings size={20} /><span className="leading-none">Rankings</span>
              </button>
           </div>

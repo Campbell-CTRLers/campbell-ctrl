@@ -1,6 +1,7 @@
 import React, { useRef, useState, useEffect } from 'react';
 import gsap from 'gsap';
 import { useTheme } from '../context/useTheme';
+import { useMobile } from '../hooks/useMobile';
 import { CalendarModal } from './CalendarModal';
 import { cn } from '../utils/cn';
 
@@ -8,8 +9,11 @@ export function ClubMeetings() {
   const container = useRef(null);
   const [popupOpen, setPopupOpen] = useState(false);
   const { theme } = useTheme();
+  const { isMobile } = useMobile();
 
   useEffect(() => {
+    if (isMobile) return; // Skip all animations on mobile
+
     let ctx;
 
     const buildAnimation = () => {
@@ -102,7 +106,7 @@ export function ClubMeetings() {
       window.removeEventListener('resize', handleResize);
       if (ctx) ctx.revert();
     };
-  }, [theme]);
+  }, [theme, isMobile]);
 
   const days = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
 
@@ -132,7 +136,7 @@ export function ClubMeetings() {
       </div>
 
       <div className="relative">
-        <svg className="cursor-svg absolute z-20 w-6 h-6 text-primary pointer-events-none drop-shadow-md" viewBox="0 0 24 24" fill="currentColor">
+        <svg className="cursor-svg absolute z-20 w-6 h-6 text-primary pointer-events-none drop-shadow-md hidden sm:block" viewBox="0 0 24 24" fill="currentColor">
           <path d="M4 4l5.3 16.5c.2.6.9.8 1.4.4l3.8-3.3 4.2 4.2c.4.4 1 .4 1.4 0l1.4-1.4c.4-.4.4-1 0-1.4l-4.2-4.2 3.3-3.8c.4-.5.2-1.2-.4-1.4L4 4z" />
         </svg>
         <div className="grid grid-cols-7 gap-2 mb-3">
@@ -142,14 +146,12 @@ export function ClubMeetings() {
             </div>
           ))}
         </div>
-        <div className="flex justify-end">
-          <button
-            onClick={() => setPopupOpen(o => !o)}
-            className="btn-save bg-[#0038A8] text-white px-5 py-2.5 rounded-full font-roboto text-xs font-bold uppercase tracking-wider block shadow-lg shadow-[#0038A8]/20 hover:shadow-[#0038A8]/40 transition-shadow duration-300"
-          >
-            Save Schedule
-          </button>
-        </div>
+        <button
+          onClick={() => setPopupOpen(o => !o)}
+          className="btn-save bg-[#0038A8] text-white w-full sm:w-auto px-5 py-3.5 sm:py-2.5 rounded-full font-roboto text-sm sm:text-xs font-bold uppercase tracking-wider block shadow-lg shadow-[#0038A8]/20 hover:shadow-[#0038A8]/40 transition-shadow duration-300"
+        >
+          Save Schedule
+        </button>
       </div>
       <CalendarModal open={popupOpen} onClose={() => setPopupOpen(false)} />
     </div>
