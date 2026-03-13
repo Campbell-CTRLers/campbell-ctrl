@@ -6,12 +6,29 @@ import { cn } from '../../utils/cn';
 
 export const TelemetryTypewriter = ({ gamesList }) => {
   const containerRef = useRef(null);
+  const prevLengthRef = useRef(-1);
 
-  // Animate the newest card whenever gamesList grows
+  // Animate only when the list actually grows (new card added), not on every snapshot.
+  // On first mount (prevLengthRef === -1), animate all existing cards so they become visible.
   useEffect(() => {
     if (!containerRef.current) return;
+    const len = gamesList.length;
     const cards = containerRef.current.querySelectorAll('.feed-card');
-    const lastCard = cards[gamesList.length - 1];
+    const isInitialMount = prevLengthRef.current === -1;
+
+    if (isInitialMount) {
+      prevLengthRef.current = len;
+      if (len === 0) return;
+      gsap.fromTo(cards,
+        { y: 20, opacity: 0, scale: 0.97 },
+        { y: 0, opacity: 1, scale: 1, duration: 0.4, ease: 'back.out(1.4)', stagger: 0.06 }
+      );
+      return;
+    }
+
+    if (len <= prevLengthRef.current) return;
+    prevLengthRef.current = len;
+    const lastCard = cards[len - 1];
     if (lastCard) {
       gsap.fromTo(lastCard,
         { y: 20, opacity: 0, scale: 0.97 },
@@ -58,8 +75,11 @@ export const TelemetryTypewriter = ({ gamesList }) => {
                         <p className="font-roboto text-sm font-semibold text-primary leading-tight truncate">
                           {displayTitle}
                         </p>
-                        {g.isAlt && (
+                        {g.isAlt && !g.isDel && (
                           <span className="text-[8px] font-mono font-bold bg-blue-500/10 text-blue-600 px-1.5 py-0.5 rounded-md uppercase tracking-tighter shrink-0 border border-blue-500/10">ALT</span>
+                        )}
+                        {g.isDel && (
+                          <span className="text-[8px] font-mono font-bold bg-red-500/10 text-red-600 px-1.5 py-0.5 rounded-md uppercase tracking-tighter shrink-0 border border-red-500/10">DEL</span>
                         )}
                       </div>
                     </div>

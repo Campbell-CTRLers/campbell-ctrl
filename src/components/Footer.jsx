@@ -16,7 +16,7 @@ const Footer = ({ onToggleAdmin, onNavigate }) => {
             <img src="/logo-transparent.png" alt="Campbell High Esports" className="h-12 sm:h-16 w-fit object-contain brightness-0 invert opacity-90" onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'block'; }} />
           </div>
           <p className="font-roboto text-white/80 max-w-sm drop-shadow-md mx-auto md:mx-0">
-            The official home of Campbell High esports. Updates, schedules, standings, and more.
+            The official home of Campbell High Esports. Updates, schedules, standings, and more.
           </p>
           <a href="https://discord.gg/HZ2bQsmaSK" target="_blank" rel="noreferrer"
             onClick={() => haptics.light()}

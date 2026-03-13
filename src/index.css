@@ -137,6 +137,17 @@ body {
   transform: scale(0.9);
 }
 
+/* Respect user preference for reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .magnetic-btn,
+  .magnetic-btn::before,
+  .interactive-hover,
+  .theme-toggle,
+  .theme-toggle .theme-toggle-inner {
+    transition-duration: 0.01ms !important;
+  }
+}
+
 /* Touch-specific overrides */
 @media (max-width: 1024px) {
   * {

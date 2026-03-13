@@ -1,6 +1,6 @@
 import React, { useRef, useState, useEffect, useMemo } from 'react';
 import gsap from 'gsap';
-import { Settings, Plus, Trash2, CloudUpload, ChevronDown, ChevronRight, ChevronUp, Calendar, X, AlertTriangle, Check, Trophy } from 'lucide-react';
+import { Settings, Plus, Trash2, CloudUpload, ChevronDown, ChevronRight, ChevronUp, Calendar, X, AlertTriangle, Check, Trophy, RefreshCw } from 'lucide-react';
 import { db, auth, googleProvider } from '../firebase';
 import { writeBatch, doc, getDoc } from 'firebase/firestore';
 import { signInWithPopup, signOut, setPersistence, browserLocalPersistence, browserSessionPersistence } from 'firebase/auth';
@@ -64,6 +64,48 @@ const GAME_OPTIONS = [
 const TYPE_OPTIONS = ['PlayVS Rank', 'Scrimmage', 'Tournament', 'Casual', 'OTHER'];
 const LEAGUE_OPTIONS = ['PlayVS', 'Georgia', 'Georgia PlayVS', 'OTHER'];
 
+const ROSTER_TYPES = [
+  { id: 'VARSITY', label: 'Var', title: 'Varsity' },
+  { id: 'ALT', label: 'ALT', title: 'Alternate' },
+  { id: 'DEL', label: 'DEL', title: "Alternate's alternate" },
+];
+const getRosterType = (item) => (item?.isDel ? 'DEL' : item?.isAlt ? 'ALT' : 'VARSITY');
+
+/* ─── Roster type selector (single tap: Varsity / ALT / DEL) ─── */
+const RosterPill = ({ value, onChange, size = 'md' }) => {
+  const haptics = useHaptics();
+  const isCompact = size === 'sm';
+  return (
+    <div className="inline-flex gap-0.5 rounded-xl border border-slate/10 bg-primary/5 p-0.5">
+      {ROSTER_TYPES.map((opt) => {
+        const active = opt.id === value;
+        const style = active
+          ? opt.id === 'DEL'
+            ? 'bg-red-500 border-red-500/40 text-white shadow-sm'
+            : opt.id === 'ALT'
+              ? 'bg-blue-500 border-blue-500/40 text-white shadow-sm'
+              : 'bg-slate/20 border-slate/20 text-primary'
+          : 'border-transparent text-slate/40 hover:text-slate/60 hover:bg-slate/5';
+        return (
+          <button
+            key={opt.id}
+            type="button"
+            title={opt.title}
+            onClick={() => { haptics.light(); if (opt.id !== value) onChange(opt.id); }}
+            className={cn(
+              'rounded-lg border font-mono font-black transition-all duration-200 active:scale-95',
+              isCompact ? 'px-2 py-1 text-[9px]' : 'px-3 py-1.5 text-[10px]',
+              style
+            )}
+          >
+            {opt.label}
+          </button>
+        );
+      })}
+    </div>
+  );
+};
+
 /* ═════════════════════════════════════════════════════ */
 /*  ADMIN DASHBOARD                                      */
 /* ═════════════════════════════════════════════════════ */
@@ -90,6 +132,8 @@ const AdminDashboard = ({ isAdmin, onClose, gamesList, setGamesList, standings, 
   const tabContentRef = useRef(null);
   const safetySheetRef = useRef(null);
   const controlSheetRef = useRef(null);
+  const previousActiveElementRef = useRef(null);
+  const handleCloseAttemptRef = useRef(null);
 
   // TRACK ORIGINAL DATA for dirty check
   const originalDataRef = useRef(null);
@@ -140,20 +184,40 @@ const AdminDashboard = ({ isAdmin, onClose, gamesList, setGamesList, standings, 
       originalDataRef.current = JSON.parse(JSON.stringify({ gamesList, standings, rankings }));
       setIsDirty(false);
     }
+    // Reset sync ref when dashboard closes so next open re-runs standings/rankings sync
+    if (!isAdmin) hasSyncedRef.current = false;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAdmin, isAuthenticated, saveSuccess]);
 
-  // Entrance anim
+  // Entrance anim + focus + Escape
   useEffect(() => {
     if (isAdmin) {
+      previousActiveElementRef.current = document.activeElement;
       document.body.style.overflow = 'hidden';
       let ctx = gsap.context(() => {
         gsap.fromTo(overlayRef.current, { opacity: 0 }, { opacity: 1, duration: 0.3, ease: 'power2.out' });
         gsap.fromTo(modalRef.current, { y: 30, opacity: 0, scale: 0.95 }, { y: 0, opacity: 1, scale: 1, duration: 0.5, ease: 'back.out(1.2)', delay: 0.1 });
       });
+      const modal = modalRef.current;
+      if (modal && typeof modal.focus === 'function') {
+        const t = setTimeout(() => modal.focus(), 100);
+        return () => { clearTimeout(t); document.body.style.overflow = 'auto'; ctx.revert(); };
+      }
       return () => { document.body.style.overflow = 'auto'; ctx.revert(); };
     }
   }, [isAdmin, isAuthenticated]);
+
+  useEffect(() => {
+    if (!isAdmin) return;
+    const onKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        handleCloseAttemptRef.current?.();
+      }
+    };
+    document.addEventListener('keydown', onKeyDown);
+    return () => document.removeEventListener('keydown', onKeyDown);
+  }, [isAdmin]);
 
   // Tab switch internal anim
   useEffect(() => {
@@ -162,52 +226,137 @@ const AdminDashboard = ({ isAdmin, onClose, gamesList, setGamesList, standings, 
     }
   }, [adminTab, isAdmin, isAuthenticated]);
 
+  const isMobileView = () => typeof window !== 'undefined' && window.innerWidth < 768;
+  const sheetDuration = { open: 0.35, close: 0.2 };
+  const sheetDurationDesktop = { open: 0.5, close: 0.25 };
+
   // Unsaved changes sheet anim
   useEffect(() => {
-    if (showSafetySheet) {
-      gsap.fromTo(safetySheetRef.current, 
-        { y: '100%' }, 
-        { y: '0%', duration: 0.5, ease: 'power4.out' }
+    if (showSafetySheet && safetySheetRef.current) {
+      const d = isMobileView() ? sheetDuration : sheetDurationDesktop;
+      gsap.fromTo(safetySheetRef.current,
+        { y: '100%' },
+        { y: '0%', duration: d.open, ease: 'power3.out' }
       );
     }
   }, [showSafetySheet]);
 
+  // Close safety sheet with slide-down (avoids weird pop on mobile)
+  const closeSafetySheet = (onDone) => {
+    if (!safetySheetRef.current) {
+      setShowSafetySheet(false);
+      onDone?.();
+      return;
+    }
+    const d = isMobileView() ? sheetDuration.close : sheetDurationDesktop.close;
+    gsap.to(safetySheetRef.current, {
+      y: '100%',
+      duration: d,
+      ease: 'power2.in',
+      onComplete: () => {
+        setShowSafetySheet(false);
+        onDone?.();
+      }
+    });
+  };
+
   // Selection/Control sheet anim
   useEffect(() => {
-    if (activeControlId) {
-      gsap.fromTo(controlSheetRef.current, 
-        { y: '100%' }, 
-        { y: '0%', duration: 0.5, ease: 'power4.out' }
+    if (activeControlId && controlSheetRef.current) {
+      const d = isMobileView() ? sheetDuration : sheetDurationDesktop;
+      gsap.fromTo(controlSheetRef.current,
+        { y: '100%' },
+        { y: '0%', duration: d.open, ease: 'power3.out' }
       );
     }
   }, [activeControlId]);
 
-  // Sync existing standings/rankings data once on dashboard open
-  useEffect(() => {
-    if (!(isAdmin && isAuthenticated)) return;
-    if (hasSyncedRef.current) return;
-    hasSyncedRef.current = true;
+  // Close control sheet with slide-down
+  const closeControlSheet = () => {
+    if (!controlSheetRef.current) {
+      setActiveControlId(null);
+      return;
+    }
+    const d = isMobileView() ? sheetDuration.close : sheetDurationDesktop.close;
+    gsap.to(controlSheetRef.current, {
+      y: '100%',
+      duration: d,
+      ease: 'power2.in',
+      onComplete: () => setActiveControlId(null)
+    });
+  };
+
+  // Normalized key for matching a team across standings and rankings (game + roster flags)
+  const teamKey = (item) => `${String(item?.game ?? '').trim()}\t${Boolean(item?.isAlt)}\t${Boolean(item?.isDel)}`;
+  const sameTeam = (a, b) => teamKey(a) === teamKey(b);
+
+  const syncStandingsWithRankings = () => {
+    haptics.light();
     const base = Date.now() * 1000;
-    const rankingGames = new Set(rankings.map(r => r.game));
-    const standingGames = new Set(standings.map(s => s.game));
+    const standingKeys = new Set(standings.map(teamKey));
+    const rankingKeys = new Set(rankings.map(teamKey));
+
+    // 1) Add missing: for every standing, ensure a ranking exists; for every ranking, ensure a standing exists
     const newRankings = [];
     standings.forEach((standing, index) => {
-      if (!rankingGames.has(standing.game)) {
-        newRankings.push({ id: base + index, team: 'Campbell eSpartans', game: standing.game, leagueRank: '', leagueName: 'PlayVS', isAlt: standing.isAlt });
-        rankingGames.add(standing.game);
+      if (!rankingKeys.has(teamKey(standing))) {
+        newRankings.push({
+          id: base + index,
+          team: 'Campbell eSpartans',
+          game: standing.game,
+          leagueRank: '',
+          leagueName: 'PlayVS',
+          isAlt: standing.isAlt ?? false,
+          isDel: standing.isDel ?? false
+        });
+        rankingKeys.add(teamKey(standing));
       }
     });
     const newStandings = [];
     rankings.forEach((ranking, index) => {
-      if (!standingGames.has(ranking.game)) {
-        newStandings.push({ id: base + 10000 + index, team: 'Campbell eSpartans', game: ranking.game, wins: 0, losses: 0, leagueRank: '', leagueName: 'PlayVS', isAlt: ranking.isAlt });
-        standingGames.add(ranking.game);
+      if (!standingKeys.has(teamKey(ranking))) {
+        newStandings.push({
+          id: base + 10000 + index,
+          team: 'Campbell eSpartans',
+          game: ranking.game,
+          wins: 0,
+          losses: 0,
+          leagueRank: '',
+          leagueName: 'PlayVS',
+          isAlt: ranking.isAlt ?? false,
+          isDel: ranking.isDel ?? false
+        });
+        standingKeys.add(teamKey(ranking));
       }
     });
-    if (newRankings.length > 0) setRankings(prev => [...prev, ...newRankings]);
-    if (newStandings.length > 0) setStandings(prev => [...prev, ...newStandings]);
+
+    // 2) Remove orphans: keep only rankings that have a standing (and vice versa) so lists stay in sync
+    const keysWithStandings = new Set([...standings, ...newStandings].map(teamKey));
+    const keysWithRankings = new Set([...rankings, ...newRankings].map(teamKey));
+    const finalRankings = [...rankings, ...newRankings].filter((r) => keysWithStandings.has(teamKey(r)));
+    const finalStandings = [...standings, ...newStandings].filter((s) => keysWithRankings.has(teamKey(s)));
+
+    setRankings(finalRankings);
+    setStandings(finalStandings);
+  };
+
+  const prevLengthsRef = useRef({ standings: 0, rankings: 0 });
+  // Sync standings ↔ rankings when dashboard opens and again when Firebase data arrives (was empty, now has data).
+  useEffect(() => {
+    if (!(isAdmin && isAuthenticated)) return;
+    const sl = standings.length;
+    const rl = rankings.length;
+    const prev = prevLengthsRef.current;
+    const wasEmpty = prev.standings === 0 && prev.rankings === 0;
+    const nowHasData = sl > 0 || rl > 0;
+    const shouldSync = !hasSyncedRef.current || (wasEmpty && nowHasData);
+    if (shouldSync) {
+      syncStandingsWithRankings();
+      hasSyncedRef.current = true;
+    }
+    prevLengthsRef.current = { standings: sl, rankings: rl };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isAdmin, isAuthenticated]);
+  }, [isAdmin, isAuthenticated, standings, rankings]);
 
   const handleGoogleSignIn = async () => {
     setIsAuthenticating(true);
@@ -264,43 +413,84 @@ const AdminDashboard = ({ isAdmin, onClose, gamesList, setGamesList, standings, 
   const handleAddGame = () => { 
     haptics.selection(); 
     const newId = Date.now();
-    setGamesList([...gamesList, { id: newId, game: 'Smash Bros', opponent: 'TBD', date: '', time: '4:00 PM', type: 'PlayVS Rank', isAlt: false }]); 
+    setGamesList([...gamesList, { id: newId, game: 'Smash Bros', opponent: 'TBD', date: '', time: '4:00 PM', type: 'PlayVS Rank', isAlt: false, isDel: false }]); 
     if (window.innerWidth < 768) setActiveControlId(newId);
   };
   const updateGame = (id, field, value) => setGamesList(gamesList.map(g => g.id === id ? { ...g, [field]: value } : g));
+  const setGameRoster = (id, roster) => {
+    const isAlt = roster === 'ALT';
+    const isDel = roster === 'DEL';
+    setGamesList(gamesList.map((g) => (g.id === id ? { ...g, isAlt, isDel } : g)));
+  };
   const deleteGame = (id) => { haptics.light(); setGamesList(gamesList.filter(g => g.id !== id)); if (activeControlId === id) setActiveControlId(null); };
 
   const handleAddStanding = () => { 
     haptics.selection(); 
     const newId = Date.now() * 1000;
-    setStandings([...standings, { id: newId, team: 'Campbell eSpartans', game: 'Smash Bros', wins: 0, losses: 0, leagueRank: '', leagueName: 'PlayVS', isAlt: false }]); 
-    setRankings([...rankings, { id: newId + 1, team: 'Campbell eSpartans', game: 'Smash Bros', leagueRank: '', leagueName: 'PlayVS', isAlt: false }]);
+    setStandings([...standings, { id: newId, team: 'Campbell eSpartans', game: 'Smash Bros', wins: 0, losses: 0, leagueRank: '', leagueName: 'PlayVS', isAlt: false, isDel: false }]); 
+    setRankings([...rankings, { id: newId + 1, team: 'Campbell eSpartans', game: 'Smash Bros', leagueRank: '', leagueName: 'PlayVS', isAlt: false, isDel: false }]);
     if (window.innerWidth < 768) setActiveControlId(newId);
   };
   const updateStanding = (id, field, value) => {
-    if (field === 'game') {
-      const oldGame = standings.find(s => s.id === id)?.game;
-      setRankings(rankings.map(r => r.game === oldGame ? { ...r, game: value } : r));
-    }
-    setStandings(standings.map(s => s.id === id ? { ...s, [field]: (field === 'wins' || field === 'losses') ? Number(value) : value } : s));
+    const standing = standings.find((s) => s.id === id);
+    if (!standing) return;
+    if (field === 'game') setRankings(rankings.map((r) => (sameTeam(r, standing) ? { ...r, game: value } : r)));
+    if (field === 'isAlt') setRankings(rankings.map((r) => (sameTeam(r, standing) ? { ...r, isAlt: value } : r)));
+    if (field === 'isDel') setRankings(rankings.map((r) => (sameTeam(r, standing) ? { ...r, isDel: value } : r)));
+    setStandings(standings.map((s) => (s.id === id ? { ...s, [field]: (field === 'wins' || field === 'losses') ? Number(value) : value } : s)));
   };
-  const deleteStanding = (id) => { haptics.light(); setStandings(standings.filter(s => s.id !== id)); if (activeControlId === id) setActiveControlId(null); };
+  const setStandingRoster = (id, roster) => {
+    const standing = standings.find((s) => s.id === id);
+    if (!standing) return;
+    const isAlt = roster === 'ALT';
+    const isDel = roster === 'DEL';
+    setStandings(standings.map((s) => (s.id === id ? { ...s, isAlt, isDel } : s)));
+    setRankings(rankings.map((r) => (sameTeam(r, standing) ? { ...r, isAlt, isDel } : r)));
+  };
+  const deleteStanding = (id) => {
+    haptics.light();
+    const standing = standings.find((s) => s.id === id);
+    if (standing) {
+      const rankIdx = rankings.findIndex((r) => sameTeam(r, standing));
+      if (rankIdx !== -1) setRankings(rankings.filter((_, i) => i !== rankIdx));
+    }
+    setStandings(standings.filter((s) => s.id !== id));
+    if (activeControlId === id) setActiveControlId(null);
+  };
 
   const handleAddRanking = () => { 
     haptics.selection(); 
     const newId = Date.now() * 1000;
-    setRankings([...rankings, { id: newId, team: 'Campbell eSpartans', game: 'Smash Bros', leagueRank: '', leagueName: 'PlayVS', isAlt: false }]); 
-    setStandings([...standings, { id: newId + 1, team: 'Campbell eSpartans', game: 'Smash Bros', wins: 0, losses: 0, leagueRank: '', leagueName: 'PlayVS', isAlt: false }]);
+    setRankings([...rankings, { id: newId, team: 'Campbell eSpartans', game: 'Smash Bros', leagueRank: '', leagueName: 'PlayVS', isAlt: false, isDel: false }]); 
+    setStandings([...standings, { id: newId + 1, team: 'Campbell eSpartans', game: 'Smash Bros', wins: 0, losses: 0, leagueRank: '', leagueName: 'PlayVS', isAlt: false, isDel: false }]);
     if (window.innerWidth < 768) setActiveControlId(newId);
   };
   const updateRanking = (id, field, value) => {
-    if (field === 'game') {
-      const oldGame = rankings.find(r => r.id === id)?.game;
-      setStandings(standings.map(s => s.game === oldGame ? { ...s, game: value } : s));
-    }
-    setRankings(rankings.map(r => r.id === id ? { ...r, [field]: value } : r));
+    const ranking = rankings.find((r) => r.id === id);
+    if (!ranking) return;
+    if (field === 'game') setStandings(standings.map((s) => (sameTeam(s, ranking) ? { ...s, game: value } : s)));
+    if (field === 'isAlt') setStandings(standings.map((s) => (sameTeam(s, ranking) ? { ...s, isAlt: value } : s)));
+    if (field === 'isDel') setStandings(standings.map((s) => (sameTeam(s, ranking) ? { ...s, isDel: value } : s)));
+    setRankings(rankings.map((r) => (r.id === id ? { ...r, [field]: value } : r)));
   };
-  const deleteRanking = (id) => { haptics.light(); setRankings(rankings.filter(r => r.id !== id)); if (activeControlId === id) setActiveControlId(null); };
+  const setRankingRoster = (id, roster) => {
+    const ranking = rankings.find((r) => r.id === id);
+    if (!ranking) return;
+    const isAlt = roster === 'ALT';
+    const isDel = roster === 'DEL';
+    setRankings(rankings.map((r) => (r.id === id ? { ...r, isAlt, isDel } : r)));
+    setStandings(standings.map((s) => (sameTeam(s, ranking) ? { ...s, isAlt, isDel } : s)));
+  };
+  const deleteRanking = (id) => {
+    haptics.light();
+    const ranking = rankings.find((r) => r.id === id);
+    if (ranking) {
+      const standIdx = standings.findIndex((s) => sameTeam(s, ranking));
+      if (standIdx !== -1) setStandings(standings.filter((_, i) => i !== standIdx));
+    }
+    setRankings(rankings.filter((r) => r.id !== id));
+    if (activeControlId === id) setActiveControlId(null);
+  };
 
   const handleCloseAttempt = () => {
     haptics.rigid();
@@ -310,17 +500,19 @@ const AdminDashboard = ({ isAdmin, onClose, gamesList, setGamesList, standings, 
       handleClose();
     }
   };
+  handleCloseAttemptRef.current = handleCloseAttempt;
 
   const handleClose = () => {
+    previousActiveElementRef.current?.focus?.();
     if (overlayRef.current) {
-      gsap.to(overlayRef.current, { opacity: 0, scale: 0.95, duration: 0.3, ease: 'power2.in', onComplete: onClose });
+      const duration = isMobileView() ? 0.2 : 0.3;
+      gsap.to(overlayRef.current, { opacity: 0, scale: 0.98, duration, ease: 'power2.in', onComplete: onClose });
     } else { onClose(); }
   };
 
   const discardAndExit = () => {
     haptics.error();
-    setShowSafetySheet(false);
-    handleClose();
+    closeSafetySheet(handleClose);
   };
 
   const activeControlItem = useMemo(() => {
@@ -342,7 +534,7 @@ const AdminDashboard = ({ isAdmin, onClose, gamesList, setGamesList, standings, 
     >
       {!isAuthenticated ? (
         /* --- LOGIN MODAL --- */
-        <div ref={modalRef} className="max-w-md w-full bg-background rounded-[2.5rem] p-8 sm:p-10 relative shadow-2xl border border-slate/20 flex flex-col items-center my-auto min-h-[450px]">
+        <div ref={modalRef} role="dialog" aria-modal="true" aria-labelledby="admin-login-title" tabIndex={-1} className="max-w-md w-full bg-background rounded-[2.5rem] p-8 sm:p-10 relative shadow-2xl border border-slate/20 flex flex-col items-center my-auto min-h-[450px]">
           {!authInitialized ? (
             <div className="flex flex-col items-center justify-center gap-6 my-auto">
               <div className="w-12 h-12 border-3 border-accent/20 border-t-accent rounded-full animate-spin" />
@@ -354,7 +546,7 @@ const AdminDashboard = ({ isAdmin, onClose, gamesList, setGamesList, standings, 
           ) : (
             <>
               <div className="w-16 h-16 flex items-center justify-center text-accent mb-4"><Settings size={32} /></div>
-              <h2 className="font-sans font-bold text-2xl text-primary mb-1 text-center">Admin Access</h2>
+              <h2 id="admin-login-title" className="font-sans font-bold text-2xl text-primary mb-1 text-center">Admin Access</h2>
               <p className="font-sans text-slate/60 text-xs mb-8 text-center px-6">Sign in with your authorized Google account.</p>
 
               {errorMsg && <span className="font-mono text-[10px] text-red-500 text-center mb-4">{errorMsg}</span>}
@@ -402,7 +594,7 @@ const AdminDashboard = ({ isAdmin, onClose, gamesList, setGamesList, standings, 
         </div>
       ) : (
         /* --- MAIN DASHBOARD MODAL --- */
-        <div ref={modalRef} className="max-w-6xl w-full bg-background sm:rounded-3xl p-0 sm:p-8 pt-[max(1rem,env(safe-area-inset-top))] relative shadow-2xl sm:my-auto border-t sm:border border-slate/15 flex flex-col h-full sm:h-auto overflow-hidden sm:max-h-[85vh]">
+        <div ref={modalRef} role="dialog" aria-modal="true" aria-labelledby="admin-dash-title" tabIndex={-1} className="max-w-6xl w-full bg-background sm:rounded-3xl p-0 sm:p-8 pt-[max(1rem,env(safe-area-inset-top))] relative shadow-2xl sm:my-auto border-t sm:border border-slate/15 flex flex-col h-full sm:h-auto overflow-hidden sm:max-h-[85vh]">
           
           {/* TOP BAR / HEADER */}
           <div className="flex items-center justify-between mb-6 sm:mb-8 shrink-0 px-6 sm:px-0 mt-4 sm:mt-0">
@@ -412,7 +604,7 @@ const AdminDashboard = ({ isAdmin, onClose, gamesList, setGamesList, standings, 
                 <Settings size={28} className="hidden sm:block" />
               </div>
               <div className="flex flex-col">
-                <h2 className="font-sans font-black text-xl sm:text-3xl text-primary leading-none uppercase tracking-tighter italic">ADMIN DASH</h2>
+                <h2 id="admin-dash-title" className="font-sans font-black text-xl sm:text-3xl text-primary leading-none uppercase tracking-tighter italic">ADMIN DASH</h2>
                 <span className="font-mono text-[8px] sm:text-[10px] text-slate/40 mt-1 uppercase tracking-widest">{email}</span>
               </div>
             </div>
@@ -480,7 +672,8 @@ const AdminDashboard = ({ isAdmin, onClose, gamesList, setGamesList, standings, 
                         <div className="flex flex-col min-w-0">
                           <div className="flex items-center gap-2">
                              <span className="font-sans font-black text-sm text-primary uppercase italic truncate">{g.game}</span>
-                             {g.isAlt && <span className="bg-blue-500 text-white text-[8px] px-1 rounded-sm font-black leading-none py-0.5 shrink-0">ALT</span>}
+                             {g.isAlt && !g.isDel && <span className="bg-blue-500 text-white text-[8px] px-1 rounded-sm font-black leading-none py-0.5 shrink-0">ALT</span>}
+                             {g.isDel && <span className="bg-red-500 text-white text-[8px] px-1 rounded-sm font-black leading-none py-0.5 shrink-0">DEL</span>}
                           </div>
                           <span className="font-mono text-[9px] text-slate/40 tracking-widest uppercase truncate mt-0.5">VS {g.opponent}</span>
                         </div>
@@ -497,13 +690,16 @@ const AdminDashboard = ({ isAdmin, onClose, gamesList, setGamesList, standings, 
                         <div className="w-[160px]">
                           <CustomAnimatedDatePicker value={g.date} onChange={(v) => updateGame(g.id, 'date', v)} />
                         </div>
+                        <div className="w-[100px] min-w-[100px]">
+                          <CustomTimePicker value={g.time || '4:00 PM'} onChange={(v) => updateGame(g.id, 'time', v)} />
+                        </div>
                       </div>
 
-                      {/* Right Icons/Toggles (Desktop View) */}
+                      {/* Roster type + delete (Desktop: pill + trash; Mobile: chevron opens sheet) */}
                       <div className="flex items-center gap-3 ml-auto shrink-0">
                         <div className="hidden sm:flex items-center gap-2">
-                           <button onClick={() => updateGame(g.id, 'isAlt', !g.isAlt)} className={cn("px-2.5 py-1 rounded-lg font-mono text-[9px] font-black border transition-all", g.isAlt ? "bg-blue-500 border-blue-500 text-white" : "text-slate/30 border-slate/10 hover:text-primary")}>ALT</button>
-                           <button onClick={(e) => { e.stopPropagation(); deleteGame(g.id); }} className="p-2 text-slate/20 hover:text-red-500 hover:bg-red-500/10 rounded-xl transition-all opacity-0 group-hover:opacity-100"><Trash2 size={16} /></button>
+                          <RosterPill value={getRosterType(g)} onChange={(v) => setGameRoster(g.id, v)} size="sm" />
+                          <button onClick={(e) => { e.stopPropagation(); deleteGame(g.id); }} className="p-2 text-slate/20 hover:text-red-500 hover:bg-red-500/10 rounded-xl transition-all opacity-0 group-hover:opacity-100"><Trash2 size={16} /></button>
                         </div>
                         <div className="sm:hidden text-slate/30"><ChevronRight size={18} /></div>
                       </div>
@@ -516,11 +712,16 @@ const AdminDashboard = ({ isAdmin, onClose, gamesList, setGamesList, standings, 
             {/* ─── STANDINGS EDITOR ─── */}
             {adminTab === 'standings' && (
               <div className="flex flex-col gap-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between flex-wrap gap-2">
                   <h3 className="font-sans font-black text-lg sm:text-2xl text-primary italic uppercase tracking-tighter">Live Standings</h3>
-                  <button onClick={handleAddStanding} className="text-accent bg-accent/5 px-4 py-2 rounded-xl text-[10px] font-mono font-black border border-accent/20 flex items-center gap-2 hover:bg-accent hover:text-white transition-all">
-                    <Plus size={14} /> ADD TEAM
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <button onClick={syncStandingsWithRankings} className="text-slate bg-slate/10 px-3 py-2 rounded-xl text-[10px] font-mono font-black border border-slate/20 flex items-center gap-2 hover:bg-slate/20 hover:border-slate/30 transition-all" title="Add missing teams to the other list and remove orphans so Standings and Rankings stay in sync">
+                      <RefreshCw size={14} /> SYNC
+                    </button>
+                    <button onClick={handleAddStanding} className="text-accent bg-accent/5 px-4 py-2 rounded-xl text-[10px] font-mono font-black border border-accent/20 flex items-center gap-2 hover:bg-accent hover:text-white transition-all">
+                      <Plus size={14} /> ADD TEAM
+                    </button>
+                  </div>
                 </div>
 
                 <div className="flex flex-col gap-3">
@@ -537,7 +738,8 @@ const AdminDashboard = ({ isAdmin, onClose, gamesList, setGamesList, standings, 
                         <div className="flex flex-col min-w-0">
                           <div className="flex items-center gap-2">
                              <span className="font-sans font-black text-sm text-primary uppercase italic truncate">{s.game}</span>
-                             {s.isAlt && <span className="bg-blue-500 text-white text-[8px] px-1 rounded-sm font-black leading-none py-0.5 shrink-0">ALT</span>}
+                             {s.isAlt && !s.isDel && <span className="bg-blue-500 text-white text-[8px] px-1 rounded-sm font-black leading-none py-0.5 shrink-0">ALT</span>}
+                             {s.isDel && <span className="bg-red-500 text-white text-[8px] px-1 rounded-sm font-black leading-none py-0.5 shrink-0">DEL</span>}
                           </div>
                         </div>
                       </div>
@@ -555,8 +757,8 @@ const AdminDashboard = ({ isAdmin, onClose, gamesList, setGamesList, standings, 
 
                       <div className="flex items-center gap-3 shrink-0 ml-auto">
                         <div className="hidden sm:flex items-center gap-2">
-                           <button onClick={() => updateStanding(s.id, 'isAlt', !s.isAlt)} className={cn("px-2.5 py-1 rounded-lg font-mono text-[9px] font-black border transition-all", s.isAlt ? "bg-blue-500 border-blue-500 text-white" : "text-slate/30 border-slate/10 hover:text-primary")}>ALT</button>
-                           <button onClick={(e) => { e.stopPropagation(); deleteStanding(s.id); }} className="p-2 text-slate/20 hover:text-red-500 hover:bg-red-500/10 rounded-xl transition-all opacity-0 group-hover:opacity-100"><Trash2 size={16} /></button>
+                          <RosterPill value={getRosterType(s)} onChange={(v) => setStandingRoster(s.id, v)} size="sm" />
+                          <button onClick={(e) => { e.stopPropagation(); deleteStanding(s.id); }} className="p-2 text-slate/20 hover:text-red-500 hover:bg-red-500/10 rounded-xl transition-all opacity-0 group-hover:opacity-100"><Trash2 size={16} /></button>
                         </div>
                         <div className="sm:hidden text-slate/30"><ChevronRight size={18} /></div>
                       </div>
@@ -569,11 +771,16 @@ const AdminDashboard = ({ isAdmin, onClose, gamesList, setGamesList, standings, 
             {/* ─── RANKINGS EDITOR ─── */}
             {adminTab === 'rankings' && (
               <div className="flex flex-col gap-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between flex-wrap gap-2">
                   <h3 className="font-sans font-black text-lg sm:text-2xl text-primary italic uppercase tracking-tighter">Global Rankings</h3>
-                  <button onClick={handleAddRanking} className="text-accent bg-accent/5 px-4 py-2 rounded-xl text-[10px] font-mono font-black border border-accent/20 flex items-center gap-2 hover:bg-accent hover:text-white transition-all">
-                    <Plus size={14} /> ADD TEAM
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <button onClick={syncStandingsWithRankings} className="text-slate bg-slate/10 px-3 py-2 rounded-xl text-[10px] font-mono font-black border border-slate/20 flex items-center gap-2 hover:bg-slate/20 hover:border-slate/30 transition-all" title="Add missing teams to the other list and remove orphans so Standings and Rankings stay in sync">
+                      <RefreshCw size={14} /> SYNC
+                    </button>
+                    <button onClick={handleAddRanking} className="text-accent bg-accent/5 px-4 py-2 rounded-xl text-[10px] font-mono font-black border border-accent/20 flex items-center gap-2 hover:bg-accent hover:text-white transition-all">
+                      <Plus size={14} /> ADD TEAM
+                    </button>
+                  </div>
                 </div>
 
                 <div className="bg-slate/5 rounded-[2rem] border border-slate/10 overflow-hidden hidden sm:block">
@@ -584,6 +791,7 @@ const AdminDashboard = ({ isAdmin, onClose, gamesList, setGamesList, standings, 
                         <th className="p-4 font-mono text-[9px] text-slate/40 uppercase tracking-[0.2em] italic">Game</th>
                         <th className="p-4 font-mono text-[9px] text-slate/40 uppercase tracking-[0.2em] italic">Rank</th>
                         <th className="p-4 font-mono text-[9px] text-slate/40 uppercase tracking-[0.2em] italic">League</th>
+                        <th className="p-4 text-center w-28">Roster</th>
                         <th className="p-4 text-center">&nbsp;</th>
                       </tr>
                     </thead>
@@ -596,7 +804,11 @@ const AdminDashboard = ({ isAdmin, onClose, gamesList, setGamesList, standings, 
                              </div>
                           </td>
                            <td className="p-4 min-w-[200px]">
-                              <CustomDropdown value={s.game} onChange={(v) => updateRanking(s.id, 'game', v)} options={GAME_OPTIONS} placeholder="Game" isEditable />
+                              <div className="flex items-center gap-2">
+                                <CustomDropdown value={s.game} onChange={(v) => updateRanking(s.id, 'game', v)} options={GAME_OPTIONS} placeholder="Game" isEditable />
+                                {s.isAlt && !s.isDel && <span className="bg-blue-500 text-white text-[8px] px-1 rounded-sm font-black leading-none py-0.5 shrink-0">ALT</span>}
+                                {s.isDel && <span className="bg-red-500 text-white text-[8px] px-1 rounded-sm font-black leading-none py-0.5 shrink-0">DEL</span>}
+                              </div>
                            </td>
                            <td className="p-4 w-28">
                               <div className="relative">
@@ -606,6 +818,9 @@ const AdminDashboard = ({ isAdmin, onClose, gamesList, setGamesList, standings, 
                            </td>
                            <td className="p-4">
                               <CustomDropdown value={s.leagueName} onChange={(v) => updateRanking(s.id, 'leagueName', v)} options={LEAGUE_OPTIONS} placeholder="League" isEditable />
+                           </td>
+                           <td className="p-4 text-center">
+                              <RosterPill value={getRosterType(s)} onChange={(v) => setRankingRoster(s.id, v)} size="sm" />
                            </td>
                            <td className="p-4 w-16 text-right">
                               <button onClick={() => deleteRanking(s.id)} className="p-2 text-slate/20 hover:text-red-500 hover:bg-red-500/10 rounded-xl transition-all opacity-0 group-hover:opacity-100"><Trash2 size={16} /></button>
@@ -620,7 +835,7 @@ const AdminDashboard = ({ isAdmin, onClose, gamesList, setGamesList, standings, 
                 <div className="sm:hidden flex flex-col gap-3">
                    {rankings.map(s => (
                       <div key={s.id} onClick={() => setActiveControlId(s.id)} className="group flex items-center justify-between bg-slate/5 p-4 rounded-3xl border border-slate/10">
-                         <div className="flex items-center gap-4">
+                         <div className="flex items-center gap-4 flex-1 min-w-0">
                             <div className="w-10 h-10 rounded-2xl bg-primary/5 flex items-center justify-center border border-slate/10 overflow-hidden shrink-0">
                                <GameIcon game={s.game} size={22} />
                             </div>
@@ -628,12 +843,16 @@ const AdminDashboard = ({ isAdmin, onClose, gamesList, setGamesList, standings, 
                             <div className="flex flex-col min-w-0">
                                <div className="flex items-center gap-2">
                                   <span className="font-sans font-black text-sm text-primary italic uppercase leading-none truncate">{s.game}</span>
-                                  {s.isAlt && <span className="bg-blue-500 text-white text-[8px] px-1 rounded-sm font-black leading-none py-0.5 shrink-0">ALT</span>}
+                                  {s.isAlt && !s.isDel && <span className="bg-blue-500 text-white text-[8px] px-1 rounded-sm font-black leading-none py-0.5 shrink-0">ALT</span>}
+                                  {s.isDel && <span className="bg-red-500 text-white text-[8px] px-1 rounded-sm font-black leading-none py-0.5 shrink-0">DEL</span>}
                                </div>
                                <span className="font-mono text-[9px] text-slate/40 mt-1 uppercase tracking-widest truncate">{s.leagueName}</span>
                             </div>
                          </div>
-                         <ChevronRight size={18} className="text-slate/20" />
+                         <div className="flex items-center gap-2 shrink-0" onClick={(e) => e.stopPropagation()}>
+                            <RosterPill value={getRosterType(s)} onChange={(v) => setRankingRoster(s.id, v)} size="sm" />
+                            <ChevronRight size={18} className="text-slate/20" />
+                         </div>
                       </div>
                    ))}
                 </div>
@@ -661,7 +880,7 @@ const AdminDashboard = ({ isAdmin, onClose, gamesList, setGamesList, standings, 
       {showSafetySheet && (
         <div 
           className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-md flex items-end sm:items-center justify-center p-0 sm:p-4"
-          onClick={() => setShowSafetySheet(false)}
+          onClick={() => closeSafetySheet()}
         >
            <div 
             ref={safetySheetRef}
@@ -678,7 +897,7 @@ const AdminDashboard = ({ isAdmin, onClose, gamesList, setGamesList, standings, 
             </div>
             <div className="flex flex-col w-full gap-3">
                <button onClick={discardAndExit} className="w-full bg-red-500 text-white font-black py-4 rounded-2xl shadow-lg shadow-red-500/20 active:scale-95 transition-all italic tracking-tighter uppercase text-sm">Discard & Exit</button>
-               <button onClick={() => setShowSafetySheet(false)} className="w-full bg-slate/5 text-slate font-black py-4 rounded-2xl active:scale-95 transition-all uppercase text-sm tracking-tighter">Keep Editing</button>
+               <button onClick={() => closeSafetySheet()} className="w-full bg-slate/5 text-slate font-black py-4 rounded-2xl active:scale-95 transition-all uppercase text-sm tracking-tighter">Keep Editing</button>
             </div>
           </div>
         </div>
@@ -688,7 +907,7 @@ const AdminDashboard = ({ isAdmin, onClose, gamesList, setGamesList, standings, 
       {activeControlId && activeControlItem && (
         <div 
           className="fixed inset-0 z-[60] bg-black/40 backdrop-blur-sm flex items-end justify-center"
-          onClick={() => setActiveControlId(null)}
+          onClick={() => closeControlSheet()}
         >
           <div 
             ref={controlSheetRef} 
@@ -704,7 +923,7 @@ const AdminDashboard = ({ isAdmin, onClose, gamesList, setGamesList, standings, 
                     {activeControlItem.game || activeControlItem.opponent}
                   </h3>
                </div>
-               <button onClick={() => { haptics.light(); setActiveControlId(null); }} className="w-10 h-10 rounded-2xl bg-slate/5 flex items-center justify-center text-slate">
+               <button onClick={() => { haptics.light(); closeControlSheet(); }} className="w-10 h-10 rounded-2xl bg-slate/5 flex items-center justify-center text-slate">
                   <X size={20} />
                </button>
             </div>
@@ -767,26 +986,22 @@ const AdminDashboard = ({ isAdmin, onClose, gamesList, setGamesList, standings, 
                  </>
                )}
 
-               {/* SHARED CONTROLS */}
-               <div className="flex items-center justify-between gap-4 mt-4 bg-slate/5 p-4 rounded-2xl border border-slate/10">
-                  <div className="flex flex-col gap-0.5">
-                     <span className="font-sans font-black text-xs text-primary uppercase italic">Alternate Roster</span>
-                     <span className="font-sans text-[9px] text-slate/40 max-w-[120px]">Enable for non-varsity team metrics.</span>
-                  </div>
-                  <button 
-                    onClick={() => {
+               {/* Roster type: one tap (Varsity / ALT / DEL) */}
+               <div className="flex flex-col gap-2 mt-4 bg-slate/5 p-4 rounded-2xl border border-slate/10">
+                  <span className="font-sans font-black text-xs text-primary uppercase italic">Roster type</span>
+                  <span className="font-sans text-[9px] text-slate/40">Varsity, Alternate, or Alternate's alternate (DEL).</span>
+                  <div className="pt-1">
+                    <RosterPill
+                      value={getRosterType(activeControlItem)}
+                      onChange={(v) => {
                         haptics.selection();
-                        if (adminTab === 'schedule') updateGame(activeControlId, 'isAlt', !activeControlItem.isAlt);
-                        else if (adminTab === 'standings') updateStanding(activeControlId, 'isAlt', !activeControlItem.isAlt);
-                        else updateRanking(activeControlId, 'isAlt', !activeControlItem.isAlt);
-                    }} 
-                    className={cn(
-                        "px-6 py-2.5 rounded-xl font-mono text-xs font-black border transition-all shadow-sm",
-                        activeControlItem.isAlt ? "bg-blue-500 border-blue-500 text-white" : "bg-background border-slate/10 text-slate/20"
-                    )}
-                  >
-                    {activeControlItem.isAlt ? 'ACTIVE' : 'OFF'}
-                  </button>
+                        if (adminTab === 'schedule') setGameRoster(activeControlId, v);
+                        else if (adminTab === 'standings') setStandingRoster(activeControlId, v);
+                        else setRankingRoster(activeControlId, v);
+                      }}
+                      size="md"
+                    />
+                  </div>
                </div>
 
                <div className="grid grid-cols-2 gap-4 mt-4">
@@ -796,7 +1011,7 @@ const AdminDashboard = ({ isAdmin, onClose, gamesList, setGamesList, standings, 
                   >
                     <Trash2 size={16} /> Delete Record
                   </button>
-                  <button onClick={() => { haptics.success(); setActiveControlId(null); }} className="flex-1 bg-accent text-white font-black py-4 rounded-2xl flex items-center justify-center gap-2 text-xs uppercase italic tracking-tighter shadow-lg shadow-accent/20">
+                  <button onClick={() => { haptics.success(); closeControlSheet(); }} className="flex-1 bg-accent text-white font-black py-4 rounded-2xl flex items-center justify-center gap-2 text-xs uppercase italic tracking-tighter shadow-lg shadow-accent/20">
                     <Check size={18} /> Confirm
                   </button>
                </div>

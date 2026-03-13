@@ -52,46 +52,48 @@ const TiltCard = ({ children }) => {
 
 
 
-const HomeTab = ({ gamesList, standings }) => {
+const HomeTab = ({ gamesList, standings, dataLoaded = true }) => {
   const container = useRef(null);
 
   useEffect(() => {
+    if (!dataLoaded) return;
     let ctx = gsap.context(() => {
       const isMobile = window.innerWidth < 768;
-      
+
       if (isMobile) {
-        gsap.utils.toArray('.feature-card').forEach(card => {
-          gsap.from(card, {
-            scrollTrigger: { trigger: card, start: 'top 85%' },
-            y: 40, opacity: 0, duration: 0.8, ease: 'power3.out'
-          });
-        });
+        // Mobile: batch entrance on mount, no ScrollTrigger (smoother, less jitter)
+        gsap.from('.feature-card', { y: 30, opacity: 0, stagger: 0.08, duration: 0.5, ease: 'power3.out' });
+        gsap.from('.phil-text', { y: 24, opacity: 0, stagger: 0.06, duration: 0.6, ease: 'power3.out' });
+        // No parallax on mobile (scrub is jittery on touch)
       } else {
         gsap.from('.feature-card', {
-          scrollTrigger: { trigger: '#dashboard-cards', start: 'top 75%' },
+          scrollTrigger: { trigger: '#dashboard-cards', start: 'top 75%', once: true },
           y: 60, opacity: 0, stagger: 0.15, duration: 1, ease: 'power3.out'
         });
+        const texts = gsap.utils.toArray('.phil-text');
+        texts.forEach(t => {
+          gsap.from(t, { scrollTrigger: { trigger: t, start: 'top 85%', once: true }, y: 30, opacity: 0, duration: 1, ease: 'power3.out' });
+        });
+        gsap.to('.parallax-bg', { scrollTrigger: { trigger: '.philosophy-section', start: 'top bottom', end: 'bottom top', scrub: true }, y: 100 });
       }
-
-      const texts = gsap.utils.toArray('.phil-text');
-      texts.forEach(t => {
-        gsap.from(t, { scrollTrigger: { trigger: t, start: 'top 85%' }, y: 30, opacity: 0, duration: 1, ease: 'power3.out' });
-      });
-      gsap.to('.parallax-bg', { scrollTrigger: { trigger: '.philosophy-section', start: 'top bottom', end: 'bottom top', scrub: true }, y: 100 });
     }, container);
     return () => ctx.revert();
-  }, []);
+  }, [dataLoaded]);
 
   return (
     <div ref={container} className="w-full">
       <Hero />
       <section id="dashboard-cards" className="py-24 md:py-32 px-6 md:px-16 bg-background rounded-t-[3rem] -mt-[3rem] relative z-20 max-w-7xl mx-auto w-full">
+        {!dataLoaded ? (
+          <div className="flex min-h-[280px] items-center justify-center text-slate" aria-live="polite">Loading schedule…</div>
+        ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 place-items-center">
           <div className="feature-card w-full sm:h-full" style={{ perspective: '2000px' }}><TiltCard><DiagnosticShuffler /></TiltCard></div>
           <div className="feature-card w-full sm:h-full" style={{ perspective: '2000px' }}><TiltCard><TelemetryTypewriter gamesList={gamesList} /></TiltCard></div>
           <div className="feature-card w-full sm:h-full" style={{ perspective: '2000px' }}><TiltCard><ClubMeetings /></TiltCard></div>
           <div className="feature-card w-full sm:h-full" style={{ perspective: '2000px' }}><TiltCard><LiveStandings standings={standings} /></TiltCard></div>
         </div>
+        )}
       </section>
 
       <section className="philosophy-section relative py-40 px-6 md:px-16 custom-phil-bg overflow-hidden flex flex-col items-center justify-center text-center transition-colors duration-500">

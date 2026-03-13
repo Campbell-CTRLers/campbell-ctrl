@@ -112,6 +112,7 @@ export default function AnimatedInput({ value, onChange, placeholder, type = 'te
         onScroll={syncScroll}
         onFocus={() => { setIsFocused(true); updateSelection(); }}
         onBlur={() => setIsFocused(false)}
+        aria-invalid={error ? true : undefined}
         className={cn(
           "w-full h-full py-3 text-sm outline-none bg-transparent z-20 relative cursor-none opacity-0 block",
           mono ? "font-mono" : "font-sans",

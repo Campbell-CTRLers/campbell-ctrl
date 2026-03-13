@@ -17,6 +17,7 @@ export const GameIcon = ({ game, size = 20, className = "" }) => {
         alt={game}
         width={size}
         height={size}
+        loading="lazy"
         className={cn("object-contain", className)}
         style={{ imageRendering: 'auto' }}
       />

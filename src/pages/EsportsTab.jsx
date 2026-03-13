@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import gsap from 'gsap';
 import { Gamepad2 } from 'lucide-react';
 import { GameIcon } from '../components/SharedUI';
@@ -7,8 +7,9 @@ import { LiveStandings } from '../components/LiveStandings';
 import { GlobalRankingsPanel } from '../components/Esports/GlobalRankingsPanel';
 import { cn } from '../utils/cn';
 
-const EsportsTab = ({ gamesList, standings, rankings }) => {
+const EsportsTab = ({ gamesList, standings, rankings, dataLoaded = true }) => {
   const container = useRef(null);
+  const [rosterFilter, setRosterFilter] = useState('ALL');
 
   useEffect(() => {
     let ctx = gsap.context(() => {
@@ -34,11 +35,13 @@ const EsportsTab = ({ gamesList, standings, rankings }) => {
             <h2 className="font-sans font-bold text-2xl text-primary">PlayVS Schedule</h2>
           </div>
           <div className="flex flex-col gap-4">
-            {gamesList.length > 0 ? (
-              gamesList.map((game, idx) => {
+            {!dataLoaded ? (
+              <div className="flex min-h-[200px] items-center justify-center py-12 text-slate" aria-live="polite">Loading schedule…</div>
+            ) : gamesList.length > 0 ? (
+              gamesList.map((game) => {
                 const displayTitle = game.game ? `${game.game} vs ${game.opponent}` : game.title;
                 return (
-                  <div key={idx} className="group flex flex-col sm:flex-row sm:items-center justify-between p-5 bg-primary/5 rounded-2xl border border-transparent hover:border-slate/10 transition-colors">
+                  <div key={game.id} className="group flex flex-col sm:flex-row sm:items-center justify-between p-5 bg-primary/5 rounded-2xl border border-transparent hover:border-slate/10 transition-colors">
                     <div className="flex items-center gap-4 mb-3 sm:mb-0">
                       <div className="w-12 h-12 rounded-xl bg-background border border-slate/10 flex items-center justify-center p-1.5 shrink-0 text-accent shadow-sm">
                         <GameIcon game={game.game || game.title} size={24} />
@@ -77,13 +80,13 @@ const EsportsTab = ({ gamesList, standings, rankings }) => {
 
         {/* Live Standings Panel (Reused) */}
         <div className="esports-card lg:col-span-5">
-          <div className="h-full"><LiveStandings standings={standings} fullHeight /></div>
+          <div className="h-full"><LiveStandings standings={standings} fullHeight rosterFilter={rosterFilter} onRosterFilterChange={setRosterFilter} /></div>
         </div>
       </div>
 
       {/* Global Rankings Panel */}
       <div className="esports-card w-full">
-        <GlobalRankingsPanel standings={rankings} />
+        <GlobalRankingsPanel standingsSource={standings} rankings={rankings} rosterFilter={rosterFilter} onRosterFilterChange={setRosterFilter} />
       </div>
     </div>
   );

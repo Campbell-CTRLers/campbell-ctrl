@@ -1,24 +1,36 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Trophy } from 'lucide-react';
 import { GameIcon } from './SharedUI';
+import { SegmentGroup, ROSTER_OPTIONS } from './Esports/GlobalRankingsPanel';
 import { cn } from '../utils/cn';
 
-export function LiveStandings({ standings, fullHeight }) {
-  const sortedStandings = [...standings].sort((a, b) => {
-    if (b.wins !== a.wins) return b.wins - a.wins;
-    if (a.losses !== b.losses) return a.losses - b.losses;
-    return a.team.localeCompare(b.team);
-  });
+export function LiveStandings({ standings, fullHeight, rosterFilter = 'ALL', onRosterFilterChange }) {
+  const sortedStandings = useMemo(() => {
+    let list = [...standings];
+    if (rosterFilter === 'VARSITY') list = list.filter((s) => !s.isAlt && !s.isDel);
+    if (rosterFilter === 'ALT') list = list.filter((s) => s.isAlt && !s.isDel);
+    if (rosterFilter === 'DEL') list = list.filter((s) => s.isDel);
+    return list.sort((a, b) => {
+      if (b.wins !== a.wins) return b.wins - a.wins;
+      if (a.losses !== b.losses) return a.losses - b.losses;
+      return a.team.localeCompare(b.team);
+    });
+  }, [standings, rosterFilter]);
 
   return (
     <div className={cn("bg-background rounded-[2rem] p-5 sm:p-8 border border-slate/10 shadow-xl flex flex-col group", fullHeight ? "h-full" : "h-[380px]")}>
-      <div className="flex justify-between items-start mb-6">
+      <div className="flex justify-between items-start mb-4">
         <div>
           <h3 className="font-display font-bold text-2xl text-primary mb-2 tracking-tight">CTRL Standings</h3>
           <p className="font-roboto text-slate/80 text-sm">Win-loss records across all titles.</p>
         </div>
         <Trophy className="text-accent opacity-80" size={32} />
       </div>
+      {onRosterFilterChange && (
+        <div className="flex flex-wrap items-center gap-2 mb-4 pb-4 border-b border-slate/10">
+          <SegmentGroup label="Roster" options={ROSTER_OPTIONS} value={rosterFilter} onChange={onRosterFilterChange} />
+        </div>
+      )}
       <div className="flex-1 overflow-y-auto pr-3 custom-scrollbar flex flex-col gap-3 p-2 -m-2">
         {sortedStandings.map((team, idx) => (
           <div key={team.id} className="bg-primary/5 rounded-xl p-3 flex items-center transition-transform hover:scale-[1.04] hover:shadow-lg hover:bg-primary/10">
@@ -30,8 +42,11 @@ export function LiveStandings({ standings, fullHeight }) {
               <div className="flex flex-col min-w-0">
                 <span className="font-roboto font-semibold text-primary text-sm truncate flex items-center gap-2 transition-colors">
                   {team.game}
-                  {team.isAlt && (
+                  {team.isAlt && !team.isDel && (
                     <span className="text-[9px] font-mono font-bold bg-blue-500/10 text-blue-600 px-1.5 py-0.5 rounded-md uppercase tracking-tighter shadow-sm border border-blue-500/10">ALT</span>
+                  )}
+                  {team.isDel && (
+                    <span className="text-[9px] font-mono font-bold bg-red-500/10 text-red-600 px-1.5 py-0.5 rounded-md uppercase tracking-tighter shadow-sm border border-red-500/10">DEL</span>
                   )}
                 </span>
               </div>

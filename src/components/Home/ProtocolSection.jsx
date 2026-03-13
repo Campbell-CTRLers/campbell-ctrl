@@ -14,19 +14,19 @@ export const ProtocolSection = () => {
       
       if (isMobile) {
         gsap.utils.toArray('.protocol-step-card').forEach(card => {
-          gsap.fromTo(card, 
+          gsap.fromTo(card,
             { y: 50, opacity: 0 },
             {
-              scrollTrigger: { trigger: card, start: 'top 85%' },
+              scrollTrigger: { trigger: card, start: 'top 85%', once: true },
               y: 0, opacity: 1, duration: 0.7, ease: 'power3.out', clearProps: 'all'
             }
           );
         });
       } else {
-        gsap.fromTo('.protocol-step-card', 
+        gsap.fromTo('.protocol-step-card',
           { y: 50, opacity: 0 },
           {
-            scrollTrigger: { trigger: container.current, start: 'top 85%' },
+            scrollTrigger: { trigger: container.current, start: 'top 85%', once: true },
             y: 0, opacity: 1, stagger: 0.15, duration: 0.8, ease: 'power3.out', clearProps: 'all'
           }
         );
