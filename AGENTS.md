@@ -10,6 +10,11 @@
 
 - `npm run dev` starts the Vite dev server (default port 5173).
 - A `.env` file with `VITE_FIREBASE_*` variables is required for Firebase to initialize. Without real credentials, mock values allow the UI to render but Firebase-dependent features (admin auth, live data) won't work. See `src/firebase.js` for the full list of required env vars.
+- When the Firebase secrets are provided as environment variables (e.g. via Cursor Secrets), generate the `.env` file before starting the dev server:
+  ```
+  env | grep ^VITE_FIREBASE_ | while IFS='=' read -r k v; do echo "$k=$v"; done > .env
+  ```
+- The Vite dev server must be restarted after changing `.env` (env vars are only read at server startup).
 
 ### Linting
 
