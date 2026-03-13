@@ -39,12 +39,16 @@ function formatIcsDateTime(date, h, m) {
   return `${y}${mo}${day}T${hour}${min}00`;
 }
 
-function escapeIcsText(str) {
-  return (str || '').replace(/\\/g, '\\\\').replace(/,/g, '\\,').replace(/;/g, '\\;').replace(/\n/g, '\\n');
+function escapeIcsText(value) {
+  return String(value || '')
+    .replace(/\\/g, '\\\\')
+    .replace(/;/g, '\\;')
+    .replace(/,/g, '\\,')
+    .replace(/\r?\n/g, '\\n');
 }
 
 export function meetingToIcs(meeting) {
-  const title = meeting.title || 'Campbell CTRL Meeting';
+  const title = escapeIcsText(meeting.title || 'Campbell CTRL Meeting');
   const location = escapeIcsText(meeting.location);
   const desc = escapeIcsText(meeting.description);
   const days = Array.isArray(meeting.days) ? meeting.days : (meeting.days ? [meeting.days] : ['Fri']);
@@ -102,9 +106,10 @@ END:VCALENDAR`.replace(/\n/g, '\r\n');
 }
 
 export function gameToIcs(game) {
-  const summary = game.game && game.opponent
+  const summaryRaw = game.game && game.opponent
     ? `${game.game} vs ${game.opponent}`
     : (game.title || game.game || 'Campbell CTRL Match');
+  const summary = escapeIcsText(summaryRaw);
   const dateStr = game.date || new Date().toISOString().slice(0, 10);
   const time = parseTimeTo24(game.time || '6:00 PM');
   const d = new Date(dateStr + 'T12:00:00');
@@ -150,7 +155,11 @@ export function icsToUrls(icsText) {
   const dtend = get('DTEND').replace(/^[^:]+:/, '');
   const rrule = get('RRULE');
   const summary = get('SUMMARY');
-  const location = get('LOCATION').replace(/\\,/g, ',').replace(/\\n/g, ' ');
+  const location = get('LOCATION')
+    .replace(/\\\\/g, '\\')
+    .replace(/\\,/g, ',')
+    .replace(/\\;/g, ';')
+    .replace(/\\n/g, ' ');
 
   const googleParams = new URLSearchParams({ action: 'TEMPLATE', text: summary, dates: `${dtstart}/${dtend}`, location });
   if (rrule) googleParams.set('recur', `RRULE:${rrule}`);

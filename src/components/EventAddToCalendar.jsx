@@ -90,9 +90,6 @@ export function EventAddToCalendar({ event, eventType, compact = false, fullWidt
           <span className="font-mono text-[10px] font-bold text-primary uppercase">Apple</span>
         </button>
       </div>
-      <p className="text-center font-sans text-[10px] text-slate/40 leading-relaxed px-2">
-        Tip: When Calendar opens, choose which calendar to save to (e.g. iCloud&#8209;Family).
-      </p>
       <button
         type="button"
         onClick={handleDownload}

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useHaptics } from '../hooks/useHaptics';
 
 const SCROLL_THRESHOLD = 120;
@@ -12,16 +12,15 @@ const IconArrowUp = ({ className, size = 20 }) => (
 
 export function ScrollToTop() {
   const haptics = useHaptics();
-  const [visible, setVisible] = useState(() => window.scrollY > SCROLL_THRESHOLD);
-
-  const checkScroll = useCallback(() => {
-    setVisible(window.scrollY > SCROLL_THRESHOLD);
-  }, []);
+  const [visible, setVisible] = useState(
+    () => (typeof window !== 'undefined' ? window.scrollY > SCROLL_THRESHOLD : false),
+  );
 
   useEffect(() => {
-    window.addEventListener('scroll', checkScroll, { passive: true });
-    return () => window.removeEventListener('scroll', checkScroll);
-  }, [checkScroll]);
+    const handleScroll = () => setVisible(window.scrollY > SCROLL_THRESHOLD);
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   const scrollToTop = () => {
     haptics.light();

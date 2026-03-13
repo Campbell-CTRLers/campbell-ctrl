@@ -9,10 +9,10 @@ import { cn } from '../../utils/cn';
 const CARD_CLASS = "rounded-2xl border border-slate/10 bg-slate/5 p-4 flex flex-col min-h-0";
 const HEADER_CLASS = "font-sans font-bold text-sm text-primary uppercase tracking-tight mb-3";
 
-const CtaLink = ({ label, onClick }) =>
-  onClick ? (
+const CtaLink = ({ label, onNavigateToEsports }) =>
+  onNavigateToEsports ? (
     <button
-      onClick={onClick}
+      onClick={onNavigateToEsports}
       className="mt-3 pt-3 border-t border-slate/10 min-h-[44px] flex items-center gap-1 font-mono text-[10px] text-slate/60 hover:text-accent transition-colors w-full justify-end touch-manipulation active:scale-[0.98] py-2"
     >
       {label}
@@ -60,7 +60,7 @@ export const HomeEsportsCompact = ({ gamesList, standings, rankings, dataLoaded,
                 <div className="py-6 text-center text-slate/50 text-xs">No upcoming events</div>
               )}
             </div>
-            <CtaLink label="View full schedule" onClick={onNavigateToEsports} />
+            <CtaLink label="View full schedule" onNavigateToEsports={onNavigateToEsports} />
           </div>
 
           {/* Standings */}
@@ -68,7 +68,7 @@ export const HomeEsportsCompact = ({ gamesList, standings, rankings, dataLoaded,
             <div className="flex-1 min-h-0 flex flex-col overflow-hidden max-h-[280px]">
               <LiveStandings standings={standings} fullHeight compact noCard />
             </div>
-            <CtaLink label="View standings" onClick={onNavigateToEsports} />
+            <CtaLink label="View standings" onNavigateToEsports={onNavigateToEsports} />
           </div>
 
           {/* Global Rankings */}
@@ -76,11 +76,10 @@ export const HomeEsportsCompact = ({ gamesList, standings, rankings, dataLoaded,
             <div className="flex-1 min-h-0 flex flex-col overflow-hidden max-h-[280px]">
               <GlobalRankingsPanel standingsSource={standings} rankings={rankings} compact noCard />
             </div>
-            <CtaLink label="Explore rankings" onClick={onNavigateToEsports} />
+            <CtaLink label="Explore rankings" onNavigateToEsports={onNavigateToEsports} />
           </div>
         </div>
       </div>
     </section>
   );
 };
-

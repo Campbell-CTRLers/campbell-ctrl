@@ -151,10 +151,6 @@ export function CalendarOptions({ compact = false, titleId }) {
         </button>
       </div>
 
-      <p className="text-center font-sans text-[10px] text-slate/40 leading-relaxed px-2">
-        Tip: When Calendar opens, choose which calendar to save to (e.g. iCloud&#8209;Family).
-      </p>
-
       <div className="flex justify-center pt-2">
         <a 
           href={ready ? blobUrl : undefined} 
@@ -190,7 +186,6 @@ export function CalendarModal({ open, onClose }) {
   const previousActiveRef = useRef(null);
   const handleCloseRef = useRef(() => {});
 
-  // Entry animation — runs after the portal mounts when open becomes true
   useEffect(() => {
     if (!open) return;
     previousActiveRef.current = document.activeElement;
@@ -207,7 +202,6 @@ export function CalendarModal({ open, onClose }) {
     return () => clearTimeout(t);
   }, [open, haptics]);
 
-  // Exit animation — single timeline so panel and backdrop finish together; one onComplete to avoid flicker
   const handleClose = useCallback(() => {
     haptics.light();
     previousActiveRef.current?.focus?.();
@@ -223,7 +217,6 @@ export function CalendarModal({ open, onClose }) {
     handleCloseRef.current = handleClose;
   }, [handleClose]);
 
-  // Escape to close
   useEffect(() => {
     if (!open) return;
     const onKeyDown = (e) => {

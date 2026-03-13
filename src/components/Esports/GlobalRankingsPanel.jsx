@@ -15,7 +15,7 @@ const SORT_OPTIONS = [
   { id: 'name-desc', label: 'Z→A', field: 'game',      order: 'desc' },
 ];
 
-import { ROSTER_OPTIONS } from '../admin/constants';
+import { ROSTER_OPTIONS } from './constants';
 export { ROSTER_OPTIONS };
 
 const simplifyGameName = (name) => {

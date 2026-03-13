@@ -3,7 +3,7 @@ import { CustomAnimatedDatePicker, CustomTimePicker, CustomDropdown } from '../.
 import AnimatedInput from '../../ui/AnimatedInput';
 import { GameIcon } from '../SharedUI';
 import RosterPill from './RosterPill';
-import { GAME_OPTIONS, TYPE_OPTIONS } from './constants';
+import { GAME_OPTIONS } from './constants';
 import { getRosterType } from './constants';
 
 const AdminScheduleEditor = ({
