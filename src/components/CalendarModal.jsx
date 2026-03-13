@@ -151,7 +151,7 @@ export function CalendarModal({ open, onClose }) {
   const backdropRef = useRef(null);
   const panelRef = useRef(null);
   const haptics = useHaptics();
-  const [animating, setAnimating] = useState(false);
+  const [animating] = useState(false);
   const previousActiveRef = useRef(null);
   const handleCloseRef = useRef(() => {});
 
@@ -183,7 +183,9 @@ export function CalendarModal({ open, onClose }) {
     tl.to(panel, { opacity: 0, scale: 0.9, y: 24, duration: PANEL_EXIT_DURATION, ease: PANEL_EASE_OUT }, 0);
     tl.to(bd, { opacity: 0, duration: BACKDROP_FADE_OUT_DURATION, ease: BACKDROP_EASE_OUT }, 0);
   };
-  handleCloseRef.current = handleClose;
+  useEffect(() => {
+    handleCloseRef.current = handleClose;
+  });
 
   // Escape to close
   useEffect(() => {

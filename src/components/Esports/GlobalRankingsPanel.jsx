@@ -15,7 +15,7 @@ const SORT_OPTIONS = [
   { id: 'name-desc', label: 'Z→A', field: 'game',      order: 'desc' },
 ];
 
-export const ROSTER_OPTIONS = ['ALL', 'VARSITY', 'ALT', 'DEL'];
+import { ROSTER_OPTIONS } from './constants';
 
 const simplifyGameName = (name) => {
   if (!name) return "";
@@ -204,7 +204,7 @@ export const GlobalRankingsPanel = ({ standingsSource = [], rankings = [], roste
 
   // Stable handlers for SegmentGroups
   const handleLeague = useCallback((v) => setActiveLeague(v), []);
-  const handleType = useCallback((v) => setActiveType(v), []);
+  const handleType = useCallback((v) => setActiveType(v), [setActiveType]);
   const handleSort = useCallback((v) => setActiveSortId(v), []);
 
   const innerContent = (

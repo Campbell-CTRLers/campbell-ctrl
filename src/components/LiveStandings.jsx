@@ -1,7 +1,8 @@
 import React, { useMemo } from 'react';
 import { Trophy } from 'lucide-react';
 import { GameIcon } from './SharedUI';
-import { SegmentGroup, ROSTER_OPTIONS } from './Esports/GlobalRankingsPanel';
+import { SegmentGroup } from './Esports/GlobalRankingsPanel';
+import { ROSTER_OPTIONS } from './Esports/constants';
 import { cn } from '../utils/cn';
 
 const CARD_HEADER_CLASS = "font-sans font-bold text-sm text-primary uppercase tracking-tight";
