@@ -34,16 +34,16 @@ export const AboutSection = () => {
           weekly, compete in PlayVS leagues, and represent Campbell at the state level.
         </p>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8">
-          {points.map(({ Icon, title, desc }) => (
+          {points.map((point) => (
             <div
-              key={title}
+              key={point.title}
               className="flex flex-col gap-3 p-6 rounded-2xl bg-slate/5 border border-slate/10"
             >
               <div className="w-12 h-12 rounded-xl bg-accent/10 flex items-center justify-center text-accent">
-                <Icon size={24} />
+                {React.createElement(point.Icon, { size: 24 })}
               </div>
-              <h3 className="font-sans font-bold text-lg text-primary">{title}</h3>
-              <p className="font-roboto text-slate/70 text-sm leading-relaxed">{desc}</p>
+              <h3 className="font-sans font-bold text-lg text-primary">{point.title}</h3>
+              <p className="font-roboto text-slate/70 text-sm leading-relaxed">{point.desc}</p>
             </div>
           ))}
         </div>
