@@ -39,10 +39,18 @@ function formatIcsDateTime(date, h, m) {
   return `${y}${mo}${day}T${hour}${min}00`;
 }
 
+function escapeIcsText(value) {
+  return String(value || '')
+    .replace(/\\/g, '\\\\')
+    .replace(/;/g, '\\;')
+    .replace(/,/g, '\\,')
+    .replace(/\r?\n/g, '\\n');
+}
+
 export function meetingToIcs(meeting) {
-  const title = meeting.title || 'Campbell CTRL Meeting';
-  const location = (meeting.location || '').replace(/,/g, '\\,').replace(/\n/g, '\\n');
-  const desc = (meeting.description || '').replace(/,/g, '\\,').replace(/\n/g, '\\n');
+  const title = escapeIcsText(meeting.title || 'Campbell CTRL Meeting');
+  const location = escapeIcsText(meeting.location);
+  const desc = escapeIcsText(meeting.description);
   const days = Array.isArray(meeting.days) ? meeting.days : (meeting.days ? [meeting.days] : ['Fri']);
   const firstDay = days[0] || 'Fri';
   const start = parseTimeTo24(meeting.startTime || '3:30 PM');
@@ -98,15 +106,16 @@ END:VCALENDAR`.replace(/\n/g, '\r\n');
 }
 
 export function gameToIcs(game) {
-  const summary = game.game && game.opponent
+  const summaryRaw = game.game && game.opponent
     ? `${game.game} vs ${game.opponent}`
     : (game.title || game.game || 'Campbell CTRL Match');
+  const summary = escapeIcsText(summaryRaw);
   const dateStr = game.date || new Date().toISOString().slice(0, 10);
   const time = parseTimeTo24(game.time || '6:00 PM');
   const d = new Date(dateStr + 'T12:00:00');
   const dtstart = formatIcsDateTime(d, time.h, time.m);
   const dtend = formatIcsDateTime(d, time.h + 1, time.m);
-  const location = (game.location || '').replace(/,/g, '\\,').replace(/\n/g, '\\n');
+  const location = escapeIcsText(game.location);
 
   const vevent = [
     `DTSTART;TZID=${TZ}:${dtstart}`,
@@ -142,7 +151,11 @@ export function icsToUrls(icsText) {
   const dtend = get('DTEND').replace(/^[^:]+:/, '');
   const rrule = get('RRULE');
   const summary = get('SUMMARY');
-  const location = get('LOCATION').replace(/\\,/g, ',').replace(/\\n/g, ' ');
+  const location = get('LOCATION')
+    .replace(/\\\\/g, '\\')
+    .replace(/\\,/g, ',')
+    .replace(/\\;/g, ';')
+    .replace(/\\n/g, ' ');
 
   const googleParams = new URLSearchParams({ action: 'TEMPLATE', text: summary, dates: `${dtstart}/${dtend}`, location });
   if (rrule) googleParams.set('recur', `RRULE:${rrule}`);
