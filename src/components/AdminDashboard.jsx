@@ -17,6 +17,9 @@ import AdminControlSheet from './admin/AdminControlSheet';
 import { teamKey, sameTeam } from './admin/constants';
 import { CalendarDays } from 'lucide-react';
 
+const SHEET_DURATION = { open: 0.35, close: 0.2 };
+const SHEET_DURATION_DESKTOP = { open: 0.5, close: 0.25 };
+
 const AdminDashboard = ({ isAdmin, onClose, gamesList, setGamesList, standings, setStandings, rankings, setRankings, meetings = [], setMeetings, authenticatedUser, authInitialized }) => {
   const { theme } = useTheme();
   const [isAuthenticated, setIsAuthenticated] = useState(!!authenticatedUser);
@@ -134,13 +137,11 @@ const AdminDashboard = ({ isAdmin, onClose, gamesList, setGamesList, standings, 
   }, [adminTab, isAdmin, isAuthenticated]);
 
   const isMobileView = () => typeof window !== 'undefined' && window.innerWidth < 768;
-  const sheetDuration = { open: 0.35, close: 0.2 };
-  const sheetDurationDesktop = { open: 0.5, close: 0.25 };
 
   // Unsaved changes sheet anim
   useEffect(() => {
     if (showSafetySheet && safetySheetRef.current) {
-      const d = isMobileView() ? sheetDuration : sheetDurationDesktop;
+      const d = isMobileView() ? SHEET_DURATION : SHEET_DURATION_DESKTOP;
       gsap.fromTo(safetySheetRef.current,
         { y: '100%' },
         { y: '0%', duration: d.open, ease: 'power3.out' }
@@ -155,7 +156,7 @@ const AdminDashboard = ({ isAdmin, onClose, gamesList, setGamesList, standings, 
       onDone?.();
       return;
     }
-    const d = isMobileView() ? sheetDuration.close : sheetDurationDesktop.close;
+    const d = isMobileView() ? SHEET_DURATION.close : SHEET_DURATION_DESKTOP.close;
     gsap.to(safetySheetRef.current, {
       y: '100%',
       duration: d,
@@ -170,7 +171,7 @@ const AdminDashboard = ({ isAdmin, onClose, gamesList, setGamesList, standings, 
   // Selection/Control sheet anim
   useEffect(() => {
     if (activeControlId && controlSheetRef.current) {
-      const d = isMobileView() ? sheetDuration : sheetDurationDesktop;
+      const d = isMobileView() ? SHEET_DURATION : SHEET_DURATION_DESKTOP;
       gsap.fromTo(controlSheetRef.current,
         { y: '100%' },
         { y: '0%', duration: d.open, ease: 'power3.out' }
@@ -184,7 +185,7 @@ const AdminDashboard = ({ isAdmin, onClose, gamesList, setGamesList, standings, 
       setActiveControlId(null);
       return;
     }
-    const d = isMobileView() ? sheetDuration.close : sheetDurationDesktop.close;
+    const d = isMobileView() ? SHEET_DURATION.close : SHEET_DURATION_DESKTOP.close;
     gsap.to(controlSheetRef.current, {
       y: '100%',
       duration: d,

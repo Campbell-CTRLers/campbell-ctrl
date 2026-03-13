@@ -12,7 +12,7 @@ const IconArrowUp = ({ className, size = 20 }) => (
 
 export function ScrollToTop() {
   const haptics = useHaptics();
-  const [visible, setVisible] = useState(false);
+  const [visible, setVisible] = useState(() => window.scrollY > SCROLL_THRESHOLD);
 
   const checkScroll = useCallback(() => {
     setVisible(window.scrollY > SCROLL_THRESHOLD);
@@ -20,7 +20,6 @@ export function ScrollToTop() {
 
   useEffect(() => {
     window.addEventListener('scroll', checkScroll, { passive: true });
-    checkScroll();
     return () => window.removeEventListener('scroll', checkScroll);
   }, [checkScroll]);
 

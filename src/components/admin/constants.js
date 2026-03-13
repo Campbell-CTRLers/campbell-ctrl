@@ -1,4 +1,6 @@
-/* Admin dashboard constants */
+/* Shared constants for admin dashboard and roster filtering */
+
+export const ROSTER_OPTIONS = ['ALL', 'VARSITY', 'ALT', 'DEL'];
 
 export const GAME_OPTIONS = [
   "Rocket League", "Smash Bros", "Marvel Rivals", "Splatoon 3",

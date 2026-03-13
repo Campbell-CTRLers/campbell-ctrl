@@ -39,10 +39,14 @@ function formatIcsDateTime(date, h, m) {
   return `${y}${mo}${day}T${hour}${min}00`;
 }
 
+function escapeIcsText(str) {
+  return (str || '').replace(/\\/g, '\\\\').replace(/,/g, '\\,').replace(/;/g, '\\;').replace(/\n/g, '\\n');
+}
+
 export function meetingToIcs(meeting) {
   const title = meeting.title || 'Campbell CTRL Meeting';
-  const location = (meeting.location || '').replace(/,/g, '\\,').replace(/\n/g, '\\n');
-  const desc = (meeting.description || '').replace(/,/g, '\\,').replace(/\n/g, '\\n');
+  const location = escapeIcsText(meeting.location);
+  const desc = escapeIcsText(meeting.description);
   const days = Array.isArray(meeting.days) ? meeting.days : (meeting.days ? [meeting.days] : ['Fri']);
   const firstDay = days[0] || 'Fri';
   const start = parseTimeTo24(meeting.startTime || '3:30 PM');
@@ -106,7 +110,7 @@ export function gameToIcs(game) {
   const d = new Date(dateStr + 'T12:00:00');
   const dtstart = formatIcsDateTime(d, time.h, time.m);
   const dtend = formatIcsDateTime(d, time.h + 1, time.m);
-  const location = (game.location || '').replace(/,/g, '\\,').replace(/\n/g, '\\n');
+  const location = escapeIcsText(game.location);
 
   const vevent = [
     `DTSTART;TZID=${TZ}:${dtstart}`,

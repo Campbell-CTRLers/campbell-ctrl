@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import AppleCalendarIcon from './AppleCalendarIcon';
 import { createPortal } from 'react-dom';
 import gsap from 'gsap';
@@ -187,7 +187,6 @@ export function CalendarModal({ open, onClose }) {
   const backdropRef = useRef(null);
   const panelRef = useRef(null);
   const haptics = useHaptics();
-  const [animating, setAnimating] = useState(false);
   const previousActiveRef = useRef(null);
   const handleCloseRef = useRef(() => {});
 
@@ -209,7 +208,7 @@ export function CalendarModal({ open, onClose }) {
   }, [open, haptics]);
 
   // Exit animation — single timeline so panel and backdrop finish together; one onComplete to avoid flicker
-  const handleClose = () => {
+  const handleClose = useCallback(() => {
     haptics.light();
     previousActiveRef.current?.focus?.();
     const bd = backdropRef.current;
@@ -218,12 +217,15 @@ export function CalendarModal({ open, onClose }) {
     const tl = gsap.timeline({ onComplete: () => onClose() });
     tl.to(panel, { opacity: 0, scale: 0.9, y: 24, duration: PANEL_EXIT_DURATION, ease: PANEL_EASE_OUT }, 0);
     tl.to(bd, { opacity: 0, duration: BACKDROP_FADE_OUT_DURATION, ease: BACKDROP_EASE_OUT }, 0);
-  };
-  handleCloseRef.current = handleClose;
+  }, [haptics, onClose]);
+
+  useEffect(() => {
+    handleCloseRef.current = handleClose;
+  }, [handleClose]);
 
   // Escape to close
   useEffect(() => {
-    if (!open && !animating) return;
+    if (!open) return;
     const onKeyDown = (e) => {
       if (e.key === 'Escape') {
         e.preventDefault();
@@ -232,9 +234,9 @@ export function CalendarModal({ open, onClose }) {
     };
     document.addEventListener('keydown', onKeyDown);
     return () => document.removeEventListener('keydown', onKeyDown);
-  }, [open, animating]);
+  }, [open]);
 
-  if (!open && !animating) return null;
+  if (!open) return null;
 
   return createPortal(
     <div
