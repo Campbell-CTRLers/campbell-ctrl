@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Eye, EyeOff, Plus, Trash2, RotateCcw } from 'lucide-react';
+import { IconEye, IconEyeOff, IconPlus, IconTrash, IconRotate } from '../icons/SvgIcons';
 import { cn } from '../../utils/cn';
 import { useHaptics } from '../../hooks/useHaptics';
 
@@ -93,7 +93,7 @@ const AdminContentEditor = ({ siteContent, setSiteContent }) => {
           onClick={() => { haptics.light(); setShowPreview(!showPreview); }}
           className="flex items-center gap-2 text-accent bg-accent/5 px-4 py-2 rounded-xl text-[10px] font-mono font-black border border-accent/20 hover:bg-accent hover:text-white transition-all"
         >
-          {showPreview ? <EyeOff size={14} /> : <Eye size={14} />}
+          {showPreview ? <IconEyeOff size={14} /> : <IconEye size={14} />}
           {showPreview ? 'HIDE PREVIEW' : 'SHOW PREVIEW'}
         </button>
       </div>
@@ -110,7 +110,7 @@ const AdminContentEditor = ({ siteContent, setSiteContent }) => {
             <div className="flex items-center justify-between mb-5">
               <SectionLabel>Hero Section</SectionLabel>
               <button onClick={() => resetSection('hero')} className="flex items-center gap-1.5 text-[9px] font-mono font-bold text-slate/40 hover:text-accent transition-colors" title="Reset to defaults">
-                <RotateCcw size={12} />RESET
+                <IconRotate size={12} />RESET
               </button>
             </div>
             <div className="flex flex-col gap-4">
@@ -138,7 +138,7 @@ const AdminContentEditor = ({ siteContent, setSiteContent }) => {
             <div className="flex items-center justify-between mb-5">
               <SectionLabel>About the Club</SectionLabel>
               <button onClick={() => resetSection('about')} className="flex items-center gap-1.5 text-[9px] font-mono font-bold text-slate/40 hover:text-accent transition-colors" title="Reset to defaults">
-                <RotateCcw size={12} />RESET
+                <IconRotate size={12} />RESET
               </button>
             </div>
             <div className="flex flex-col gap-4">
@@ -154,14 +154,14 @@ const AdminContentEditor = ({ siteContent, setSiteContent }) => {
               <div className="flex items-center justify-between mt-2">
                 <FieldLabel>Feature Cards</FieldLabel>
                 <button onClick={addCard} className="flex items-center gap-1.5 text-[9px] font-mono font-bold text-accent hover:text-accent/80 transition-colors">
-                  <Plus size={12} />ADD CARD
+                  <IconPlus size={12} />ADD CARD
                 </button>
               </div>
 
               {content.about.cards.map((card, i) => (
                 <div key={i} className="bg-background rounded-xl p-4 border border-slate/10 flex flex-col gap-3 relative group">
                   <button onClick={() => removeCard(i)} className="absolute top-3 right-3 p-1.5 text-slate/20 hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-all opacity-0 group-hover:opacity-100">
-                    <Trash2 size={14} />
+                    <IconTrash size={14} />
                   </button>
                   <div>
                     <FieldLabel hint={`Card ${i + 1}`}>Title</FieldLabel>
@@ -182,7 +182,7 @@ const AdminContentEditor = ({ siteContent, setSiteContent }) => {
           <div className="hidden lg:block sticky top-0 max-h-[calc(100vh-12rem)] overflow-y-auto custom-scrollbar">
             <div className="bg-slate/[0.03] rounded-2xl border border-slate/10 overflow-hidden">
               <div className="px-4 py-2 border-b border-slate/10 flex items-center gap-2">
-                <Eye size={12} className="text-accent" />
+                <IconEye size={12} className="text-accent" />
                 <span className="font-mono text-[9px] font-bold text-accent uppercase tracking-[0.2em]">Live Preview</span>
               </div>
 

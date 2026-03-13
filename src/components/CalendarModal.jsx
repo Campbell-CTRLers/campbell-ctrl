@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState, useCallback } from 'react';
 import AppleCalendarIcon from './AppleCalendarIcon';
 import { createPortal } from 'react-dom';
 import gsap from 'gsap';
-import { X, Download } from 'lucide-react';
+import { IconX, IconDownload } from './icons/SvgIcons';
 import { cn } from '../utils/cn';
 import inPersonMeetingIcs from '../assets/in-person-meeting.ics?url';
 import iconGoogleCalendar from '../assets/icon-google-calendar.svg';
@@ -161,7 +161,7 @@ export function CalendarOptions({ compact = false, titleId }) {
           )}
         >
           <span className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-widest text-slate/40 group-hover:text-primary transition-colors">
-            <Download size={14} className="group-hover:scale-110 transition-transform" />
+            <IconDownload size={14} className="group-hover:scale-110 transition-transform" />
             Download .ics
           </span>
         </a>
@@ -241,7 +241,7 @@ export function CalendarModal({ open, onClose }) {
       <div ref={panelRef} role="dialog" aria-modal="true" aria-labelledby="calendar-modal-title" tabIndex={-1} className="bg-background rounded-[2.5rem] border border-slate/15 shadow-2xl p-4 flex flex-col w-[90vw] max-w-sm overflow-hidden">
         <div className="flex items-center justify-end p-2 mb-[-20px] relative z-20">
           <button type="button" onClick={handleClose} aria-label="Close calendar options" className="text-slate/40 hover:text-primary transition-colors p-2 bg-slate/5 rounded-full touch-manipulation active:scale-95">
-            <X size={18} />
+            <IconX size={18} />
           </button>
         </div>
         <div className="p-4">

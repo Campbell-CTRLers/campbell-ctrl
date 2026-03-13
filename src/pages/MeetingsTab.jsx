@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { IconCalendar, IconUsersOpen } from '../components/AboutIcons';
-import { MonitorPlay, MapPin } from 'lucide-react';
+import { IconMonitor, IconMapPin } from '../components/icons/SvgIcons';
 import { ClubMeetings } from '../components/ClubMeetings';
 import { CalendarModal } from '../components/CalendarModal';
 import { EventAddToCalendar } from '../components/EventAddToCalendar';
@@ -38,7 +38,7 @@ const MeetingsTab = ({ meetings = [] }) => {
               </div>
               <div className="flex items-start gap-4">
                 <div className="w-10 h-10 rounded-full bg-background/5 border border-background/10 flex items-center justify-center shrink-0 mt-1">
-                  <MonitorPlay className="text-accent" size={18} />
+                  <IconMonitor className="text-accent" size={18} />
                 </div>
                 <div>
                   <h4 className="font-roboto font-bold text-lg">Location</h4>
@@ -77,7 +77,7 @@ const MeetingsTab = ({ meetings = [] }) => {
                         </span>
                         {m.location && (
                           <span className="flex items-center gap-1">
-                            <MapPin size={12} />
+                            <IconMapPin size={12} />
                             {m.location}
                           </span>
                         )}

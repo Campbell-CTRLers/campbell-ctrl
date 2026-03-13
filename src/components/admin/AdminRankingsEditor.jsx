@@ -1,4 +1,5 @@
-import { Plus, Trash2, ChevronRight, RefreshCw } from 'lucide-react';
+import { RefreshCw } from 'lucide-react';
+import { IconPlus, IconTrash, IconChevronRight } from '../icons/SvgIcons';
 import { CustomDropdown } from '../../ui/FormControls';
 import AnimatedInput from '../../ui/AnimatedInput';
 import { GameIcon } from '../SharedUI';
@@ -23,7 +24,7 @@ const AdminRankingsEditor = ({
           <RefreshCw size={14} /> SYNC
         </button>
         <button onClick={onAddRanking} className="text-accent bg-accent/5 px-4 py-2 rounded-xl text-[10px] font-mono font-black border border-accent/20 flex items-center gap-2 hover:bg-accent hover:text-white transition-all">
-          <Plus size={14} /> ADD TEAM
+          <IconPlus size={14} /> ADD TEAM
         </button>
       </div>
     </div>
@@ -68,7 +69,7 @@ const AdminRankingsEditor = ({
                 <RosterPill value={getRosterType(s)} onChange={(v) => setRankingRoster(s.id, v)} size="sm" />
               </td>
               <td className="p-4 w-16 text-right">
-                <button onClick={() => deleteRanking(s.id)} className="p-2 text-slate/20 hover:text-red-500 hover:bg-red-500/10 rounded-xl transition-all opacity-0 group-hover:opacity-100"><Trash2 size={16} /></button>
+                <button onClick={() => deleteRanking(s.id)} className="p-2 text-slate/20 hover:text-red-500 hover:bg-red-500/10 rounded-xl transition-all opacity-0 group-hover:opacity-100"><IconTrash size={16} /></button>
               </td>
             </tr>
           ))}
@@ -93,7 +94,7 @@ const AdminRankingsEditor = ({
               <span className="font-mono text-[9px] text-slate/40 uppercase tracking-widest truncate">{s.leagueName}</span>
             </div>
           </div>
-          <ChevronRight size={18} className="text-slate/30 shrink-0 ml-2" />
+          <IconChevronRight size={18} className="text-slate/30 shrink-0 ml-2" />
         </div>
       ))}
     </div>

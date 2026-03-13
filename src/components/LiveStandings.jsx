@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { Trophy } from 'lucide-react';
+import { IconTrophy } from './icons/SvgIcons';
 import { GameIcon } from './SharedUI';
 import { SegmentGroup } from './Esports/GlobalRankingsPanel';
 import { ROSTER_OPTIONS } from './Esports/constants';
@@ -26,7 +26,7 @@ export function LiveStandings({ standings, fullHeight, rosterFilter = 'ALL', onR
         <h3 className={cn(compact && noCard ? CARD_HEADER_CLASS : "font-display font-bold text-primary tracking-tight", compact && !noCard ? "text-sm" : compact ? "" : "text-2xl mb-2")}>CTRL Standings</h3>
         {!compact && <p className="font-roboto text-slate/80 text-sm">Win-loss records across all titles.</p>}
       </div>
-      {!compact && <Trophy className="text-accent opacity-80" size={32} />}
+      {!compact && <IconTrophy className="text-accent opacity-80" size={32} />}
     </div>
   );
 

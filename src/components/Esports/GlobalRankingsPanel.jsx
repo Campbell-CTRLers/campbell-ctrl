@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
-import { Trophy, Search, X, Globe, ShieldCheck } from 'lucide-react';
+import { Globe, ShieldCheck } from 'lucide-react';
+import { IconTrophy, IconSearch, IconX } from '../icons/SvgIcons';
 import { GameIcon } from '../SharedUI';
 import { cn } from '../../utils/cn';
 import { useHaptics } from '../../hooks/useHaptics';
@@ -214,7 +215,7 @@ export const GlobalRankingsPanel = ({ standingsSource = [], rankings = [], roste
       <div className={cn("flex items-center justify-between", compact ? "mb-3" : "mb-6")}>
         <div className="flex flex-col">
           <h2 className={cn(compact && noCard ? CARD_HEADER_CLASS : "font-sans font-black text-primary flex items-center gap-2", compact && noCard ? "" : "italic", compact && !noCard ? "text-sm italic" : compact ? "" : "text-2xl")}>
-            {compact && noCard ? "Global Rankings" : <><Trophy className="text-accent" size={compact ? 16 : 24} /> GLOBAL RANKINGS</>}
+            {compact && noCard ? "Global Rankings" : <><IconTrophy className="text-accent" size={compact ? 16 : 24} /> GLOBAL RANKINGS</>}
           </h2>
           {!compact && <span className="font-mono text-[9px] text-slate/40 tracking-[0.2em] uppercase mt-1 hidden sm:block">Cross-Roster Regional Leaderboard</span>}
         </div>
@@ -223,7 +224,7 @@ export const GlobalRankingsPanel = ({ standingsSource = [], rankings = [], roste
         {!compact && (
           <>
             <div className="hidden sm:block w-[180px] focus-within:w-[260px] transition-all duration-500 ease-out relative group/search">
-              <Search size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate/30 group-focus-within/search:text-accent transition-colors z-20 pointer-events-none" />
+              <IconSearch size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate/30 group-focus-within/search:text-accent transition-colors z-20 pointer-events-none" />
               <AnimatedInput
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
@@ -237,7 +238,7 @@ export const GlobalRankingsPanel = ({ standingsSource = [], rankings = [], roste
               onClick={() => { haptics.medium(); setMobileOpen(true); }}
               className="sm:hidden w-12 h-12 rounded-2xl bg-primary/5 flex items-center justify-center text-slate border border-slate/10"
             >
-              <Search size={20} />
+              <IconSearch size={20} />
             </button>
           </>
         )}
@@ -266,7 +267,7 @@ export const GlobalRankingsPanel = ({ standingsSource = [], rankings = [], roste
           <div className="flex flex-col gap-4">
             <div className="flex items-center gap-3">
               <div className="flex-1 relative group/search">
-                <Search size={18} className="absolute left-5 top-1/2 -translate-y-1/2 text-slate/30 z-20 pointer-events-none" />
+                <IconSearch size={18} className="absolute left-5 top-1/2 -translate-y-1/2 text-slate/30 z-20 pointer-events-none" />
                 <AnimatedInput
                   ref={mobileInputRef}
                   value={searchQuery}
@@ -281,7 +282,7 @@ export const GlobalRankingsPanel = ({ standingsSource = [], rankings = [], roste
                 onClick={() => { haptics.light(); setMobileOpen(false); }} 
                 className="w-12 h-12 rounded-2xl bg-primary/5 flex items-center justify-center text-slate border border-slate/10"
               >
-                <X size={20} />
+                <IconX size={20} />
               </button>
             </div>
             <button 
@@ -303,7 +304,7 @@ export const GlobalRankingsPanel = ({ standingsSource = [], rankings = [], roste
 
           <div className="mt-auto opacity-20 pointer-events-none">
             <div className="flex flex-col items-center gap-2">
-              <Trophy size={40} className="text-slate/20" />
+              <IconTrophy size={40} className="text-slate/20" />
               <span className="font-mono text-[8px] uppercase tracking-[0.3em]">Campbell Esports</span>
             </div>
           </div>
@@ -317,7 +318,7 @@ export const GlobalRankingsPanel = ({ standingsSource = [], rankings = [], roste
           {activeLeague !== 'ALL' && <span className="text-[9px] font-mono font-black text-accent bg-accent/10 px-2 py-1 rounded-lg">{activeLeague}</span>}
           {activeType !== 'ALL'   && <span className="text-[9px] font-mono font-black text-blue-500 bg-blue-500/10 px-2 py-1 rounded-lg">{activeType}</span>}
           {activeSortId !== 'rank-asc' && <span className="text-[9px] font-mono font-black text-primary/50 bg-primary/5 px-2 py-1 rounded-lg">{activeSort.label}</span>}
-          <button onClick={reset} className="ml-auto text-slate/30"><X size={12} /></button>
+          <button onClick={reset} className="ml-auto text-slate/30"><IconX size={12} /></button>
         </div>
       )}
 

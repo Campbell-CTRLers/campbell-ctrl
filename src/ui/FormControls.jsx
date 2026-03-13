@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import ReactDOM from 'react-dom';
-import { Calendar, Clock, ChevronLeft, ChevronRight, ChevronDown } from 'lucide-react';
+import { Clock } from 'lucide-react';
+import { IconCalendar, IconChevronLeft, IconChevronRight, IconChevronDown } from '../components/icons/SvgIcons';
 import { cn } from '../utils/cn';
 import { useHaptics } from '../hooks/useHaptics';
 import AnimatedInput from './AnimatedInput';
@@ -126,13 +127,13 @@ export const CustomAnimatedDatePicker = ({ value, onChange }) => {
         )}
       >
         <span>{formattedDisplay}</span>
-        <Calendar size={14} className={isOpen ? "text-accent" : "text-slate"} />
+        <IconCalendar size={14} className={isOpen ? "text-accent" : "text-slate"} />
       </button>
 
       <DropdownPortal anchorRef={containerRef} isOpen={isOpen} onClose={() => setIsOpen(false)} minWidth={288}>
         <div className="w-72 bg-background border border-slate/20 rounded-2xl shadow-2xl p-4">
           <div className="flex items-center justify-between mb-4">
-            <button type="button" onClick={(e) => { haptics.selection(); prevMonth(e); }} className="p-1 hover:bg-slate/10 rounded-full transition-colors touch-manipulation"><ChevronLeft size={16} /></button>
+            <button type="button" onClick={(e) => { haptics.selection(); prevMonth(e); }} className="p-1 hover:bg-slate/10 rounded-full transition-colors touch-manipulation"><IconChevronLeft size={16} /></button>
             <div className="flex flex-col items-center">
               <span className="font-sans font-bold text-sm text-primary leading-tight">
                 {monthNames[currentDate.getMonth()]} {currentDate.getFullYear()}
@@ -141,7 +142,7 @@ export const CustomAnimatedDatePicker = ({ value, onChange }) => {
                 Go to Today
               </button>
             </div>
-            <button type="button" onClick={(e) => { haptics.selection(); nextMonth(e); }} className="p-1 hover:bg-slate/10 rounded-full transition-colors touch-manipulation"><ChevronRight size={16} /></button>
+            <button type="button" onClick={(e) => { haptics.selection(); nextMonth(e); }} className="p-1 hover:bg-slate/10 rounded-full transition-colors touch-manipulation"><IconChevronRight size={16} /></button>
           </div>
           <div className="grid grid-cols-7 gap-1 mb-2">
             {['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'].map(d => (
@@ -352,7 +353,7 @@ export const CustomDropdown = ({ value, onChange, options, placeholder, isEditab
         )}
       >
         <span className="truncate pr-2">{displayValue || placeholder}</span>
-        <ChevronDown size={14} className={isOpen ? "text-accent rotate-180 transition-transform duration-300" : "text-slate transition-transform duration-300"} />
+        <IconChevronDown size={14} className={isOpen ? "text-accent rotate-180 transition-transform duration-300" : "text-slate transition-transform duration-300"} />
       </button>
 
       <DropdownPortal anchorRef={containerRef} isOpen={isOpen} onClose={() => setIsOpen(false)} minWidth={200}>

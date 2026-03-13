@@ -1,6 +1,6 @@
 import React, { useRef, useState, useEffect, useMemo } from 'react';
 import gsap from 'gsap';
-import { ArrowRight, Sun, Moon } from 'lucide-react';
+import { IconArrowRight, IconSun, IconMoon } from './icons/SvgIcons';
 import { cn } from '../utils/cn';
 import { useTheme } from '../context/useTheme';
 import { useHaptics } from '../hooks/useHaptics';
@@ -46,14 +46,14 @@ const ThemeToggle = ({ theme, toggleTheme }) => {
       aria-label="Toggle Theme"
       title="Toggle Theme"
     >
-      <Sun 
+      <IconSun 
         size={18} 
         className={cn(
           "absolute transition-all duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)]", 
           theme === 'dark' ? "rotate-0 scale-100 opacity-100 group-hover:rotate-90" : "-rotate-180 scale-0 opacity-0"
         )} 
       />
-      <Moon 
+      <IconMoon 
         size={18} 
         className={cn(
           "absolute transition-all duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)]", 
@@ -165,7 +165,7 @@ const Navbar = ({ currentTab, onNavigate }) => {
 
           <a href="https://discord.gg/HZ2bQsmaSK" target="_blank" rel="noreferrer" className="hidden md:flex bg-[#5865F2] hover:bg-[#4752C4] text-white px-5 py-2 rounded-full font-sans font-semibold text-sm items-center gap-2 w-fit transition-opacity hover:opacity-90">
               <span className="relative z-10 transition-colors duration-300">Join Discord</span>
-              <ArrowRight size={16} className="relative z-10 transition-colors duration-300" />
+              <IconArrowRight size={16} className="relative z-10 transition-colors duration-300" />
             </a>
 
           <button
@@ -201,7 +201,7 @@ const Navbar = ({ currentTab, onNavigate }) => {
              onClick={() => haptics.light()}
              className="mobile-nav-item bg-[#5865F2] text-white px-8 py-4 rounded-2xl font-sans font-bold w-[85%] flex items-center justify-center gap-3 active:scale-95 overflow-hidden group touch-manipulation shadow-lg shadow-indigo-500/20">
             <span className="relative z-10 whitespace-nowrap">Join Discord</span>
-            <ArrowRight size={20} className="relative z-10" />
+            <IconArrowRight size={20} className="relative z-10" />
           </a>
         </div>
       </div>

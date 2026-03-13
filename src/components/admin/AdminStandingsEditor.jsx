@@ -1,4 +1,5 @@
-import { Plus, Trash2, ChevronRight, RefreshCw } from 'lucide-react';
+import { RefreshCw } from 'lucide-react';
+import { IconPlus, IconTrash, IconChevronRight } from '../icons/SvgIcons';
 import { CustomDropdown } from '../../ui/FormControls';
 import { GameIcon } from '../SharedUI';
 import RosterPill from './RosterPill';
@@ -23,7 +24,7 @@ const AdminStandingsEditor = ({
           <RefreshCw size={14} /> SYNC
         </button>
         <button onClick={onAddStanding} className="text-accent bg-accent/5 px-4 py-2 rounded-xl text-[10px] font-mono font-black border border-accent/20 flex items-center gap-2 hover:bg-accent hover:text-white transition-all">
-          <Plus size={14} /> ADD TEAM
+          <IconPlus size={14} /> ADD TEAM
         </button>
       </div>
     </div>
@@ -61,9 +62,9 @@ const AdminStandingsEditor = ({
           <div className="flex items-center gap-3 shrink-0 ml-auto">
             <div className="hidden sm:flex items-center gap-2">
               <RosterPill value={getRosterType(s)} onChange={(v) => setStandingRoster(s.id, v)} size="sm" />
-              <button onClick={(e) => { e.stopPropagation(); deleteStanding(s.id); }} className="p-2 text-slate/20 hover:text-red-500 hover:bg-red-500/10 rounded-xl transition-all opacity-0 group-hover:opacity-100"><Trash2 size={16} /></button>
+              <button onClick={(e) => { e.stopPropagation(); deleteStanding(s.id); }} className="p-2 text-slate/20 hover:text-red-500 hover:bg-red-500/10 rounded-xl transition-all opacity-0 group-hover:opacity-100"><IconTrash size={16} /></button>
             </div>
-            <div className="sm:hidden text-slate/30"><ChevronRight size={18} /></div>
+            <div className="sm:hidden text-slate/30"><IconChevronRight size={18} /></div>
           </div>
         </div>
       ))}

@@ -1,10 +1,10 @@
 import React, { useRef, useState, useEffect, useMemo, useCallback } from 'react';
 import gsap from 'gsap';
 import {
-  Settings, CloudUpload, Calendar, Check, Trophy, X,
-  CalendarDays, LayoutDashboard, FileText, LogOut, Sun, Moon,
-  ChevronLeft, Menu, Eye, EyeOff,
-} from 'lucide-react';
+  IconSettings, IconCloudUpload, IconCalendar, IconCheck, IconTrophy, IconX,
+  IconUsers, IconChart, IconPencilEdit, IconLogOut, IconSun, IconMoon,
+  IconChevronLeft, IconMenu, IconEye, IconEyeOff, IconGamepad,
+} from '../components/icons/SvgIcons';
 import { db, auth, googleProvider } from '../firebase';
 import { writeBatch, doc, getDoc } from 'firebase/firestore';
 import {
@@ -25,11 +25,11 @@ import AdminContentEditor from '../components/admin/AdminContentEditor';
 import { teamKey, sameTeam } from '../components/admin/constants';
 
 const SIDEBAR_TABS = [
-  { id: 'schedule', label: 'Schedule', Icon: Calendar },
-  { id: 'standings', label: 'Standings', Icon: Trophy },
-  { id: 'rankings', label: 'Rankings', Icon: LayoutDashboard },
-  { id: 'meetings', label: 'Meetings', Icon: CalendarDays },
-  { id: 'content', label: 'Site Content', Icon: FileText },
+  { id: 'schedule', label: 'Schedule', Icon: IconGamepad },
+  { id: 'standings', label: 'Standings', Icon: IconTrophy },
+  { id: 'rankings', label: 'Rankings', Icon: IconChart },
+  { id: 'meetings', label: 'Meetings', Icon: IconUsers },
+  { id: 'content', label: 'Site Content', Icon: IconPencilEdit },
 ];
 
 const AdminPage = ({
@@ -377,9 +377,9 @@ const AdminPage = ({
           ) : (
             <>
               <button onClick={onClose} className="absolute top-6 right-6 w-10 h-10 flex items-center justify-center rounded-full hover:bg-slate/10 text-slate transition-all" aria-label="Back to site">
-                <X size={20} />
+                <IconX size={20} />
               </button>
-              <div className="w-16 h-16 flex items-center justify-center text-accent mb-4"><Settings size={32} /></div>
+              <div className="w-16 h-16 flex items-center justify-center text-accent mb-4"><IconSettings size={32} /></div>
               <h2 className="font-sans font-bold text-2xl text-primary mb-1 text-center">Admin Access</h2>
               <p className="font-sans text-slate/60 text-xs mb-8 text-center px-6">Sign in with your authorized Google account.</p>
               {errorMsg && <span className="font-mono text-[10px] text-red-500 text-center mb-4">{errorMsg}</span>}
@@ -417,14 +417,14 @@ const AdminPage = ({
       <div className="md:hidden flex items-center justify-between px-4 py-3 border-b border-slate/10 bg-background shrink-0 z-30">
         <div className="flex items-center gap-3">
           <button onClick={() => { haptics.light(); setMobileSidebarOpen(true); }} className="w-10 h-10 flex items-center justify-center rounded-xl hover:bg-slate/5 text-primary">
-            <Menu size={20} />
+            <IconMenu size={20} />
           </button>
           <span className="font-sans font-black text-lg text-primary uppercase tracking-tighter italic">ADMIN</span>
         </div>
         <div className="flex items-center gap-2">
           <button onClick={handleSaveToCloud} disabled={isSaving} className={cn("min-w-[44px] min-h-[44px] p-2.5 rounded-2xl text-white font-bold text-sm transition-all active:scale-90 flex items-center justify-center gap-2 touch-manipulation", isDirty ? "bg-accent shadow-lg shadow-accent/25" : "bg-slate/10 text-slate", isSaving && "opacity-70 scale-95")}>
-            {isSaving ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <CloudUpload size={18} />}
-            {saveSuccess && <Check size={16} className="text-green-300" />}
+            {isSaving ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <IconCloudUpload size={18} />}
+            {saveSuccess && <IconCheck size={16} className="text-green-300" />}
           </button>
         </div>
       </div>
@@ -435,10 +435,10 @@ const AdminPage = ({
           <div className="w-72 h-full bg-background border-r border-slate/10 p-6 flex flex-col" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-8">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-accent/10 rounded-2xl flex items-center justify-center text-accent"><Settings size={20} /></div>
+                <div className="w-10 h-10 bg-accent/10 rounded-2xl flex items-center justify-center text-accent"><IconSettings size={20} /></div>
                 <span className="font-sans font-black text-lg text-primary uppercase tracking-tighter italic">ADMIN</span>
               </div>
-              <button onClick={() => setMobileSidebarOpen(false)} className="w-10 h-10 flex items-center justify-center rounded-xl hover:bg-slate/5 text-slate"><X size={18} /></button>
+              <button onClick={() => setMobileSidebarOpen(false)} className="w-10 h-10 flex items-center justify-center rounded-xl hover:bg-slate/5 text-slate"><IconX size={18} /></button>
             </div>
             <nav className="flex flex-col gap-1 flex-1">
               {SIDEBAR_TABS.map(({ id, label, Icon }) => (
@@ -449,13 +449,13 @@ const AdminPage = ({
             </nav>
             <div className="flex flex-col gap-2 pt-4 border-t border-slate/10">
               <button onClick={toggleTheme} className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm text-slate/60 hover:text-primary hover:bg-slate/5 transition-all font-semibold">
-                {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}{theme === 'dark' ? 'Light Mode' : 'Dark Mode'}
+                {theme === 'dark' ? <IconSun size={18} /> : <IconMoon size={18} />}{theme === 'dark' ? 'Light Mode' : 'Dark Mode'}
               </button>
               <button onClick={handleCloseAttempt} className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm text-slate/60 hover:text-primary hover:bg-slate/5 transition-all font-semibold">
-                <ChevronLeft size={18} />Back to Site
+                <IconChevronLeft size={18} />Back to Site
               </button>
               <button onClick={handleSignOut} className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm text-red-500/60 hover:text-red-500 hover:bg-red-500/5 transition-all font-semibold">
-                <LogOut size={18} />Sign Out
+                <IconLogOut size={18} />Sign Out
               </button>
             </div>
           </div>
@@ -465,7 +465,7 @@ const AdminPage = ({
       {/* Desktop sidebar */}
       <aside className={cn("hidden md:flex flex-col border-r border-slate/10 bg-background shrink-0 transition-all duration-300", sidebarCollapsed ? "w-[72px]" : "w-64")}>
         <div className={cn("flex items-center gap-3 p-6 pb-4", sidebarCollapsed && "justify-center px-3")}>
-          <div className="w-10 h-10 bg-accent/10 rounded-2xl flex items-center justify-center text-accent shrink-0"><Settings size={20} /></div>
+          <div className="w-10 h-10 bg-accent/10 rounded-2xl flex items-center justify-center text-accent shrink-0"><IconSettings size={20} /></div>
           {!sidebarCollapsed && (
             <div className="flex flex-col min-w-0">
               <span className="font-sans font-black text-lg text-primary uppercase tracking-tighter italic leading-none">ADMIN</span>
@@ -485,19 +485,19 @@ const AdminPage = ({
 
         <div className={cn("flex flex-col gap-1 p-3 border-t border-slate/10", sidebarCollapsed && "items-center")}>
           <button onClick={() => { haptics.light(); setSidebarCollapsed(!sidebarCollapsed); }} className="flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm text-slate/40 hover:text-primary hover:bg-slate/5 transition-all" title={sidebarCollapsed ? 'Expand' : 'Collapse'}>
-            <ChevronLeft size={18} className={cn("transition-transform shrink-0", sidebarCollapsed && "rotate-180")} />
+            <IconChevronLeft size={18} className={cn("transition-transform shrink-0", sidebarCollapsed && "rotate-180")} />
             {!sidebarCollapsed && <span className="font-semibold">Collapse</span>}
           </button>
           <button onClick={toggleTheme} className={cn("flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm text-slate/40 hover:text-primary hover:bg-slate/5 transition-all", sidebarCollapsed && "justify-center px-0")} title={theme === 'dark' ? 'Light Mode' : 'Dark Mode'}>
-            {theme === 'dark' ? <Sun size={18} className="shrink-0" /> : <Moon size={18} className="shrink-0" />}
+            {theme === 'dark' ? <IconSun size={18} className="shrink-0" /> : <IconMoon size={18} className="shrink-0" />}
             {!sidebarCollapsed && <span className="font-semibold">{theme === 'dark' ? 'Light Mode' : 'Dark Mode'}</span>}
           </button>
           <button onClick={handleCloseAttempt} className={cn("flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm text-slate/40 hover:text-primary hover:bg-slate/5 transition-all", sidebarCollapsed && "justify-center px-0")} title="Back to Site">
-            <ChevronLeft size={18} className="shrink-0" />
+            <IconChevronLeft size={18} className="shrink-0" />
             {!sidebarCollapsed && <span className="font-semibold">Back to Site</span>}
           </button>
           <button onClick={handleSignOut} className={cn("flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm text-red-500/40 hover:text-red-500 hover:bg-red-500/5 transition-all", sidebarCollapsed && "justify-center px-0")} title="Sign Out">
-            <LogOut size={18} className="shrink-0" />
+            <IconLogOut size={18} className="shrink-0" />
             {!sidebarCollapsed && <span className="font-semibold">Sign Out</span>}
           </button>
         </div>
@@ -515,8 +515,8 @@ const AdminPage = ({
           <div className="flex items-center gap-3">
             {saveErrorMsg && <span className="font-mono text-[9px] text-red-400 max-w-[200px] leading-tight">{saveErrorMsg}</span>}
             <button onClick={handleSaveToCloud} disabled={isSaving} className={cn("px-6 py-2.5 rounded-2xl font-bold text-sm transition-all active:scale-95 flex items-center gap-2", isDirty ? "bg-accent text-white shadow-lg shadow-accent/25" : "bg-slate/10 text-slate", isSaving && "opacity-70 scale-95")}>
-              {isSaving ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <><CloudUpload size={16} /><span>Publish</span></>}
-              {saveSuccess && <Check size={16} className="text-green-300" />}
+              {isSaving ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <><IconCloudUpload size={16} /><span>Publish</span></>}
+              {saveSuccess && <IconCheck size={16} className="text-green-300" />}
             </button>
           </div>
         </header>

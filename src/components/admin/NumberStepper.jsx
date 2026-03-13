@@ -1,4 +1,4 @@
-import { ChevronDown, ChevronUp } from 'lucide-react';
+import { IconChevronDown, IconChevronUp } from '../icons/SvgIcons';
 import { useHaptics } from '../../hooks/useHaptics';
 import { cn } from '../../utils/cn';
 
@@ -27,7 +27,7 @@ const NumberStepper = ({ value, onChange, label, color = 'accent' }) => {
           onClick={dec}
           className="w-8 h-8 flex items-center justify-center rounded-xl bg-slate/5 hover:bg-slate/10 text-slate/60 hover:text-primary transition-all active:scale-90"
         >
-          <ChevronDown size={14} />
+          <IconChevronDown size={14} />
         </button>
         <div className={cn("w-10 text-center font-mono font-bold text-lg select-none", textClass)}>
           {value}
@@ -37,7 +37,7 @@ const NumberStepper = ({ value, onChange, label, color = 'accent' }) => {
           onClick={inc}
           className="w-8 h-8 flex items-center justify-center rounded-xl bg-slate/5 hover:bg-slate/10 text-slate/60 hover:text-primary transition-all active:scale-90"
         >
-          <ChevronUp size={14} />
+          <IconChevronUp size={14} />
         </button>
       </div>
     </div>

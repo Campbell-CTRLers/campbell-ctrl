@@ -3,7 +3,7 @@ import { GameIcon } from '../SharedUI';
 import { formatGameDate } from '../../utils/gameUtils';
 import { LiveStandings } from '../LiveStandings';
 import { GlobalRankingsPanel } from '../Esports/GlobalRankingsPanel';
-import { ChevronRight } from 'lucide-react';
+import { IconChevronRight } from '../icons/SvgIcons';
 import { cn } from '../../utils/cn';
 
 const CARD_CLASS = "rounded-2xl border border-slate/10 bg-slate/5 p-4 flex flex-col min-h-0";
@@ -16,7 +16,7 @@ const CtaLink = ({ label, onNavigateToEsports }) =>
       className="mt-3 pt-3 border-t border-slate/10 min-h-[44px] flex items-center gap-1 font-mono text-[10px] text-slate/60 hover:text-accent transition-colors w-full justify-end touch-manipulation active:scale-[0.98] py-2"
     >
       {label}
-      <ChevronRight size={12} />
+      <IconChevronRight size={12} />
     </button>
   ) : null;
 

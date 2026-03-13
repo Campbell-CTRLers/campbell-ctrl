@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { IconCalendar } from '../AboutIcons';
-import { MapPin, ChevronDown, ChevronUp } from 'lucide-react';
+import { IconMapPin, IconChevronDown, IconChevronUp } from '../icons/SvgIcons';
 import { EventAddToCalendar } from '../EventAddToCalendar';
 
 export const HomeMeetingsSection = ({ meetings = [] }) => {
@@ -53,7 +53,7 @@ export const HomeMeetingsSection = ({ meetings = [] }) => {
                     </span>
                     {m.location && (
                       <span className="flex items-center gap-1">
-                        <MapPin size={14} />
+                        <IconMapPin size={14} />
                         {m.location}
                       </span>
                     )}
@@ -75,11 +75,11 @@ export const HomeMeetingsSection = ({ meetings = [] }) => {
           >
             {showAll ? (
               <>
-                Show less <ChevronUp size={16} />
+                Show less <IconChevronUp size={16} />
               </>
             ) : (
               <>
-                Show all {meetings.length} meetings <ChevronDown size={16} />
+                Show all {meetings.length} meetings <IconChevronDown size={16} />
               </>
             )}
           </button>
