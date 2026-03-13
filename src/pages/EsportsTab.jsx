@@ -13,7 +13,7 @@ const EsportsTab = ({ gamesList, standings, rankings, dataLoaded = true }) => {
   return (
     <div className="pt-32 pb-24 px-4 sm:px-6 md:px-16 max-w-7xl mx-auto min-h-screen">
       <div className="tab-header mb-16">
-        <h1 className="font-sans font-bold text-5xl md:text-7xl text-primary tracking-tighter mb-4">Campbell <span className="text-accent font-drama italic">eSpartans.</span></h1>
+        <h1 className="font-sans font-bold text-5xl md:text-7xl text-primary tracking-tighter mb-4">Campbell <span className="text-accent font-drama italic">eSPARTANS.</span></h1>
         <p className="font-sans text-slate text-lg max-w-2xl">The official PlayVS competitive core of Campbell CTRL. View upcoming schedules, match results, and live team standings across all active rosters.</p>
       </div>
 

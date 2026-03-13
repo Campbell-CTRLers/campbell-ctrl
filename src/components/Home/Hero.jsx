@@ -34,8 +34,8 @@ export const Hero = () => {
           <span className="font-display font-black text-2xl sm:text-4xl md:text-6xl lg:text-7xl tracking-tight uppercase text-white leading-tight">
             Campbell CTRL
           </span>
-          <span className="font-drama italic text-6xl sm:text-7xl md:text-[8rem] lg:text-[10rem] text-accent leading-[0.9] drop-shadow-[0_0_15px_rgba(0,56,168,0.6)] -mt-1 md:-mt-4 uppercase tracking-tighter">
-            eSpartans
+          <span className="font-drama italic text-6xl sm:text-7xl md:text-[8rem] lg:text-[10rem] text-accent leading-[0.9] drop-shadow-[0_0_15px_rgba(0,56,168,0.6)] -mt-1 md:-mt-4 tracking-tighter">
+            eSPARTANS
           </span>
         </h1>
         <p className="font-roboto text-[16px] sm:text-lg md:text-xl text-primary max-w-[280px] sm:max-w-md md:max-w-2xl leading-relaxed drop-shadow-md px-2 sm:px-0 font-normal transition-all">

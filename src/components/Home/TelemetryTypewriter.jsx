@@ -16,7 +16,7 @@ export const TelemetryTypewriter = ({ gamesList }) => {
             PlayVS Feed
           </span>
         </div>
-        <h3 className="font-sans font-bold text-2xl text-primary">Campbell CTRL eSpartans</h3>
+        <h3 className="font-sans font-bold text-2xl text-primary">Campbell CTRL eSPARTANS</h3>
         <p className="font-roboto text-slate/80 text-sm mt-1">Upcoming matches and scrimmages.</p>
       </div>
 

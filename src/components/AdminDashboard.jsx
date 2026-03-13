@@ -205,7 +205,7 @@ const AdminDashboard = ({ isAdmin, onClose, gamesList, setGamesList, standings, 
       if (!rankingKeys.has(teamKey(standing))) {
         newRankings.push({
           id: base + index,
-          team: 'Campbell eSpartans',
+          team: 'Campbell eSPARTANS',
           game: standing.game,
           leagueRank: '',
           leagueName: 'PlayVS',
@@ -220,7 +220,7 @@ const AdminDashboard = ({ isAdmin, onClose, gamesList, setGamesList, standings, 
       if (!standingKeys.has(teamKey(ranking))) {
         newStandings.push({
           id: base + 10000 + index,
-          team: 'Campbell eSpartans',
+          team: 'Campbell eSPARTANS',
           game: ranking.game,
           wins: 0,
           losses: 0,
@@ -330,8 +330,8 @@ const AdminDashboard = ({ isAdmin, onClose, gamesList, setGamesList, standings, 
   const handleAddStanding = () => { 
     haptics.selection(); 
     const newId = Date.now() * 1000;
-    setStandings([...standings, { id: newId, team: 'Campbell eSpartans', game: 'Smash Bros', wins: 0, losses: 0, leagueRank: '', leagueName: 'PlayVS', isAlt: false, isDel: false }]); 
-    setRankings([...rankings, { id: newId + 1, team: 'Campbell eSpartans', game: 'Smash Bros', leagueRank: '', leagueName: 'PlayVS', isAlt: false, isDel: false }]);
+    setStandings([...standings, { id: newId, team: 'Campbell eSPARTANS', game: 'Smash Bros', wins: 0, losses: 0, leagueRank: '', leagueName: 'PlayVS', isAlt: false, isDel: false }]); 
+    setRankings([...rankings, { id: newId + 1, team: 'Campbell eSPARTANS', game: 'Smash Bros', leagueRank: '', leagueName: 'PlayVS', isAlt: false, isDel: false }]);
     if (window.innerWidth < 768) setActiveControlId(newId);
   };
   const updateStanding = (id, field, value) => {
@@ -364,8 +364,8 @@ const AdminDashboard = ({ isAdmin, onClose, gamesList, setGamesList, standings, 
   const handleAddRanking = () => { 
     haptics.selection(); 
     const newId = Date.now() * 1000;
-    setRankings([...rankings, { id: newId, team: 'Campbell eSpartans', game: 'Smash Bros', leagueRank: '', leagueName: 'PlayVS', isAlt: false, isDel: false }]); 
-    setStandings([...standings, { id: newId + 1, team: 'Campbell eSpartans', game: 'Smash Bros', wins: 0, losses: 0, leagueRank: '', leagueName: 'PlayVS', isAlt: false, isDel: false }]);
+    setRankings([...rankings, { id: newId, team: 'Campbell eSPARTANS', game: 'Smash Bros', leagueRank: '', leagueName: 'PlayVS', isAlt: false, isDel: false }]); 
+    setStandings([...standings, { id: newId + 1, team: 'Campbell eSPARTANS', game: 'Smash Bros', wins: 0, losses: 0, leagueRank: '', leagueName: 'PlayVS', isAlt: false, isDel: false }]);
     if (window.innerWidth < 768) setActiveControlId(newId);
   };
   const updateRanking = (id, field, value) => {

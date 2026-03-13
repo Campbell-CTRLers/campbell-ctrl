@@ -16,20 +16,20 @@ export const AboutSection = () => {
     {
       Icon: IconTrophyAbout,
       title: 'PlayVS competitive',
-      desc: 'Official Campbell eSpartans rosters competing in Georgia and PlayVS leagues.',
+      desc: 'Official Campbell eSPARTANS rosters competing in Georgia and PlayVS leagues.',
     },
   ];
 
   return (
     <section
       id="about-section"
-      className="w-full py-20 md:py-28 px-6 md:px-16 bg-background rounded-t-[3rem] -mt-[3rem] relative z-20"
+      className="w-full py-28 md:py-36 px-6 md:px-16 bg-background rounded-t-[3rem] -mt-[3rem] relative z-20"
     >
       <div className="max-w-4xl mx-auto">
         <h2 className="font-sans font-bold text-3xl md:text-4xl text-primary mb-4 tracking-tight">
           About the Club
         </h2>
-        <p className="font-roboto text-slate/80 text-lg md:text-xl leading-relaxed mb-8">
+        <p className="font-roboto text-slate/80 text-lg md:text-xl leading-relaxed mb-12">
           Campbell CTRL is Campbell High School&apos;s official esports and gaming club. We practice
           weekly, compete in PlayVS leagues, and represent Campbell at the state level.
         </p>
