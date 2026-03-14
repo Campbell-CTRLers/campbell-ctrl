@@ -54,7 +54,6 @@ const AdminPage = ({
   const [adminTab, setAdminTab] = useState('schedule');
   const [rememberMe, setRememberMe] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
   const [activeControlId, setActiveControlId] = useState(null);
   const [showSafetySheet, setShowSafetySheet] = useState(false);
@@ -413,54 +412,7 @@ const AdminPage = ({
   // --- MAIN ADMIN PAGE ---
   return (
     <div className="fixed inset-0 z-[100] bg-background flex flex-col md:flex-row overflow-hidden">
-      {/* Mobile top bar */}
-      <div className="md:hidden flex items-center justify-between px-4 py-3 border-b border-slate/10 bg-background shrink-0 z-30">
-        <div className="flex items-center gap-3">
-          <button onClick={() => { haptics.light(); setMobileSidebarOpen(true); }} className="w-10 h-10 flex items-center justify-center rounded-xl hover:bg-slate/5 text-primary">
-            <IconMenu size={20} />
-          </button>
-          <span className="font-sans font-black text-lg text-primary uppercase tracking-tighter italic">ADMIN</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <button onClick={handleSaveToCloud} disabled={isSaving} className={cn("min-w-[44px] min-h-[44px] p-2.5 rounded-2xl text-white font-bold text-sm transition-all active:scale-90 flex items-center justify-center gap-2 touch-manipulation", isDirty ? "bg-accent shadow-lg shadow-accent/25" : "bg-slate/10 text-slate", isSaving && "opacity-70 scale-95")}>
-            {isSaving ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <IconCloudUpload size={18} />}
-            {saveSuccess && <IconCheck size={16} className="text-green-300" />}
-          </button>
-        </div>
-      </div>
-
-      {/* Mobile sidebar overlay */}
-      {mobileSidebarOpen && (
-        <div className="md:hidden fixed inset-0 z-40 bg-black/40 backdrop-blur-sm" onClick={() => setMobileSidebarOpen(false)}>
-          <div className="w-72 h-full bg-background border-r border-slate/10 p-6 flex flex-col" onClick={e => e.stopPropagation()}>
-            <div className="flex items-center justify-between mb-8">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-accent/10 rounded-2xl flex items-center justify-center text-accent"><IconSettings size={20} /></div>
-                <span className="font-sans font-black text-lg text-primary uppercase tracking-tighter italic">ADMIN</span>
-              </div>
-              <button onClick={() => setMobileSidebarOpen(false)} className="w-10 h-10 flex items-center justify-center rounded-xl hover:bg-slate/5 text-slate"><IconX size={18} /></button>
-            </div>
-            <nav className="flex flex-col gap-1 flex-1">
-              {SIDEBAR_TABS.map(({ id, label, Icon }) => (
-                <button key={id} onClick={() => { haptics.selection(); setAdminTab(id); setMobileSidebarOpen(false); }} className={cn("flex items-center gap-3 px-4 py-3 rounded-xl font-sans font-semibold text-sm transition-all", adminTab === id ? "bg-accent/10 text-accent" : "text-slate/60 hover:text-primary hover:bg-slate/5")}>
-                  <Icon size={18} />{label}
-                </button>
-              ))}
-            </nav>
-            <div className="flex flex-col gap-2 pt-4 border-t border-slate/10">
-              <button onClick={toggleTheme} className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm text-slate/60 hover:text-primary hover:bg-slate/5 transition-all font-semibold">
-                {theme === 'dark' ? <IconSun size={18} /> : <IconMoon size={18} />}{theme === 'dark' ? 'Light Mode' : 'Dark Mode'}
-              </button>
-              <button onClick={handleCloseAttempt} className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm text-slate/60 hover:text-primary hover:bg-slate/5 transition-all font-semibold">
-                <IconChevronLeft size={18} />Back to Site
-              </button>
-              <button onClick={handleSignOut} className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm text-red-500/60 hover:text-red-500 hover:bg-red-500/5 transition-all font-semibold">
-                <IconLogOut size={18} />Sign Out
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* No mobile top bar — navigation lives entirely in the bottom bar */}
 
       {/* Desktop sidebar */}
       <aside className={cn("hidden md:flex flex-col border-r border-slate/10 bg-background shrink-0 transition-all duration-300", sidebarCollapsed ? "w-[72px]" : "w-64")}>
@@ -541,12 +493,19 @@ const AdminPage = ({
         </div>
 
         {/* Mobile bottom nav */}
-        <div className="md:hidden fixed bottom-0 left-0 right-0 bg-background border-t border-slate/15 px-4 pt-4 pb-[calc(2.5rem+env(safe-area-inset-bottom,0px))] flex items-center justify-around z-40 shadow-[0_-15px_50px_rgba(0,0,0,0.7)] touch-manipulation">
+        <div className="md:hidden fixed bottom-0 left-0 right-0 bg-background border-t border-slate/15 px-2 pt-3 pb-[calc(2rem+env(safe-area-inset-bottom,0px))] flex items-center justify-around z-40 shadow-[0_-15px_50px_rgba(0,0,0,0.7)] touch-manipulation">
           {SIDEBAR_TABS.map(({ id, label, Icon }) => (
-            <button key={id} onClick={() => { haptics.selection(); setAdminTab(id); }} className={cn("flex flex-col items-center gap-1.5 transition-all text-[9px] font-black uppercase tracking-tighter touch-manipulation", adminTab === id ? "text-accent scale-110" : "text-slate opacity-40")}>
-              <Icon size={18} /><span className="leading-none">{label.split(' ')[0]}</span>
+            <button key={id} onClick={() => { haptics.selection(); setAdminTab(id); }} className={cn("flex flex-col items-center gap-1 transition-all text-[8px] font-black uppercase tracking-tighter touch-manipulation", adminTab === id ? "text-accent scale-110" : "text-slate opacity-40")}>
+              <Icon size={16} /><span className="leading-none">{label.split(' ')[0]}</span>
             </button>
           ))}
+          <button onClick={handleSaveToCloud} disabled={isSaving} className={cn("flex flex-col items-center gap-1 transition-all text-[8px] font-black uppercase tracking-tighter touch-manipulation", isDirty ? "text-accent" : "text-slate opacity-40")}>
+            {isSaving ? <div className="w-4 h-4 border-2 border-accent/30 border-t-accent rounded-full animate-spin" /> : <IconCloudUpload size={16} />}
+            {saveSuccess ? <span className="leading-none text-green-500">Done</span> : <span className="leading-none">Publish</span>}
+          </button>
+          <button onClick={handleCloseAttempt} className="flex flex-col items-center gap-1 transition-all text-[8px] font-black uppercase tracking-tighter touch-manipulation text-slate opacity-60">
+            <IconX size={16} /><span className="leading-none">Exit</span>
+          </button>
         </div>
       </div>
 

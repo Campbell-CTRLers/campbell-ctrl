@@ -13,7 +13,7 @@ export function EventAddToCalendar({ event, eventType, compact = false, fullWidt
   const haptics = useHaptics();
   const popoverRef = useRef(null);
 
-  const { googleUrl, outlookUrl, blobUrl, appleDataUri, icsText } = useMemo(() => {
+  const { googleUrl, outlookUrl, blobUrl, icsText } = useMemo(() => {
     if (!event) return {};
     const ics = eventType === 'meeting' ? meetingToIcs(event) : gameToIcs(event);
     return icsToUrls(ics);
@@ -52,7 +52,9 @@ export function EventAddToCalendar({ event, eventType, compact = false, fullWidt
       }
     }
 
-    window.location.href = appleDataUri;
+    const a = document.createElement('a');
+    a.href = blobUrl;
+    a.click();
     close();
   };
 
