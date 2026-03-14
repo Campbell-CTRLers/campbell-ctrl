@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState, useCallback } from 'react';
 import AppleCalendarIcon from './AppleCalendarIcon';
 import { createPortal } from 'react-dom';
 import gsap from 'gsap';
-import { IconX, IconDownload } from './icons/SvgIcons';
+import { IconX } from './icons/SvgIcons';
 import { cn } from '../utils/cn';
 import inPersonMeetingIcs from '../assets/in-person-meeting.ics?url';
 import iconGoogleCalendar from '../assets/icon-google-calendar.svg';
@@ -95,9 +95,7 @@ export function CalendarOptions({ compact = false, titleId }) {
       }
     }
 
-    const a = document.createElement('a');
-    a.href = blobUrl;
-    a.click();
+    window.location.href = appleDataUri;
   };
 
   return (
@@ -153,21 +151,7 @@ export function CalendarOptions({ compact = false, titleId }) {
         </button>
       </div>
 
-      <div className="flex justify-center pt-2">
-        <a 
-          href={ready ? blobUrl : undefined} 
-          download={filename}
-          className={cn(
-            "flex items-center gap-2 px-6 py-2.5 rounded-full border border-transparent hover:border-slate/10 hover:bg-slate/5 transition-all duration-300 group",
-            !ready && "opacity-0 pointer-events-none"
-          )}
-        >
-          <span className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-widest text-slate/40 group-hover:text-primary transition-colors">
-            <IconDownload size={14} className="group-hover:scale-110 transition-transform" />
-            Download .ics
-          </span>
-        </a>
-      </div>
+      
     </div>
   );
 }

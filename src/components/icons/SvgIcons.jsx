@@ -239,6 +239,13 @@ export const IconTypography = ({ size, className }) => wrap(
   { size, className }
 );
 
+export const IconClock = ({ size, className }) => wrap(
+  <>
+    <path d="M12 6V12L16 14M22 12C22 17.5228 17.5228 22 12 22C6.47715 22 2 17.5228 2 12C2 6.47715 6.47715 2 12 2C17.5228 2 22 6.47715 22 12Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+  </>,
+  { size, className }
+);
+
 export const IconSpacing = ({ size, className }) => wrap(
   <>
     <path d="M21 3H3M21 21H3M12 7V17M12 7L9 10M12 7L15 10M12 17L9 14M12 17L15 14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none" />
