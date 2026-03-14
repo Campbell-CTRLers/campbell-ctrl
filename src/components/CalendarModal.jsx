@@ -95,7 +95,9 @@ export function CalendarOptions({ compact = false, titleId }) {
       }
     }
 
-    window.location.href = appleDataUri;
+    const a = document.createElement('a');
+    a.href = blobUrl;
+    a.click();
   };
 
   return (
