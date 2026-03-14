@@ -22,8 +22,9 @@ export const IconUsers = ({ size, className }) => wrap(
 
 export const IconGamepad = ({ size, className }) => wrap(
   <>
-    <path d="M6 11H10M8 9V13M15 10H15.01M18 12H18.01" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none" />
-    <path d="M17.5 5H6.5C4.01472 5 2 7.01472 2 9.5V14.5C2 16.9853 4.01472 19 6.5 19H7.5L8.5 21H15.5L16.5 19H17.5C19.9853 19 22 16.9853 22 14.5V9.5C22 7.01472 19.9853 5 17.5 5Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+    <path d="M7 6H17C19.2091 6 21 7.79086 21 10C21 13 20 16 18 18.5C17.2 19.5 15.5 19 15 17.5L13.5 14H10.5L9 17.5C8.5 19 6.8 19.5 6 18.5C4 16 3 13 3 10C3 7.79086 4.79086 6 7 6Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+    <circle cx="9" cy="10" r="1.25" stroke="currentColor" strokeWidth="1.5" fill="none" />
+    <circle cx="15" cy="10" r="1.25" stroke="currentColor" strokeWidth="1.5" fill="none" />
   </>,
   { size, className }
 );
