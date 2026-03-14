@@ -22,8 +22,9 @@ export const IconUsers = ({ size, className }) => wrap(
 
 export const IconGamepad = ({ size, className }) => wrap(
   <>
-    <path d="M6 11H10M8 9V13M15 10H15.01M18 12H18.01" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none" />
-    <path d="M17.5 5H6.5C4.01472 5 2 7.01472 2 9.5V14.5C2 16.9853 4.01472 19 6.5 19H7.5L8.5 21H15.5L16.5 19H17.5C19.9853 19 22 16.9853 22 14.5V9.5C22 7.01472 19.9853 5 17.5 5Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+    <path d="M7 6H17C19.2091 6 21 7.79086 21 10C21 13 20 16 18 18.5C17.2 19.5 15.5 19 15 17.5L13.5 14H10.5L9 17.5C8.5 19 6.8 19.5 6 18.5C4 16 3 13 3 10C3 7.79086 4.79086 6 7 6Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+    <circle cx="9" cy="10" r="1.25" stroke="currentColor" strokeWidth="1.5" fill="none" />
+    <circle cx="15" cy="10" r="1.25" stroke="currentColor" strokeWidth="1.5" fill="none" />
   </>,
   { size, className }
 );
@@ -235,6 +236,13 @@ export const IconPalette = ({ size, className }) => wrap(
 export const IconTypography = ({ size, className }) => wrap(
   <>
     <path d="M4 7C4 6.06812 4 5.60218 4.15224 5.23463C4.35523 4.74458 4.74458 4.35523 5.23463 4.15224C5.60218 4 6.06812 4 7 4H17C17.9319 4 18.3978 4 18.7654 4.15224C19.2554 4.35523 19.6448 4.74458 19.8478 5.23463C20 5.60218 20 6.06812 20 7M9 20H15M12 4V20" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+  </>,
+  { size, className }
+);
+
+export const IconClock = ({ size, className }) => wrap(
+  <>
+    <path d="M12 6V12L16 14M22 12C22 17.5228 17.5228 22 12 22C6.47715 22 2 17.5228 2 12C2 6.47715 6.47715 2 12 2C17.5228 2 22 6.47715 22 12Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none" />
   </>,
   { size, className }
 );
