@@ -34,26 +34,25 @@ export function EventAddToCalendar({ event, eventType, compact = false, fullWidt
     return () => { document.body.style.overflow = ''; };
   }, [open]);
 
-  const handleAppleAdd = async (e) => {
-    e.preventDefault();
+  const handleAppleClick = async (e) => {
     if (!ready || !icsText) return;
     haptics.light();
-
     const file = new File([icsText], filename, { type: 'text/calendar' });
-    const canShare = navigator.share && (navigator.canShare ? navigator.canShare({ files: [file] }) : false);
-
+    const canShare = navigator.share && navigator.canShare?.({ files: [file] });
     if (canShare) {
+      e.preventDefault();
       try {
         await navigator.share({ files: [file], title: 'Add to Calendar' });
         close();
-        return;
       } catch (err) {
-        if (err.name === 'AbortError') return;
+        if (err.name !== 'AbortError') {
+          window.location.href = appleDataUri;
+        }
       }
+    } else {
+      close();
+      // let the default href (data: URI) navigate — iOS Safari opens Calendar
     }
-
-    window.location.href = appleDataUri;
-    close();
   };
 
   const toggle = (e) => {
@@ -75,12 +74,12 @@ export function EventAddToCalendar({ event, eventType, compact = false, fullWidt
           <img src={iconMicrosoftOutlook} alt="Outlook" className="w-9 h-9" />
           <span className="font-mono text-[10px] font-bold text-primary uppercase">Outlook</span>
         </a>
-        <button type="button" onClick={handleAppleAdd} className={cn(providerBtn, 'w-full cursor-pointer bg-transparent')}>
+        <a href={ready && appleDataUri ? appleDataUri : undefined} onClick={handleAppleClick} className={cn(providerBtn, 'cursor-pointer')}>
           <div className="w-9 h-9 flex items-center justify-center">
             <AppleCalendarIcon className="w-7 h-7" />
           </div>
           <span className="font-mono text-[10px] font-bold text-primary uppercase">Apple</span>
-        </button>
+        </a>
       </div>
     </>
   );
