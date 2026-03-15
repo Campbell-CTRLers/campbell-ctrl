@@ -15,8 +15,15 @@ const AdminRankingsEditor = ({
   setRankingRoster,
   deleteRanking,
   setActiveControlId,
-}) => (
-  <div className="flex flex-col gap-4">
+  searchQuery = '',
+}) => {
+  const query = String(searchQuery || '').trim().toLowerCase();
+  const visibleRankings = query
+    ? rankings.filter((s) => `${s.game || ''} ${s.leagueName || ''} ${s.leagueRank || ''}`.toLowerCase().includes(query))
+    : rankings;
+
+  return (
+    <div className="flex flex-col gap-4">
     <div className="flex items-center justify-between flex-wrap gap-2">
       <h3 className="font-sans font-black text-lg sm:text-2xl text-primary italic uppercase tracking-tighter">Global Rankings</h3>
       <div className="flex items-center gap-2">
@@ -42,7 +49,7 @@ const AdminRankingsEditor = ({
           </tr>
         </thead>
         <tbody className="divide-y divide-slate/5">
-          {rankings.map((s) => (
+          {visibleRankings.map((s) => (
             <tr key={s.id} className="group hover:bg-primary/[0.02] transition-all">
               <td className="p-4 w-12">
                 <div className="w-10 h-10 rounded-xl bg-primary/5 flex items-center justify-center border border-slate/10 overflow-hidden">
@@ -78,7 +85,7 @@ const AdminRankingsEditor = ({
     </div>
 
     <div className="sm:hidden flex flex-col gap-4 pb-24">
-      {rankings.map((s) => (
+      {visibleRankings.map((s) => (
         <div key={s.id} onClick={() => setActiveControlId(s.id)} className="group flex items-center justify-between bg-slate/5 p-4 rounded-3xl border border-slate/10 active:bg-slate/10 transition-colors">
           <div className="flex items-center gap-4 flex-1 min-w-0">
             <div className="w-10 h-10 rounded-2xl bg-primary/5 flex items-center justify-center border border-slate/10 overflow-hidden shrink-0">
@@ -99,6 +106,7 @@ const AdminRankingsEditor = ({
       ))}
     </div>
   </div>
-);
+  );
+};
 
 export default AdminRankingsEditor;

@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { IconCalendar, IconUsers, IconMapPin, IconClock } from '../components/icons/SvgIcons';
 import { CalendarModal } from '../components/CalendarModal';
 import { EventAddToCalendar } from '../components/EventAddToCalendar';
@@ -14,8 +14,14 @@ function getNextMeetingDay() {
   return map[jsDay];
 }
 
-const MeetingsTab = ({ meetings = [], siteContent, setSiteContent, contentEditor }) => {
+const MeetingsTab = ({ meetings = [], dataLoaded = true, siteContent, setSiteContent, contentEditor }) => {
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
+  const [cardDensity, setCardDensity] = useState(() => {
+    if (typeof window === 'undefined') return 'comfortable';
+    return window.localStorage.getItem('meetingsCardDensity') || 'comfortable';
+  });
+  const timelineRef = useRef(null);
+  const nextMeetingRef = useRef(null);
 
   const mc = siteContent?.meetings || {};
   const headingAccent = mc.headingAccent || 'Meetings.';
@@ -78,8 +84,36 @@ const MeetingsTab = ({ meetings = [], siteContent, setSiteContent, contentEditor
   }, [meetings, activeDays]);
 
   const todayIdx = getNextMeetingDay();
+  const compactCards = cardDensity === 'compact';
 
   const hasMeetings = meetings.length > 0;
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    window.localStorage.setItem('meetingsCardDensity', cardDensity);
+  }, [cardDensity]);
+
+  const scrollToNode = (nodeRef) => {
+    nodeRef.current?.scrollIntoView?.({ behavior: 'smooth', block: 'start' });
+  };
+
+  const renderSkeleton = () => (
+    <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 animate-pulse">
+      <div className="lg:col-span-7 xl:col-span-8 flex flex-col gap-4">
+        {Array.from({ length: 4 }).map((_, idx) => (
+          <div key={idx} className="flex gap-4">
+            <div className="w-10 h-10 rounded-full bg-slate/10 shrink-0" />
+            <div className="flex-1 bg-slate/10 rounded-2xl h-28" />
+          </div>
+        ))}
+      </div>
+      <div className="lg:col-span-5 xl:col-span-4 flex flex-col gap-4">
+        <div className="h-36 bg-slate/10 rounded-[2rem]" />
+        <div className="h-28 bg-slate/10 rounded-2xl" />
+        <div className="h-28 bg-slate/10 rounded-2xl" />
+      </div>
+    </div>
+  );
 
   return (
     <div className="pt-32 pb-24 px-4 sm:px-6 md:px-16 max-w-7xl mx-auto min-h-screen">
@@ -89,11 +123,25 @@ const MeetingsTab = ({ meetings = [], siteContent, setSiteContent, contentEditor
         </h1>
         <EditableSiteText as="p" contentKey="meetings.description" fallback={description} siteContent={siteContent} setSiteContent={setSiteContent} editor={contentEditor} className="font-roboto text-slate/80 text-lg max-w-2xl" />
       </div>
+      <div className="md:hidden sticky top-[5.25rem] z-20 -mx-2 px-2 mb-5">
+        <div className="rounded-2xl border border-slate/10 bg-background/95 backdrop-blur-md p-2.5 shadow-lg">
+          <div className="grid grid-cols-3 gap-2">
+            <button onClick={() => scrollToNode(timelineRef)} className="min-h-[42px] rounded-xl border border-slate/10 bg-slate/5 text-[10px] font-mono font-bold uppercase tracking-wide">This Week</button>
+            <button onClick={() => scrollToNode(nextMeetingRef)} className="min-h-[42px] rounded-xl border border-slate/10 bg-slate/5 text-[10px] font-mono font-bold uppercase tracking-wide">Next Meeting</button>
+            <button onClick={() => setIsCalendarOpen(true)} className="min-h-[42px] rounded-xl border border-accent/25 bg-accent/10 text-accent text-[10px] font-mono font-bold uppercase tracking-wide">Add Calendar</button>
+          </div>
+          <div className="mt-2 flex items-center gap-2">
+            <span className="text-[9px] font-mono uppercase tracking-[0.15em] text-slate/40">Density</span>
+            <button onClick={() => setCardDensity('comfortable')} className={cn('px-2.5 py-1 rounded-lg text-[10px] font-mono font-bold uppercase border', !compactCards ? 'border-accent bg-accent/10 text-accent' : 'border-slate/10 text-slate/60')}>Comfortable</button>
+            <button onClick={() => setCardDensity('compact')} className={cn('px-2.5 py-1 rounded-lg text-[10px] font-mono font-bold uppercase border', compactCards ? 'border-accent bg-accent/10 text-accent' : 'border-slate/10 text-slate/60')}>Compact</button>
+          </div>
+        </div>
+      </div>
 
-      {hasMeetings ? (
+      {!dataLoaded ? renderSkeleton() : hasMeetings ? (
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8">
           {/* Timeline */}
-          <div className="lg:col-span-7 xl:col-span-8">
+          <div className="lg:col-span-7 xl:col-span-8" ref={timelineRef}>
             <div className="flex flex-col">
               {DAY_ORDER.map((day, i) => {
                 const dayMeetings = meetingsByDay[day];
@@ -141,18 +189,19 @@ const MeetingsTab = ({ meetings = [], siteContent, setSiteContent, contentEditor
                           <span className="font-sans font-bold text-sm text-primary/50 hidden sm:block">
                             {DAY_FULL[day]}{isToday ? ' — Today' : ''}
                           </span>
-                          {dayMeetings.map(m => (
+                          {dayMeetings.map((m, idx) => (
                             <div
                               key={`${day}-${m.id}`}
-                              className="bg-background rounded-2xl border border-slate/10 p-4 sm:p-5 shadow-sm hover:shadow-md hover:border-slate/20 transition-all"
+                              ref={i === todayIdx && idx === 0 ? nextMeetingRef : null}
+                              className={cn(
+                                "bg-background rounded-2xl border border-slate/10 shadow-sm hover:shadow-md hover:border-slate/20 transition-all",
+                                compactCards ? "p-3.5 sm:p-4" : "p-4 sm:p-5"
+                              )}
                             >
                               <div className="flex items-start justify-between gap-3">
                                 <div className="min-w-0 flex-1">
-                                  <h4 className="font-sans font-bold text-base sm:text-lg text-primary leading-tight">
-                                    {m.title || 'Meeting'}
-                                  </h4>
-                                  <div className="flex flex-col sm:flex-row sm:items-center gap-1.5 sm:gap-3 mt-2">
-                                    <span className="flex items-center gap-1.5 text-sm text-slate/70">
+                                  <div className="flex flex-wrap items-center gap-1.5 mb-2">
+                                    <span className="inline-flex items-center gap-1.5 text-[11px] text-slate/70 bg-slate/5 border border-slate/10 rounded-full px-2.5 py-1">
                                       <IconClock size={14} className="text-accent shrink-0" />
                                       <span className="font-mono text-xs font-bold">
                                         {m.startTime && m.endTime
@@ -160,21 +209,24 @@ const MeetingsTab = ({ meetings = [], siteContent, setSiteContent, contentEditor
                                           : 'Time TBD'}
                                       </span>
                                     </span>
-                                    {m.location && (
-                                      <span className="flex items-center gap-1.5 text-sm text-slate/70">
+                                    {m.location ? (
+                                      <span className="inline-flex items-center gap-1.5 text-[11px] text-slate/70 bg-slate/5 border border-slate/10 rounded-full px-2.5 py-1">
                                         <IconMapPin size={14} className="text-accent shrink-0" />
                                         {m.location}
                                       </span>
-                                    )}
+                                    ) : null}
                                   </div>
+                                  <h4 className={cn("font-sans font-bold text-primary leading-tight", compactCards ? "text-[15px]" : "text-base sm:text-lg")}>
+                                    {m.title || 'Meeting'}
+                                  </h4>
                                   {m.description && (
-                                    <p className="font-roboto text-sm text-slate/60 mt-2 leading-relaxed">
+                                    <p className={cn("font-roboto text-slate/60 leading-relaxed", compactCards ? "text-xs mt-1.5" : "text-sm mt-2")}>
                                       {m.description}
                                     </p>
                                   )}
                                 </div>
                               </div>
-                              <div className="mt-3">
+                              <div className={compactCards ? "mt-2.5" : "mt-3"}>
                                 <EventAddToCalendar event={m} eventType="meeting" fullWidth />
                               </div>
                             </div>

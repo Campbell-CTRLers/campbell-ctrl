@@ -4,11 +4,27 @@ import { IconMapPin, IconChevronDown, IconChevronUp } from '../icons/SvgIcons';
 import { EventAddToCalendar } from '../EventAddToCalendar';
 import { EditableSiteText } from '../content/EditableSiteText';
 
-export const HomeMeetingsSection = ({ meetings = [], siteContent = null, setSiteContent, contentEditor }) => {
+export const HomeMeetingsSection = ({ meetings = [], dataLoaded = true, siteContent = null, setSiteContent, contentEditor }) => {
   const [showAll, setShowAll] = useState(false);
 
   const displayMeetings = showAll ? meetings : meetings.slice(0, 3);
   const hasMore = meetings.length > 3;
+
+  if (!dataLoaded) {
+    return (
+      <section className="w-full py-16 md:py-20 px-6 md:px-16 bg-slate/5 border-y border-slate/10">
+        <div className="max-w-4xl mx-auto animate-pulse">
+          <div className="h-8 w-48 rounded-xl bg-slate/10 mb-3" />
+          <div className="h-4 w-80 rounded-xl bg-slate/10 mb-8" />
+          <div className="grid gap-4">
+            {Array.from({ length: 3 }).map((_, idx) => (
+              <div key={idx} className="h-28 rounded-2xl bg-slate/10" />
+            ))}
+          </div>
+        </div>
+      </section>
+    );
+  }
 
   if (meetings.length === 0) {
     return (

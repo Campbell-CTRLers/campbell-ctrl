@@ -3,7 +3,7 @@ import gsap from 'gsap';
 import {
   IconSettings, IconCloudUpload, IconCalendar, IconCheck, IconTrophy, IconX,
   IconUsers, IconChart, IconPencilEdit, IconLogOut, IconSun, IconMoon,
-  IconChevronLeft, IconMenu, IconEye, IconEyeOff, IconGamepad,
+  IconChevronLeft, IconMenu, IconEye, IconEyeOff, IconGamepad, IconSearch,
 } from '../components/icons/SvgIcons';
 import { db, auth, googleProvider } from '../firebase';
 import { writeBatch, doc, getDoc } from 'firebase/firestore';
@@ -32,6 +32,29 @@ const SIDEBAR_TABS = [
   { id: 'content', label: 'Site Content', Icon: IconPencilEdit },
 ];
 
+const MOBILE_DRAFT_STORAGE_KEY = 'adminMobileDraft.v1';
+
+const parseClockToMinutes = (value) => {
+  if (!value) return null;
+  const m = String(value).trim().match(/^(\d{1,2})(?::(\d{2}))?\s*(AM|PM)?$/i);
+  if (!m) return null;
+  let h = Number(m[1]);
+  const mm = Number(m[2] || 0);
+  const ampm = String(m[3] || '').toUpperCase();
+  if (ampm === 'PM' && h < 12) h += 12;
+  if (ampm === 'AM' && h === 12) h = 0;
+  return (h * 60) + mm;
+};
+
+const formatMinutesToClock = (minutes) => {
+  const total = ((minutes % 1440) + 1440) % 1440;
+  const h24 = Math.floor(total / 60);
+  const mm = String(total % 60).padStart(2, '0');
+  const suffix = h24 >= 12 ? 'PM' : 'AM';
+  const h12 = h24 % 12 || 12;
+  return `${h12}:${mm} ${suffix}`;
+};
+
 const AdminPage = ({
   onClose,
   gamesList, setGamesList,
@@ -57,10 +80,14 @@ const AdminPage = ({
 
   const [activeControlId, setActiveControlId] = useState(null);
   const [showSafetySheet, setShowSafetySheet] = useState(false);
+  const [mobileCommandQuery, setMobileCommandQuery] = useState('');
+  const [mobileQuickActionsOpen, setMobileQuickActionsOpen] = useState(false);
+  const [pendingMobileDraft, setPendingMobileDraft] = useState(null);
 
   const safetySheetRef = useRef(null);
   const controlSheetRef = useRef(null);
   const tabContentRef = useRef(null);
+  const hasCheckedMobileDraftRef = useRef(false);
 
   const originalDataRef = useRef(null);
   const hasSyncedRef = useRef(false);
@@ -117,6 +144,36 @@ const AdminPage = ({
   }, []);
 
   const isMobileView = () => typeof window !== 'undefined' && window.innerWidth < 768;
+
+  useEffect(() => {
+    if (!isAuthenticated || !authInitialized || !isMobileView() || hasCheckedMobileDraftRef.current) return;
+    hasCheckedMobileDraftRef.current = true;
+    try {
+      const raw = window.localStorage.getItem(MOBILE_DRAFT_STORAGE_KEY);
+      if (!raw) return;
+      const parsed = JSON.parse(raw);
+      if (!parsed?.data) return;
+      const current = { gamesList, standings, rankings, meetings, siteContent };
+      if (JSON.stringify(parsed.data) !== JSON.stringify(current)) {
+        setPendingMobileDraft(parsed.data);
+      }
+    } catch {
+      // Ignore malformed mobile drafts.
+    }
+  }, [authInitialized, gamesList, isAuthenticated, meetings, rankings, siteContent, standings]);
+
+  useEffect(() => {
+    if (!isAuthenticated || !isMobileView()) return;
+    try {
+      const payload = {
+        updatedAt: Date.now(),
+        data: { gamesList, standings, rankings, meetings, siteContent },
+      };
+      window.localStorage.setItem(MOBILE_DRAFT_STORAGE_KEY, JSON.stringify(payload));
+    } catch {
+      // Best-effort mobile autosave only.
+    }
+  }, [gamesList, isAuthenticated, meetings, rankings, siteContent, standings]);
 
   // Safety sheet animations
   useEffect(() => {
@@ -231,6 +288,73 @@ const AdminPage = ({
       haptics.saveError?.();
       setSaveErrorMsg(_err.message || 'Failed to sync with cloud.');
     } finally { setIsSaving(false); }
+  };
+
+  const restoreMobileDraft = () => {
+    if (!pendingMobileDraft) return;
+    haptics.success();
+    setGamesList(pendingMobileDraft.gamesList || []);
+    setStandings(pendingMobileDraft.standings || []);
+    setRankings(pendingMobileDraft.rankings || []);
+    setMeetings(pendingMobileDraft.meetings || []);
+    setSiteContent(pendingMobileDraft.siteContent || null);
+    setPendingMobileDraft(null);
+  };
+
+  const dismissMobileDraft = () => {
+    setPendingMobileDraft(null);
+    try {
+      window.localStorage.removeItem(MOBILE_DRAFT_STORAGE_KEY);
+    } catch {
+      // Ignore storage cleanup errors.
+    }
+  };
+
+  const duplicateLastRecord = () => {
+    haptics.selection();
+    if (adminTab === 'schedule' && gamesList.length) {
+      const source = gamesList[gamesList.length - 1];
+      setGamesList([...gamesList, { ...source, id: Date.now() }]);
+      return;
+    }
+    if (adminTab === 'standings' && standings.length) {
+      const source = standings[standings.length - 1];
+      setStandings([...standings, { ...source, id: Date.now() * 1000 }]);
+      return;
+    }
+    if (adminTab === 'rankings' && rankings.length) {
+      const source = rankings[rankings.length - 1];
+      setRankings([...rankings, { ...source, id: Date.now() * 1000 }]);
+      return;
+    }
+    if (adminTab === 'meetings' && meetings.length) {
+      const source = meetings[meetings.length - 1];
+      setMeetings([...meetings, { ...source, id: Date.now() }]);
+    }
+  };
+
+  const shiftTimesByMinutes = (minutes) => {
+    if (adminTab === 'schedule') {
+      setGamesList(gamesList.map((g) => {
+        const parsed = parseClockToMinutes(g.time || '4:00 PM');
+        if (parsed == null) return g;
+        return { ...g, time: formatMinutesToClock(parsed + minutes) };
+      }));
+      haptics.light();
+      return;
+    }
+    if (adminTab === 'meetings') {
+      setMeetings(meetings.map((m) => {
+        const s = parseClockToMinutes(m.startTime || '3:30 PM');
+        const e = parseClockToMinutes(m.endTime || '5:30 PM');
+        return {
+          ...m,
+          startTime: s == null ? m.startTime : formatMinutesToClock(s + minutes),
+          endTime: e == null ? m.endTime : formatMinutesToClock(e + minutes),
+        };
+      }));
+      haptics.light();
+    }
   };
 
   // CRUD handlers
@@ -349,6 +473,11 @@ const AdminPage = ({
 
   const handleSignOut = async () => {
     haptics.light();
+    try {
+      window.localStorage.removeItem(MOBILE_DRAFT_STORAGE_KEY);
+    } catch {
+      // Ignore storage cleanup errors.
+    }
     await signOut(auth);
     setIsAuthenticated(false);
     onClose();
@@ -472,6 +601,68 @@ const AdminPage = ({
           </div>
         </header>
 
+        <div className="md:hidden sticky top-0 z-30 border-b border-slate/10 bg-background/95 backdrop-blur-xl px-3 pt-[max(0.6rem,env(safe-area-inset-top,0px))] pb-2">
+          <div className="flex items-center justify-between gap-2">
+            <div className="min-w-0">
+              <div className="font-mono text-[9px] uppercase tracking-[0.2em] text-slate/40">Admin Mobile</div>
+              <div className="flex items-center gap-2">
+                <span className="font-sans font-black text-sm uppercase tracking-tight truncate">
+                  {SIDEBAR_TABS.find((t) => t.id === adminTab)?.label || 'Admin'}
+                </span>
+                {isDirty && <span className="w-2 h-2 rounded-full bg-amber-500" aria-label="Unsaved changes" />}
+              </div>
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              <button
+                onClick={() => setMobileQuickActionsOpen((v) => !v)}
+                className="min-h-[38px] px-3 rounded-xl border border-slate/10 text-[10px] font-mono font-bold uppercase"
+              >
+                Quick
+              </button>
+              <button
+                onClick={handleSaveToCloud}
+                disabled={isSaving}
+                className={cn(
+                  "min-h-[38px] px-3 rounded-xl border text-[10px] font-mono font-bold uppercase flex items-center gap-1.5",
+                  isDirty ? "border-accent/30 bg-accent/10 text-accent" : "border-slate/10 text-slate/50"
+                )}
+              >
+                {isSaving ? 'Saving…' : 'Publish'}
+              </button>
+            </div>
+          </div>
+          <div className="mt-2 relative">
+            <IconSearch size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate/35" />
+            <input
+              value={mobileCommandQuery}
+              onChange={(e) => setMobileCommandQuery(e.target.value)}
+              placeholder="Command search (game, meeting, rank...)"
+              className="w-full h-10 rounded-xl border border-slate/10 bg-slate/5 pl-9 pr-3 text-xs"
+            />
+          </div>
+          {pendingMobileDraft && (
+            <div className="mt-2 rounded-xl border border-amber-500/20 bg-amber-500/10 px-3 py-2">
+              <p className="text-[10px] font-mono text-amber-700 uppercase tracking-wide">Found local draft from previous mobile session.</p>
+              <div className="mt-2 flex gap-2">
+                <button onClick={restoreMobileDraft} className="flex-1 min-h-[36px] rounded-lg border border-emerald-500/30 bg-emerald-500/10 text-[10px] font-mono font-bold uppercase text-emerald-700">Restore</button>
+                <button onClick={dismissMobileDraft} className="flex-1 min-h-[36px] rounded-lg border border-slate/15 bg-background text-[10px] font-mono font-bold uppercase text-slate/60">Discard</button>
+              </div>
+            </div>
+          )}
+          {mobileQuickActionsOpen && (
+            <div className="mt-2 rounded-xl border border-slate/10 bg-slate/5 p-2.5 grid grid-cols-2 gap-2">
+              <button onClick={duplicateLastRecord} className="min-h-[38px] rounded-lg border border-slate/10 bg-background text-[10px] font-mono font-bold uppercase">Duplicate Last</button>
+              <button onClick={() => setMobileCommandQuery('')} className="min-h-[38px] rounded-lg border border-slate/10 bg-background text-[10px] font-mono font-bold uppercase">Clear Search</button>
+              {(adminTab === 'schedule' || adminTab === 'meetings') && (
+                <>
+                  <button onClick={() => shiftTimesByMinutes(30)} className="min-h-[38px] rounded-lg border border-slate/10 bg-background text-[10px] font-mono font-bold uppercase">+30 Min</button>
+                  <button onClick={() => shiftTimesByMinutes(-30)} className="min-h-[38px] rounded-lg border border-slate/10 bg-background text-[10px] font-mono font-bold uppercase">-30 Min</button>
+                </>
+              )}
+            </div>
+          )}
+        </div>
+
         {/* Tab content */}
         <div ref={tabContentRef} className={cn(
           "flex-1 custom-scrollbar",
@@ -480,16 +671,16 @@ const AdminPage = ({
             : "overflow-y-auto px-4 sm:px-8 py-6 pb-40 md:pb-8"
         )}>
           {adminTab === 'schedule' && (
-            <AdminScheduleEditor gamesList={gamesList} onAddGame={handleAddGame} updateGame={updateGame} setGameRoster={setGameRoster} deleteGame={deleteGame} setActiveControlId={setActiveControlId} />
+            <AdminScheduleEditor gamesList={gamesList} onAddGame={handleAddGame} updateGame={updateGame} setGameRoster={setGameRoster} deleteGame={deleteGame} setActiveControlId={setActiveControlId} searchQuery={mobileCommandQuery} />
           )}
           {adminTab === 'standings' && (
-            <AdminStandingsEditor standings={standings} onSync={syncStandingsWithRankings} onAddStanding={handleAddStanding} updateStanding={updateStanding} setStandingRoster={setStandingRoster} deleteStanding={deleteStanding} setActiveControlId={setActiveControlId} />
+            <AdminStandingsEditor standings={standings} onSync={syncStandingsWithRankings} onAddStanding={handleAddStanding} updateStanding={updateStanding} setStandingRoster={setStandingRoster} deleteStanding={deleteStanding} setActiveControlId={setActiveControlId} searchQuery={mobileCommandQuery} />
           )}
           {adminTab === 'rankings' && (
-            <AdminRankingsEditor rankings={rankings} onSync={syncStandingsWithRankings} onAddRanking={handleAddRanking} updateRanking={updateRanking} setRankingRoster={setRankingRoster} deleteRanking={deleteRanking} setActiveControlId={setActiveControlId} />
+            <AdminRankingsEditor rankings={rankings} onSync={syncStandingsWithRankings} onAddRanking={handleAddRanking} updateRanking={updateRanking} setRankingRoster={setRankingRoster} deleteRanking={deleteRanking} setActiveControlId={setActiveControlId} searchQuery={mobileCommandQuery} />
           )}
           {adminTab === 'meetings' && (
-            <AdminMeetingsEditor meetings={meetings} onAddMeeting={handleAddMeeting} updateMeeting={updateMeeting} deleteMeeting={deleteMeeting} setActiveControlId={setActiveControlId} />
+            <AdminMeetingsEditor meetings={meetings} onAddMeeting={handleAddMeeting} updateMeeting={updateMeeting} deleteMeeting={deleteMeeting} setActiveControlId={setActiveControlId} searchQuery={mobileCommandQuery} />
           )}
           {adminTab === 'content' && (
             <AdminContentEditor
@@ -508,15 +699,15 @@ const AdminPage = ({
         {/* Mobile bottom nav */}
         <div className="md:hidden fixed bottom-0 left-0 right-0 bg-background border-t border-slate/15 px-2 pt-3 pb-[calc(2rem+env(safe-area-inset-bottom,0px))] flex items-center justify-around z-40 shadow-[0_-15px_50px_rgba(0,0,0,0.7)] touch-manipulation">
           {SIDEBAR_TABS.map(({ id, label, Icon }) => (
-            <button key={id} onClick={() => { haptics.selection(); setAdminTab(id); }} className={cn("flex flex-col items-center gap-1 transition-all text-[8px] font-black uppercase tracking-tighter touch-manipulation", adminTab === id ? "text-accent scale-110" : "text-slate opacity-40")}>
+            <button key={id} onClick={() => { haptics.selection(); setAdminTab(id); }} className={cn("flex flex-col items-center gap-1 transition-all text-[10px] font-black uppercase tracking-tight touch-manipulation", adminTab === id ? "text-accent scale-110" : "text-slate opacity-40")}>
               <Icon size={16} /><span className="leading-none">{label.split(' ')[0]}</span>
             </button>
           ))}
-          <button onClick={handleSaveToCloud} disabled={isSaving} className={cn("flex flex-col items-center gap-1 transition-all text-[8px] font-black uppercase tracking-tighter touch-manipulation", isDirty ? "text-accent" : "text-slate opacity-40")}>
+          <button onClick={handleSaveToCloud} disabled={isSaving} className={cn("flex flex-col items-center gap-1 transition-all text-[10px] font-black uppercase tracking-tight touch-manipulation", isDirty ? "text-accent" : "text-slate opacity-40")}>
             {isSaving ? <div className="w-4 h-4 border-2 border-accent/30 border-t-accent rounded-full animate-spin" /> : <IconCloudUpload size={16} />}
             {saveSuccess ? <span className="leading-none text-green-500">Done</span> : <span className="leading-none">Publish</span>}
           </button>
-          <button onClick={handleCloseAttempt} className="flex flex-col items-center gap-1 transition-all text-[8px] font-black uppercase tracking-tighter touch-manipulation text-slate opacity-60">
+          <button onClick={handleCloseAttempt} className="flex flex-col items-center gap-1 transition-all text-[10px] font-black uppercase tracking-tight touch-manipulation text-slate opacity-60">
             <IconX size={16} /><span className="leading-none">Exit</span>
           </button>
         </div>

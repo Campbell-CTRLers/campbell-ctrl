@@ -21,8 +21,13 @@ const AdminMeetingsEditor = ({
   updateMeeting,
   deleteMeeting,
   setActiveControlId,
+  searchQuery = '',
 }) => {
   const haptics = useHaptics();
+  const query = String(searchQuery || '').trim().toLowerCase();
+  const visibleMeetings = query
+    ? meetings.filter((m) => `${m.title || ''} ${m.location || ''} ${Array.isArray(m.days) ? m.days.join(' ') : m.days || ''}`.toLowerCase().includes(query))
+    : meetings;
 
   const toggleDay = (meetingId, dayId) => {
     haptics.light();
@@ -51,7 +56,7 @@ const AdminMeetingsEditor = ({
       </div>
 
       <div className="grid grid-cols-1 gap-3">
-        {meetings.map((m) => (
+        {visibleMeetings.map((m) => (
           <div
             key={m.id}
             onClick={() => window.innerWidth < 768 && setActiveControlId(m.id)}

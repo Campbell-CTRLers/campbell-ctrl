@@ -9,7 +9,7 @@ const HomeTab = ({ gamesList, standings, rankings, meetings, siteContent, setSit
     <div className="w-full">
       <Hero content={siteContent?.hero} siteContent={siteContent} setSiteContent={setSiteContent} contentEditor={contentEditor} />
       <AboutSection content={siteContent?.about} siteContent={siteContent} setSiteContent={setSiteContent} contentEditor={contentEditor} />
-      <HomeMeetingsSection meetings={meetings} siteContent={siteContent} setSiteContent={setSiteContent} contentEditor={contentEditor} />
+      <HomeMeetingsSection meetings={meetings} dataLoaded={dataLoaded} siteContent={siteContent} setSiteContent={setSiteContent} contentEditor={contentEditor} />
       <HomeEsportsCompact gamesList={gamesList} standings={standings} rankings={rankings} dataLoaded={dataLoaded} onNavigateToEsports={onNavigateToEsports} siteContent={siteContent} setSiteContent={setSiteContent} contentEditor={contentEditor} />
     </div>
   );

@@ -23,6 +23,7 @@ import {
   updateEditableMeta,
   updateEditablePosition,
   updateEditableStyle,
+  updateEditableText,
 } from '../../utils/siteContentEditor';
 
 const MODES = [
@@ -140,6 +141,7 @@ const AdminContentEditor = ({
   const [nudgeStep, setNudgeStep] = useState(1);
   const [availableKeys, setAvailableKeys] = useState([]);
   const [keySearch, setKeySearch] = useState('');
+  const [mobileManualKey, setMobileManualKey] = useState('');
   const [recentSelections, setRecentSelections] = useState([]);
   const [publishedSnapshot, setPublishedSnapshot] = useState(() => extractEditorSnapshot(siteContent));
   const [historyRevision, setHistoryRevision] = useState(0);
@@ -428,6 +430,7 @@ const AdminContentEditor = ({
       return (
         <MeetingsTab
           meetings={meetings}
+          dataLoaded={dataLoaded}
           siteContent={previewSiteContent}
           setSiteContent={setSiteContent}
           contentEditor={editor}
@@ -444,11 +447,83 @@ const AdminContentEditor = ({
   };
 
   if (isMobile) {
+    const mobileKeys = Array.from(new Set([
+      ...listEditableKeys(siteContent),
+      ...recentSelections.map(getBaseKey),
+      mobileManualKey.trim(),
+    ].filter(Boolean))).sort((a, b) => a.localeCompare(b));
+    const mobileSelected = selectedKey || mobileKeys[0] || '';
+    const mobileText = mobileSelected ? readEditableText(siteContent, mobileSelected, '') : '';
+    const mobileStyle = mobileSelected ? readEditableStyle(siteContent, mobileSelected) : {};
+    const mobileFontSize = mobileStyle?.fontSize ?? 16;
+
     return (
-      <div className="rounded-2xl border border-amber-500/20 bg-amber-500/10 p-6">
-        <p className="font-sans text-sm text-amber-700 leading-relaxed">
-          Site preview editing is desktop-focused so element sizing matches production layout.
-        </p>
+      <div className="rounded-2xl border border-slate/10 bg-background p-4 flex flex-col gap-3">
+        <div className="rounded-xl border border-amber-500/25 bg-amber-500/10 px-3 py-2">
+          <p className="font-sans text-xs text-amber-700 leading-relaxed">
+            Mobile quick edit mode supports text and font size only. Position/move controls stay desktop-only.
+          </p>
+        </div>
+
+        <div className="grid gap-2">
+          <label className="font-mono text-[10px] uppercase tracking-[0.15em] text-slate/50">Find or create key</label>
+          <input
+            value={mobileManualKey}
+            onChange={(e) => setMobileManualKey(e.target.value)}
+            placeholder="example: navbar.homeMobile"
+            className="h-10 rounded-xl border border-slate/10 bg-slate/5 px-3 text-xs"
+          />
+          <div className="max-h-36 overflow-y-auto custom-scrollbar grid gap-1">
+            {mobileKeys.length ? mobileKeys.map((key) => (
+              <button
+                key={key}
+                onClick={() => setSelectedKey(key)}
+                className={cn(
+                  "text-left px-2.5 py-2 rounded-lg border text-[10px] font-mono",
+                  mobileSelected === key
+                    ? "border-accent bg-accent/10 text-accent"
+                    : "border-slate/10 bg-slate/5 text-slate/60"
+                )}
+              >
+                {key}
+              </button>
+            )) : (
+              <p className="text-[11px] text-slate/50">No content keys yet. Type a key above to create one.</p>
+            )}
+          </div>
+        </div>
+
+        {mobileSelected && (
+          <div className="rounded-xl border border-slate/10 bg-slate/5 p-3 flex flex-col gap-2.5">
+            <div className="font-mono text-[10px] text-accent uppercase tracking-wider truncate">{mobileSelected}</div>
+            <label className="font-sans text-xs font-bold text-primary">Text</label>
+            <textarea
+              value={mobileText}
+              onChange={(e) => updateEditableText(setSiteContent, mobileSelected, e.target.value)}
+              rows={4}
+              className="w-full rounded-xl border border-slate/10 bg-background px-3 py-2 text-sm"
+            />
+            <label className="font-sans text-xs font-bold text-primary">Font Size</label>
+            <div className="flex items-center gap-2">
+              <input
+                type="range"
+                min={10}
+                max={96}
+                value={mobileFontSize}
+                onChange={(e) => updateEditableStyle(setSiteContent, mobileSelected, { fontSize: Number(e.target.value) })}
+                className="flex-1 accent-accent"
+              />
+              <div className="w-16">
+                <NumberField
+                  value={mobileFontSize}
+                  min={10}
+                  max={120}
+                  onChange={(e) => updateEditableStyle(setSiteContent, mobileSelected, { fontSize: Number(e.target.value) })}
+                />
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     );
   }
