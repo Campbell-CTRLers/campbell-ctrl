@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState, useCallback } from 'react';
+import React, { useEffect, useRef, useState, useMemo, useCallback } from 'react';
 import AppleCalendarIcon from './AppleCalendarIcon';
 import { createPortal } from 'react-dom';
 import gsap from 'gsap';
@@ -8,20 +8,23 @@ import inPersonMeetingIcs from '../assets/in-person-meeting.ics?url';
 import iconGoogleCalendar from '../assets/icon-google-calendar.svg';
 import iconMicrosoftOutlook from '../assets/icon-microsoft-outlook.svg';
 import { useHaptics } from '../hooks/useHaptics';
-import { icsToDataUri } from '../utils/calendarUtils';
 
 export function CalendarOptions({ compact = false, titleId }) {
   const containerRef = useRef(null);
   const haptics = useHaptics();
   const [googleUrl, setGoogleUrl] = useState('');
-  const [outlookUrl, setOutlookUrl] = useState('');
-  const [appleDataUri, setAppleDataUri] = useState('');
-  const [blobUrl, setBlobUrl] = useState('');
-  const [icsText, setIcsText] = useState('');
+
+  const webcalUrl = useMemo(() => {
+    try {
+      const absUrl = new URL(inPersonMeetingIcs, window.location.origin).href;
+      return absUrl.replace(/^https?:\/\//, 'webcal://');
+    } catch {
+      return '';
+    }
+  }, []);
 
   useEffect(() => {
     let active = true;
-    let createdUrl = '';
     fetch(inPersonMeetingIcs)
       .then(r => {
         if (!r.ok) {
@@ -31,7 +34,6 @@ export function CalendarOptions({ compact = false, titleId }) {
       })
       .then(text => {
         if (!active) return;
-        setIcsText(text);
         const unfolded = text.replace(/\r?\n[ \t]/g, '');
         const veventMatch = unfolded.match(/BEGIN:VEVENT([\s\S]*?)END:VEVENT/);
         const vevent = veventMatch ? veventMatch[1] : unfolded;
@@ -48,55 +50,14 @@ export function CalendarOptions({ compact = false, titleId }) {
         const googleParams = new URLSearchParams({ action: 'TEMPLATE', text: summary, dates: `${dtstart}/${dtend}`, location });
         if (rrule) googleParams.set('recur', `RRULE:${rrule}`);
         setGoogleUrl(`https://calendar.google.com/calendar/render?${googleParams}`);
-
-        const outlookParams = new URLSearchParams({
-          path: '/calendar/action/compose',
-          rru: 'addevent',
-          subject: summary,
-          startdt: dtstart,
-          enddt: dtend,
-          location: location,
-          allday: 'false'
-        });
-        setOutlookUrl(`https://outlook.office.com/calendar/0/deeplink/compose?${outlookParams}`);
-
-        const blob = new Blob([text], { type: 'text/calendar;charset=utf-8' });
-        createdUrl = URL.createObjectURL(blob);
-        setBlobUrl(createdUrl);
-        
-        setAppleDataUri(icsToDataUri(text));
       })
       .catch(err => {
         console.error('Failed to initialize calendar options:', err);
-        if (active && createdUrl) {
-          URL.revokeObjectURL(createdUrl);
-        }
       });
-    return () => { active = false; if (createdUrl) URL.revokeObjectURL(createdUrl); };
+    return () => { active = false; };
   }, []);
 
-  const ready = !!(googleUrl && outlookUrl && appleDataUri && blobUrl);
-  const filename = 'in-person-meeting.ics';
-
-  const handleAppleAdd = async (e) => {
-    e.preventDefault();
-    if (!ready) return;
-    haptics.light();
-
-    const file = new File([icsText], filename, { type: 'text/calendar' });
-    const canShare = navigator.share && (navigator.canShare ? navigator.canShare({ files: [file] }) : false);
-
-    if (canShare) {
-      try {
-        await navigator.share({ files: [file], title: 'Add to Calendar' });
-        return;
-      } catch (err) {
-        if (err.name === 'AbortError') return;
-      }
-    }
-
-    window.location.href = appleDataUri;
-  };
+  const ready = !!(googleUrl && webcalUrl);
 
   return (
     <div 
@@ -125,9 +86,8 @@ export function CalendarOptions({ compact = false, titleId }) {
           <span className="font-sans font-semibold text-primary text-[10px] uppercase tracking-wider">Google</span>
         </a>
         <a
-          href={ready ? outlookUrl : undefined}
-          target="_blank"
-          rel="noreferrer"
+          href={ready ? webcalUrl : undefined}
+          onClick={ready ? () => haptics.light() : undefined}
           className={cn(
             'flex flex-col items-center gap-3 p-4 rounded-2xl border border-slate/10 transition-all duration-300 group text-center',
             ready ? 'hover:border-accent/30 hover:bg-primary/5 cursor-pointer bg-slate/[0.02]' : 'opacity-40 pointer-events-none'
@@ -136,19 +96,19 @@ export function CalendarOptions({ compact = false, titleId }) {
           <img src={iconMicrosoftOutlook} alt="Outlook" className="w-10 h-10 group-hover:scale-110 transition-transform" />
           <span className="font-sans font-semibold text-primary text-[10px] uppercase tracking-wider">Outlook</span>
         </a>
-        <button
-          type="button"
-          onClick={handleAppleAdd}
+        <a
+          href={ready ? webcalUrl : undefined}
+          onClick={ready ? () => haptics.light() : undefined}
           className={cn(
-            'flex flex-col items-center gap-3 p-4 rounded-2xl border border-slate/10 transition-all duration-300 group text-center bg-transparent cursor-pointer',
-            ready ? 'hover:border-accent/30 hover:bg-primary/5 bg-slate/[0.02]' : 'opacity-40 pointer-events-none'
+            'flex flex-col items-center gap-3 p-4 rounded-2xl border border-slate/10 transition-all duration-300 group text-center',
+            ready ? 'hover:border-accent/30 hover:bg-primary/5 cursor-pointer bg-slate/[0.02]' : 'opacity-40 pointer-events-none'
           )}
         >
           <div className="w-10 h-10 group-hover:scale-110 transition-transform">
             <AppleCalendarIcon />
           </div>
           <span className="font-sans font-semibold text-primary text-[10px] uppercase tracking-wider">Apple</span>
-        </button>
+        </a>
       </div>
 
       
