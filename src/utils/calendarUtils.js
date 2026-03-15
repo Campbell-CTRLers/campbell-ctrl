@@ -165,22 +165,32 @@ function toAppleCalshow(date) {
   return `calshow:${Math.floor((date.getTime() - appleEpochMs) / 1000)}`;
 }
 
+function toAppleCalshowSlash(date) {
+  if (!date) return '';
+  const appleEpochMs = Date.UTC(2001, 0, 1, 0, 0, 0);
+  return `calshow://${Math.floor((date.getTime() - appleEpochMs) / 1000)}`;
+}
+
 export function openNativeAppWithFallback(nativeUrl, fallbackUrl, timeoutMs = 1200) {
   if (typeof window === 'undefined') return;
-  if (!nativeUrl && fallbackUrl) {
+  const nativeUrls = (Array.isArray(nativeUrl) ? nativeUrl : [nativeUrl]).filter(Boolean);
+  if (!nativeUrls.length && fallbackUrl) {
     window.location.assign(fallbackUrl);
     return;
   }
-  if (!nativeUrl) return;
+  if (!nativeUrls.length) return;
 
   let didHide = false;
   let done = false;
+  let timerId = 0;
+  let attempt = 0;
 
   const cleanup = () => {
     if (done) return;
     done = true;
     window.removeEventListener('visibilitychange', onVisibility);
     window.removeEventListener('pagehide', onPageHide);
+    if (timerId) window.clearTimeout(timerId);
   };
 
   const onVisibility = () => {
@@ -197,13 +207,33 @@ export function openNativeAppWithFallback(nativeUrl, fallbackUrl, timeoutMs = 12
   window.addEventListener('visibilitychange', onVisibility);
   window.addEventListener('pagehide', onPageHide);
 
-  window.location.assign(nativeUrl);
-  window.setTimeout(() => {
-    if (!didHide && fallbackUrl) {
-      window.location.assign(fallbackUrl);
+  const tryOpenNext = () => {
+    if (didHide || done) {
+      cleanup();
+      return;
     }
-    cleanup();
-  }, timeoutMs);
+    const nextNative = nativeUrls[attempt];
+    attempt += 1;
+    if (!nextNative) {
+      if (fallbackUrl) window.location.assign(fallbackUrl);
+      cleanup();
+      return;
+    }
+    try {
+      window.location.assign(nextNative);
+    } catch (_err) {
+      // If scheme assignment fails synchronously, continue to fallback cycle.
+    }
+    timerId = window.setTimeout(() => {
+      if (didHide) {
+        cleanup();
+        return;
+      }
+      tryOpenNext();
+    }, timeoutMs);
+  };
+
+  tryOpenNext();
 }
 
 export function icsToUrls(icsText) {
@@ -247,7 +277,7 @@ export function icsToUrls(icsText) {
     location: location || '',
   });
   const outlookNativeUrl = `ms-outlook://events/new?${nativeOutlookParams}`;
-  const appleNativeUrl = toAppleCalshow(startDate);
+  const appleNativeUrl = [toAppleCalshow(startDate), toAppleCalshowSlash(startDate)].filter(Boolean);
 
   const blob = new Blob([icsText], { type: 'text/calendar;charset=utf-8' });
   const blobUrl = URL.createObjectURL(blob);

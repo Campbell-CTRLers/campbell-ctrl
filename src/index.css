@@ -163,6 +163,11 @@ body {
 .editable-site-node {
   --editable-x: 0px;
   --editable-y: 0px;
+  --editable-font-weight: inherit;
+  --editable-line-height: inherit;
+  --editable-letter-spacing: inherit;
+  --editable-text-transform: inherit;
+  --editable-text-align: inherit;
 }
 
 @media (min-width: 768px) {
@@ -171,7 +176,34 @@ body {
     left: var(--editable-x);
     top: var(--editable-y);
     font-size: var(--editable-font-size, inherit);
+    font-weight: var(--editable-font-weight, inherit);
+    line-height: var(--editable-line-height, inherit);
+    letter-spacing: var(--editable-letter-spacing, inherit);
+    text-transform: var(--editable-text-transform, inherit);
+    text-align: var(--editable-text-align, inherit);
   }
+
+  .editable-site-segment {
+    position: relative;
+    left: var(--editable-x, 0px);
+    top: var(--editable-y, 0px);
+    font-size: var(--editable-font-size, inherit);
+    font-weight: var(--editable-font-weight, inherit);
+    line-height: var(--editable-line-height, inherit);
+    letter-spacing: var(--editable-letter-spacing, inherit);
+    text-transform: var(--editable-text-transform, inherit);
+    text-align: var(--editable-text-align, inherit);
+    display: inline-block;
+    min-width: 0.25ch;
+  }
+
+  .editable-site-line {
+    display: block;
+  }
+}
+
+.editable-site-node-locked {
+  opacity: 0.92;
 }
 
 /* Custom scrollbar for dark mode */

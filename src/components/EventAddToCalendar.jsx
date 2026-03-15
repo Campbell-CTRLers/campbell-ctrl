@@ -13,7 +13,7 @@ export function EventAddToCalendar({ event, eventType, compact = false, fullWidt
   const haptics = useHaptics();
   const popoverRef = useRef(null);
 
-  const { googleUrl, outlookUrl, outlookNativeUrl, appleNativeUrl, blobUrl, icsText } = useMemo(() => {
+  const { googleUrl, outlookUrl, outlookNativeUrl, appleNativeUrl, blobUrl } = useMemo(() => {
     if (!event) return {};
     const ics = eventType === 'meeting' ? meetingToIcs(event) : gameToIcs(event);
     return icsToUrls(ics);
@@ -26,41 +26,17 @@ export function EventAddToCalendar({ event, eventType, compact = false, fullWidt
   const close = useCallback(() => setOpen(false), []);
 
   const ready = !!(googleUrl && outlookUrl && blobUrl);
-  const filename = event?.title ? `${(event.title || 'event').replace(/\s+/g, '-')}.ics` : 'event.ics';
-
   useEffect(() => {
     if (!open) return;
     document.body.style.overflow = 'hidden';
     return () => { document.body.style.overflow = ''; };
   }, [open]);
 
-  const handleAppleAdd = async (e) => {
+  const handleAppleAdd = (e) => {
     e.preventDefault();
     if (!ready) return;
     haptics.openPanel?.();
-
-    const appleUserAgent = typeof navigator !== 'undefined' && /(Macintosh|iPhone|iPad|iPod)/i.test(navigator.userAgent);
-    if (appleNativeUrl) {
-      openNativeAppWithFallback(appleNativeUrl, appleUserAgent ? null : 'https://www.icloud.com/calendar/');
-      close();
-      return;
-    }
-
-    if (icsText) {
-      const file = new File([icsText], filename, { type: 'text/calendar' });
-      const canShare = navigator.share && (navigator.canShare ? navigator.canShare({ files: [file] }) : false);
-      if (canShare) {
-        try {
-          await navigator.share({ files: [file], title: 'Add to Calendar' });
-          close();
-          return;
-        } catch (err) {
-          if (err.name === 'AbortError') return;
-        }
-      }
-    }
-
-    window.location.assign('https://www.icloud.com/calendar/');
+    openNativeAppWithFallback(appleNativeUrl, 'https://www.icloud.com/calendar/');
     close();
   };
 

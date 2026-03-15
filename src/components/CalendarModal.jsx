@@ -16,9 +16,8 @@ export function CalendarOptions({ compact = false, titleId }) {
   const [googleUrl, setGoogleUrl] = useState('');
   const [outlookUrl, setOutlookUrl] = useState('');
   const [blobUrl, setBlobUrl] = useState('');
-  const [icsText, setIcsText] = useState('');
   const [outlookNativeUrl, setOutlookNativeUrl] = useState('');
-  const [appleNativeUrl, setAppleNativeUrl] = useState('');
+  const [appleNativeUrl, setAppleNativeUrl] = useState([]);
 
   useEffect(() => {
     let active = true;
@@ -32,7 +31,6 @@ export function CalendarOptions({ compact = false, titleId }) {
       })
       .then(text => {
         if (!active) return;
-        setIcsText(text);
         const unfolded = text.replace(/\r?\n[ \t]/g, '');
         const veventMatch = unfolded.match(/BEGIN:VEVENT([\s\S]*?)END:VEVENT/);
         const vevent = veventMatch ? veventMatch[1] : unfolded;
@@ -82,7 +80,8 @@ export function CalendarOptions({ compact = false, titleId }) {
           const mi = Number(dtstart.slice(11, 13));
           const appleEpochMs = Date.UTC(2001, 0, 1, 0, 0, 0);
           const when = new Date(y, mo, d, h, mi, 0);
-          setAppleNativeUrl(`calshow:${Math.floor((when.getTime() - appleEpochMs) / 1000)}`);
+          const seconds = Math.floor((when.getTime() - appleEpochMs) / 1000);
+          setAppleNativeUrl([`calshow:${seconds}`, `calshow://${seconds}`]);
         }
 
         const blob = new Blob([text], { type: 'text/calendar;charset=utf-8' });
@@ -100,31 +99,11 @@ export function CalendarOptions({ compact = false, titleId }) {
   }, []);
 
   const ready = !!(googleUrl && outlookUrl && blobUrl);
-  const filename = 'in-person-meeting.ics';
-
-  const handleAppleAdd = async (e) => {
+  const handleAppleAdd = (e) => {
     e.preventDefault();
     if (!ready) return;
     haptics.openPanel?.();
-
-    const appleUserAgent = typeof navigator !== 'undefined' && /(Macintosh|iPhone|iPad|iPod)/i.test(navigator.userAgent);
-    if (appleNativeUrl) {
-      openNativeAppWithFallback(appleNativeUrl, appleUserAgent ? null : 'https://www.icloud.com/calendar/');
-      return;
-    }
-
-    const file = new File([icsText], filename, { type: 'text/calendar' });
-    const canShare = navigator.share && (navigator.canShare ? navigator.canShare({ files: [file] }) : false);
-    if (canShare) {
-      try {
-        await navigator.share({ files: [file], title: 'Add to Calendar' });
-        return;
-      } catch (err) {
-        if (err.name === 'AbortError') return;
-      }
-    }
-
-    window.location.assign('https://www.icloud.com/calendar/');
+    openNativeAppWithFallback(appleNativeUrl, 'https://www.icloud.com/calendar/');
   };
 
   const handleOutlookAdd = (e) => {
