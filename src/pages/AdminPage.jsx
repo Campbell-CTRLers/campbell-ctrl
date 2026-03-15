@@ -106,6 +106,12 @@ const AdminPage = ({
   }, [adminTab, isAuthenticated]);
 
   useEffect(() => {
+    if (adminTab === 'content' && !sidebarCollapsed) {
+      setSidebarCollapsed(true);
+    }
+  }, [adminTab, sidebarCollapsed]);
+
+  useEffect(() => {
     document.body.style.overflow = 'hidden';
     return () => { document.body.style.overflow = ''; };
   }, []);
@@ -398,15 +404,18 @@ const AdminPage = ({
   }
 
   // --- MAIN ADMIN PAGE ---
+  const forceCompactSidebar = adminTab === 'content';
+  const effectiveSidebarCollapsed = sidebarCollapsed || forceCompactSidebar;
+
   return (
     <div className="fixed inset-0 z-[100] bg-background flex flex-col md:flex-row overflow-hidden">
       {/* No mobile top bar — navigation lives entirely in the bottom bar */}
 
       {/* Desktop sidebar */}
-      <aside className={cn("hidden md:flex flex-col border-r border-slate/10 bg-background shrink-0 transition-all duration-300", sidebarCollapsed ? "w-[72px]" : "w-64")}>
-        <div className={cn("flex items-center gap-3 p-6 pb-4", sidebarCollapsed && "justify-center px-3")}>
+      <aside className={cn("hidden md:flex flex-col border-r border-slate/10 bg-background shrink-0 transition-all duration-300", effectiveSidebarCollapsed ? "w-[72px]" : "w-64")}>
+        <div className={cn("flex items-center gap-3 p-6 pb-4", effectiveSidebarCollapsed && "justify-center px-3")}>
           <div className="w-10 h-10 bg-accent/10 rounded-2xl flex items-center justify-center text-accent shrink-0"><IconSettings size={20} /></div>
-          {!sidebarCollapsed && (
+          {!effectiveSidebarCollapsed && (
             <div className="flex flex-col min-w-0">
               <span className="font-sans font-black text-lg text-primary uppercase tracking-tighter italic leading-none">ADMIN</span>
               <span className="font-mono text-[9px] text-slate/40 mt-1 uppercase tracking-widest truncate">{email}</span>
@@ -416,29 +425,31 @@ const AdminPage = ({
 
         <nav className="flex flex-col gap-1 px-3 flex-1 mt-2">
           {SIDEBAR_TABS.map(({ id, label, Icon }) => (
-            <button key={id} onClick={() => { haptics.selection(); setAdminTab(id); }} className={cn("flex items-center gap-3 px-4 py-3 rounded-xl font-sans font-semibold text-sm transition-all", sidebarCollapsed && "justify-center px-0", adminTab === id ? "bg-accent/10 text-accent" : "text-slate/60 hover:text-primary hover:bg-slate/5")} title={sidebarCollapsed ? label : undefined}>
+            <button key={id} onClick={() => { haptics.selection(); setAdminTab(id); }} className={cn("flex items-center gap-3 px-4 py-3 rounded-xl font-sans font-semibold text-sm transition-all", effectiveSidebarCollapsed && "justify-center px-0", adminTab === id ? "bg-accent/10 text-accent" : "text-slate/60 hover:text-primary hover:bg-slate/5")} title={effectiveSidebarCollapsed ? label : undefined}>
               <Icon size={18} className="shrink-0" />
-              {!sidebarCollapsed && label}
+              {!effectiveSidebarCollapsed && label}
             </button>
           ))}
         </nav>
 
-        <div className={cn("flex flex-col gap-1 p-3 border-t border-slate/10", sidebarCollapsed && "items-center")}>
-          <button onClick={() => { haptics.light(); setSidebarCollapsed(!sidebarCollapsed); }} className="flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm text-slate/40 hover:text-primary hover:bg-slate/5 transition-all" title={sidebarCollapsed ? 'Expand' : 'Collapse'}>
-            <IconChevronLeft size={18} className={cn("transition-transform shrink-0", sidebarCollapsed && "rotate-180")} />
-            {!sidebarCollapsed && <span className="font-semibold">Collapse</span>}
-          </button>
-          <button onClick={toggleTheme} className={cn("flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm text-slate/40 hover:text-primary hover:bg-slate/5 transition-all", sidebarCollapsed && "justify-center px-0")} title={theme === 'dark' ? 'Light Mode' : 'Dark Mode'}>
+        <div className={cn("flex flex-col gap-1 p-3 border-t border-slate/10", effectiveSidebarCollapsed && "items-center")}>
+          {!forceCompactSidebar && (
+            <button onClick={() => { haptics.light(); setSidebarCollapsed(!sidebarCollapsed); }} className="flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm text-slate/40 hover:text-primary hover:bg-slate/5 transition-all" title={sidebarCollapsed ? 'Expand' : 'Collapse'}>
+              <IconChevronLeft size={18} className={cn("transition-transform shrink-0", sidebarCollapsed && "rotate-180")} />
+              {!sidebarCollapsed && <span className="font-semibold">Collapse</span>}
+            </button>
+          )}
+          <button onClick={toggleTheme} className={cn("flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm text-slate/40 hover:text-primary hover:bg-slate/5 transition-all", effectiveSidebarCollapsed && "justify-center px-0")} title={theme === 'dark' ? 'Light Mode' : 'Dark Mode'}>
             {theme === 'dark' ? <IconSun size={18} className="shrink-0" /> : <IconMoon size={18} className="shrink-0" />}
-            {!sidebarCollapsed && <span className="font-semibold">{theme === 'dark' ? 'Light Mode' : 'Dark Mode'}</span>}
+            {!effectiveSidebarCollapsed && <span className="font-semibold">{theme === 'dark' ? 'Light Mode' : 'Dark Mode'}</span>}
           </button>
-          <button onClick={handleCloseAttempt} className={cn("flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm text-slate/40 hover:text-primary hover:bg-slate/5 transition-all", sidebarCollapsed && "justify-center px-0")} title="Back to Site">
+          <button onClick={handleCloseAttempt} className={cn("flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm text-slate/40 hover:text-primary hover:bg-slate/5 transition-all", effectiveSidebarCollapsed && "justify-center px-0")} title="Back to Site">
             <IconChevronLeft size={18} className="shrink-0" />
-            {!sidebarCollapsed && <span className="font-semibold">Back to Site</span>}
+            {!effectiveSidebarCollapsed && <span className="font-semibold">Back to Site</span>}
           </button>
-          <button onClick={handleSignOut} className={cn("flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm text-red-500/40 hover:text-red-500 hover:bg-red-500/5 transition-all", sidebarCollapsed && "justify-center px-0")} title="Sign Out">
+          <button onClick={handleSignOut} className={cn("flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm text-red-500/40 hover:text-red-500 hover:bg-red-500/5 transition-all", effectiveSidebarCollapsed && "justify-center px-0")} title="Sign Out">
             <IconLogOut size={18} className="shrink-0" />
-            {!sidebarCollapsed && <span className="font-semibold">Sign Out</span>}
+            {!effectiveSidebarCollapsed && <span className="font-semibold">Sign Out</span>}
           </button>
         </div>
       </aside>
@@ -462,7 +473,12 @@ const AdminPage = ({
         </header>
 
         {/* Tab content */}
-        <div ref={tabContentRef} className="flex-1 overflow-y-auto custom-scrollbar px-4 sm:px-8 py-6 pb-40 md:pb-8">
+        <div ref={tabContentRef} className={cn(
+          "flex-1 custom-scrollbar",
+          adminTab === 'content'
+            ? "overflow-hidden px-0 py-0 pb-28 md:pb-0"
+            : "overflow-y-auto px-4 sm:px-8 py-6 pb-40 md:pb-8"
+        )}>
           {adminTab === 'schedule' && (
             <AdminScheduleEditor gamesList={gamesList} onAddGame={handleAddGame} updateGame={updateGame} setGameRoster={setGameRoster} deleteGame={deleteGame} setActiveControlId={setActiveControlId} />
           )}

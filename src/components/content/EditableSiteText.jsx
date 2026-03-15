@@ -49,7 +49,7 @@ export const EditableSiteText = ({
   const onSelect = (e) => {
     if (!editingEnabled) return;
     e.stopPropagation();
-    editor?.setSelectedKey?.(contentKey);
+    editor?.setSelectedKey?.(contentKey, text);
   };
 
   const onInput = (e) => {
