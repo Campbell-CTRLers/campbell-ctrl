@@ -553,7 +553,7 @@ const AdminPage = ({
   // --- MAIN ADMIN PAGE ---
   const forceCompactSidebar = adminTab === 'content';
   const effectiveSidebarCollapsed = sidebarCollapsed || forceCompactSidebar;
-  const mobileTabOptions = useMemo(() => MOBILE_TABS, []);
+  const mobileTabOptions = MOBILE_TABS;
 
   return (
     <div className="fixed inset-0 z-[100] bg-background flex flex-col md:flex-row overflow-hidden">

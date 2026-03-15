@@ -1,4 +1,3 @@
-const CONTROL_CHARS_REGEX = /[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g;
 const VALID_DAYS = new Set(['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']);
 const MAX_ITEMS_PER_LIST = 250;
 const MAX_SITE_CONTENT_BYTES = 450000;
@@ -6,9 +5,16 @@ const MAX_SITE_CONTENT_BYTES = 450000;
 const isPlainObject = (value) =>
   Boolean(value) && typeof value === 'object' && !Array.isArray(value);
 
+const stripControlChars = (value) =>
+  Array.from(String(value ?? ''))
+    .filter((ch) => {
+      const code = ch.charCodeAt(0);
+      return !(code <= 8 || code === 11 || code === 12 || (code >= 14 && code <= 31) || code === 127);
+    })
+    .join('');
+
 const cleanText = (value, maxLength = 120) =>
-  String(value ?? '')
-    .replace(CONTROL_CHARS_REGEX, '')
+  stripControlChars(value)
     .trim()
     .slice(0, maxLength);
 
