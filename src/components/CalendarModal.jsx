@@ -8,11 +8,14 @@ import inPersonMeetingIcs from '../assets/in-person-meeting.ics?url';
 import iconGoogleCalendar from '../assets/icon-google-calendar.svg';
 import iconMicrosoftOutlook from '../assets/icon-microsoft-outlook.svg';
 import { useHaptics } from '../hooks/useHaptics';
+import { icsToDataUri } from '../utils/calendarUtils';
 
 export function CalendarOptions({ compact = false, titleId }) {
   const containerRef = useRef(null);
   const haptics = useHaptics();
   const [googleUrl, setGoogleUrl] = useState('');
+  const [icsText, setIcsText] = useState('');
+  const [appleDataUri, setAppleDataUri] = useState('');
 
   const webcalUrl = useMemo(() => {
     try {
@@ -34,6 +37,8 @@ export function CalendarOptions({ compact = false, titleId }) {
       })
       .then(text => {
         if (!active) return;
+        setIcsText(text);
+        setAppleDataUri(icsToDataUri(text));
         const unfolded = text.replace(/\r?\n[ \t]/g, '');
         const veventMatch = unfolded.match(/BEGIN:VEVENT([\s\S]*?)END:VEVENT/);
         const vevent = veventMatch ? veventMatch[1] : unfolded;
@@ -57,7 +62,25 @@ export function CalendarOptions({ compact = false, titleId }) {
     return () => { active = false; };
   }, []);
 
-  const ready = !!(googleUrl && webcalUrl);
+  const ready = !!(googleUrl && webcalUrl && appleDataUri);
+
+  const handleAppleClick = async (e) => {
+    haptics.light();
+    if (!icsText) return;
+    const file = new File([icsText], 'in-person-meeting.ics', { type: 'text/calendar' });
+    const canShare = navigator.share && navigator.canShare?.({ files: [file] });
+    if (canShare) {
+      e.preventDefault();
+      try {
+        await navigator.share({ files: [file], title: 'Add to Calendar' });
+      } catch (err) {
+        if (err.name !== 'AbortError') {
+          window.location.href = appleDataUri;
+        }
+      }
+    }
+    // else: let the default href (data: URI) navigate — iOS Safari opens Calendar
+  };
 
   return (
     <div 
@@ -78,7 +101,7 @@ export function CalendarOptions({ compact = false, titleId }) {
           target="_blank"
           rel="noreferrer"
           className={cn(
-            'flex flex-col items-center gap-3 p-4 rounded-2xl border border-slate/10 transition-all duration-300 group text-center',
+            'flex flex-col items-center gap-3 p-4 rounded-2xl border border-slate/10 transition-all duration-300 group text-center touch-manipulation',
             ready ? 'hover:border-accent/30 hover:bg-primary/5 cursor-pointer bg-slate/[0.02]' : 'opacity-40 pointer-events-none'
           )}
         >
@@ -89,7 +112,7 @@ export function CalendarOptions({ compact = false, titleId }) {
           href={ready ? webcalUrl : undefined}
           onClick={ready ? () => haptics.light() : undefined}
           className={cn(
-            'flex flex-col items-center gap-3 p-4 rounded-2xl border border-slate/10 transition-all duration-300 group text-center',
+            'flex flex-col items-center gap-3 p-4 rounded-2xl border border-slate/10 transition-all duration-300 group text-center touch-manipulation',
             ready ? 'hover:border-accent/30 hover:bg-primary/5 cursor-pointer bg-slate/[0.02]' : 'opacity-40 pointer-events-none'
           )}
         >
@@ -97,10 +120,10 @@ export function CalendarOptions({ compact = false, titleId }) {
           <span className="font-sans font-semibold text-primary text-[10px] uppercase tracking-wider">Outlook</span>
         </a>
         <a
-          href={ready ? webcalUrl : undefined}
-          onClick={ready ? () => haptics.light() : undefined}
+          href={ready ? appleDataUri : undefined}
+          onClick={ready ? handleAppleClick : undefined}
           className={cn(
-            'flex flex-col items-center gap-3 p-4 rounded-2xl border border-slate/10 transition-all duration-300 group text-center',
+            'flex flex-col items-center gap-3 p-4 rounded-2xl border border-slate/10 transition-all duration-300 group text-center touch-manipulation',
             ready ? 'hover:border-accent/30 hover:bg-primary/5 cursor-pointer bg-slate/[0.02]' : 'opacity-40 pointer-events-none'
           )}
         >
