@@ -277,12 +277,12 @@ const AdminContentEditor = ({
     updateEditableStyle(setSiteContent, selectedKey, patch);
   };
 
-  const updateSelectedPosition = (x, y) => {
+  const updateSelectedPosition = useCallback((x, y) => {
     if (!selectedKey) return;
     updateEditablePosition(setSiteContent, selectedKey, { x, y });
-  };
+  }, [selectedKey, setSiteContent]);
 
-  const nudgeSelected = (dx, dy, multiplier = 1) => {
+  const nudgeSelected = useCallback((dx, dy, multiplier = 1) => {
     if (!selectedKey) return;
     haptics.soft();
     const step = Number(nudgeStep || 1) * multiplier;
@@ -290,7 +290,7 @@ const AdminContentEditor = ({
       Number(selectedPosition.x || 0) + (dx * step),
       Number(selectedPosition.y || 0) + (dy * step)
     );
-  };
+  }, [haptics, nudgeStep, selectedKey, selectedPosition.x, selectedPosition.y, updateSelectedPosition]);
 
   const resetCurrentTab = () => {
     const keysFromDom = Array.from(canvasRef.current?.querySelectorAll?.('[data-content-key]') || [])
@@ -339,7 +339,7 @@ const AdminContentEditor = ({
       };
       applySnapshot(snapshot);
       haptics.success();
-    } catch (_err) {
+    } catch {
       haptics.error();
     } finally {
       event.target.value = '';
@@ -387,7 +387,7 @@ const AdminContentEditor = ({
     };
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [nudgeStep, redo, selectedKey, undo]);
+  }, [nudgeSelected, redo, selectedKey, undo]);
 
   const filteredKeys = useMemo(() => {
     const q = keySearch.trim().toLowerCase();
@@ -738,7 +738,7 @@ const AdminContentEditor = ({
                         const parsed = JSON.parse(raw);
                         updateSelectedStyle(parsed);
                         haptics.success();
-                      } catch (_err) {
+                      } catch {
                         haptics.error();
                       }
                     }}

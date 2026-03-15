@@ -185,8 +185,8 @@ body {
 
   .editable-site-segment {
     position: relative;
-    left: var(--editable-x, 0px);
-    top: var(--editable-y, 0px);
+    left: var(--editable-x, 0);
+    top: var(--editable-y, 0);
     font-size: var(--editable-font-size, inherit);
     font-weight: var(--editable-font-weight, inherit);
     line-height: var(--editable-line-height, inherit);

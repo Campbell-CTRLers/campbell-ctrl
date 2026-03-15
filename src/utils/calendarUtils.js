@@ -221,7 +221,7 @@ export function openNativeAppWithFallback(nativeUrl, fallbackUrl, timeoutMs = 12
     }
     try {
       window.location.assign(nextNative);
-    } catch (_err) {
+    } catch {
       // If scheme assignment fails synchronously, continue to fallback cycle.
     }
     timerId = window.setTimeout(() => {
