@@ -22,6 +22,7 @@ const MeetingsTab = ({ meetings = [], dataLoaded = true, siteContent, setSiteCon
   });
   const timelineRef = useRef(null);
   const nextMeetingRef = useRef(null);
+  const mobileControlsRef = useRef(null);
 
   const mc = siteContent?.meetings || {};
   const headingAccent = mc.headingAccent || 'Meetings.';
@@ -96,7 +97,12 @@ const MeetingsTab = ({ meetings = [], dataLoaded = true, siteContent, setSiteCon
   const scrollToNode = useCallback((nodeRef) => {
     const node = nodeRef.current;
     if (!node || typeof window === 'undefined') return;
-    const stickyOffset = window.matchMedia('(max-width: 767px)').matches ? 156 : 24;
+    const isMobileViewport = window.matchMedia('(max-width: 767px)').matches;
+    const navBottom = document.querySelector('nav')?.getBoundingClientRect?.().bottom || 0;
+    const controlsBottom = mobileControlsRef.current?.getBoundingClientRect?.().bottom || 0;
+    const stickyOffset = isMobileViewport
+      ? Math.max(navBottom, controlsBottom) + 12
+      : 24;
     const top = node.getBoundingClientRect().top + window.scrollY - stickyOffset;
     window.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
   }, []);
@@ -127,7 +133,7 @@ const MeetingsTab = ({ meetings = [], dataLoaded = true, siteContent, setSiteCon
         </h1>
         <EditableSiteText as="p" contentKey="meetings.description" fallback={description} siteContent={siteContent} setSiteContent={setSiteContent} editor={contentEditor} className="font-roboto text-slate/80 text-lg max-w-2xl" />
       </div>
-      <div className="md:hidden sticky top-[calc(4.9rem+env(safe-area-inset-top,0px))] z-20 mb-5">
+      <div ref={mobileControlsRef} data-meetings-mobile-controls className="md:hidden sticky top-[calc(4.9rem+env(safe-area-inset-top,0px))] z-20 mb-5">
         <div className="rounded-2xl border border-slate/10 bg-background/95 backdrop-blur-md p-2.5 shadow-lg">
           <div className="grid grid-cols-3 gap-2">
             <button onClick={() => scrollToNode(timelineRef)} className="min-h-[42px] rounded-xl border border-slate/10 bg-slate/5 text-[10px] font-mono font-bold uppercase tracking-wide">This Week</button>
@@ -145,7 +151,7 @@ const MeetingsTab = ({ meetings = [], dataLoaded = true, siteContent, setSiteCon
       {!dataLoaded ? renderSkeleton() : hasMeetings ? (
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8">
           {/* Timeline */}
-          <div className="lg:col-span-7 xl:col-span-8 scroll-mt-40" ref={timelineRef}>
+          <div className="lg:col-span-7 xl:col-span-8" ref={timelineRef}>
             <div className="flex flex-col">
               {DAY_ORDER.map((day, i) => {
                 const dayMeetings = meetingsByDay[day];
