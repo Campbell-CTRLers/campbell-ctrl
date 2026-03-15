@@ -9,8 +9,12 @@ const toFiniteNumber = (value, fallback = 0) => {
 };
 
 export const sanitizeEditableText = (value) =>
-  String(value ?? '')
-    .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, '')
+  Array.from(String(value ?? ''))
+    .filter((ch) => {
+      const code = ch.charCodeAt(0);
+      return !(code <= 8 || code === 11 || code === 12 || (code >= 14 && code <= 31) || code === 127);
+    })
+    .join('')
     .slice(0, MAX_EDITABLE_TEXT_LENGTH);
 
 export const getEditorBuckets = (siteContent) => {

@@ -107,8 +107,9 @@ export function CalendarOptions({ compact = false, titleId }) {
     if (!ready) return;
     haptics.openPanel?.();
 
+    const appleUserAgent = typeof navigator !== 'undefined' && /(Macintosh|iPhone|iPad|iPod)/i.test(navigator.userAgent);
     if (appleNativeUrl) {
-      openNativeAppWithFallback(appleNativeUrl, googleUrl);
+      openNativeAppWithFallback(appleNativeUrl, appleUserAgent ? null : 'https://www.icloud.com/calendar/');
       return;
     }
 
@@ -123,7 +124,7 @@ export function CalendarOptions({ compact = false, titleId }) {
       }
     }
 
-    if (googleUrl) window.location.assign(googleUrl);
+    window.location.assign('https://www.icloud.com/calendar/');
   };
 
   const handleOutlookAdd = (e) => {

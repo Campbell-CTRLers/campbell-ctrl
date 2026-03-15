@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { IconEye, IconEyeOff, IconRotate } from '../icons/SvgIcons';
 import { cn } from '../../utils/cn';
 import { useHaptics } from '../../hooks/useHaptics';
@@ -59,24 +59,20 @@ const AdminContentEditor = ({
   const [previewTab, setPreviewTab] = useState('home');
   const [mode, setMode] = useState('select');
   const [selectedKey, setSelectedKey] = useState(null);
-  const [fallbackText, setFallbackText] = useState('');
 
   const selectedStyle = selectedKey ? readEditableStyle(siteContent, selectedKey) : {};
   const selectedPosition = selectedKey ? readEditablePosition(siteContent, selectedKey) : { x: 0, y: 0 };
   const selectedFontSize = selectedStyle?.fontSize ?? 16;
 
-  useEffect(() => {
-    if (!selectedKey) {
-      setFallbackText('');
-      return;
-    }
+  const selectedFallbackText = useMemo(() => {
+    if (!selectedKey) return '';
     const selector = typeof CSS !== 'undefined' && CSS.escape ? CSS.escape(selectedKey) : selectedKey;
     const node = document.querySelector(`[data-content-key="${selector}"]`);
-    setFallbackText(node?.textContent?.trim() || '');
-  }, [selectedKey, previewTab, siteContent, mode]);
+    return node?.textContent?.trim() || '';
+  }, [selectedKey]);
 
   const selectedText = selectedKey
-    ? readEditableText(siteContent, selectedKey, fallbackText)
+    ? readEditableText(siteContent, selectedKey, selectedFallbackText)
     : '';
 
   const editor = useMemo(() => ({

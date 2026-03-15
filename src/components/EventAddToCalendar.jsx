@@ -39,8 +39,9 @@ export function EventAddToCalendar({ event, eventType, compact = false, fullWidt
     if (!ready) return;
     haptics.openPanel?.();
 
+    const appleUserAgent = typeof navigator !== 'undefined' && /(Macintosh|iPhone|iPad|iPod)/i.test(navigator.userAgent);
     if (appleNativeUrl) {
-      openNativeAppWithFallback(appleNativeUrl, googleUrl);
+      openNativeAppWithFallback(appleNativeUrl, appleUserAgent ? null : 'https://www.icloud.com/calendar/');
       close();
       return;
     }
@@ -59,7 +60,7 @@ export function EventAddToCalendar({ event, eventType, compact = false, fullWidt
       }
     }
 
-    if (googleUrl) window.location.assign(googleUrl);
+    window.location.assign('https://www.icloud.com/calendar/');
     close();
   };
 
