@@ -14,7 +14,6 @@ import { useHaptics } from './hooks/useHaptics';
 import Footer from './components/Footer';
 import { BackdropDecoration } from './components/BackdropDecoration';
 import { ScrollToTop } from './components/ScrollToTop';
-import { IconCalendar, IconGamepad } from './components/icons/SvgIcons';
 
 // Lazy-load tabs — only the active tab's JS is downloaded
 const HomeTab = lazy(() => import('./pages/HomeTab'));
@@ -40,68 +39,6 @@ const PullToRefreshIndicator = ({ pullDistance = 0, refreshing = false }) => (
   </div>
 );
 
-const MobileQuickTabBar = ({
-  currentTab,
-  onNavigate,
-  collapsed,
-  onToggleCollapsed,
-  installAvailable = false,
-  onInstall,
-}) => {
-  const haptics = useHaptics();
-  const tabs = [
-    { id: 'home', label: 'Home', icon: 'H' },
-    { id: 'esports', label: 'Esports', Icon: IconGamepad },
-    { id: 'meetings', label: 'Meetings', Icon: IconCalendar },
-  ];
-
-  return (
-    <div className="md:hidden fixed bottom-0 left-0 right-0 z-40 pb-[max(0.5rem,env(safe-area-inset-bottom,0px))] px-3 pointer-events-none">
-      <div className="pointer-events-auto rounded-2xl border border-slate/15 bg-background/95 backdrop-blur-xl shadow-[0_-10px_35px_rgba(0,0,0,0.22)]">
-        {!collapsed && (
-          <div className="grid grid-cols-3 gap-1 px-2 pt-2 pb-1.5">
-            {tabs.map(({ id, label, Icon, icon }) => {
-              const active = currentTab === id;
-              return (
-                <button
-                  key={id}
-                  onClick={() => { haptics.selection(); onNavigate(id); }}
-                  className={active
-                    ? 'min-h-[46px] rounded-xl bg-accent/12 border border-accent/25 text-accent flex flex-col items-center justify-center gap-0.5'
-                    : 'min-h-[46px] rounded-xl border border-transparent text-slate/60 flex flex-col items-center justify-center gap-0.5'
-                  }
-                  aria-current={active ? 'page' : undefined}
-                >
-                  {Icon ? <Icon size={15} /> : <span className="font-mono text-xs font-black">{icon}</span>}
-                  <span className="text-[10px] font-mono font-black uppercase tracking-wide">{label}</span>
-                </button>
-              );
-            })}
-          </div>
-        )}
-        <div className="flex items-center justify-center border-t border-slate/10">
-          <button
-            onClick={onToggleCollapsed}
-            className="w-full min-h-[36px] text-[9px] font-mono font-bold uppercase tracking-[0.2em] text-slate/40"
-          >
-            {collapsed ? 'Open Quick Tabs' : 'Hide Quick Tabs'}
-          </button>
-        </div>
-        {installAvailable && !collapsed && (
-          <div className="px-2 pb-2">
-            <button
-              onClick={onInstall}
-              className="w-full min-h-[36px] rounded-xl border border-accent/25 bg-accent/10 text-accent text-[10px] font-mono font-bold uppercase tracking-wide"
-            >
-              Install app
-            </button>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-};
-
 // Inner component so it can use the useMobile hook (needs MobileProvider above)
 function AppInner() {
   const { isMobile } = useMobile();
@@ -116,13 +53,8 @@ function AppInner() {
 
   const [currentTab, setCurrentTab] = useState(getInitialTab);
   const [isTransitioning, setIsTransitioning] = useState(false);
-  const [mobileTabBarCollapsed, setMobileTabBarCollapsed] = useState(() => {
-    if (typeof window === 'undefined') return false;
-    return window.localStorage.getItem('mobileQuickTabsCollapsed') === '1';
-  });
   const [pullDistance, setPullDistance] = useState(0);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [deferredInstallPrompt, setDeferredInstallPrompt] = useState(null);
   const haptics = useHaptics();
 
   const handleTabChange = useCallback((newTab, isPopState = false) => {
@@ -184,25 +116,6 @@ function AppInner() {
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
   }, [currentTab, handleTabChange]);
-
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    window.localStorage.setItem('mobileQuickTabsCollapsed', mobileTabBarCollapsed ? '1' : '0');
-  }, [mobileTabBarCollapsed]);
-
-  useEffect(() => {
-    const onBeforeInstallPrompt = (e) => {
-      e.preventDefault();
-      setDeferredInstallPrompt(e);
-    };
-    const onAppInstalled = () => setDeferredInstallPrompt(null);
-    window.addEventListener('beforeinstallprompt', onBeforeInstallPrompt);
-    window.addEventListener('appinstalled', onAppInstalled);
-    return () => {
-      window.removeEventListener('beforeinstallprompt', onBeforeInstallPrompt);
-      window.removeEventListener('appinstalled', onAppInstalled);
-    };
-  }, []);
 
   // Dynamic document title per tab
   useEffect(() => {
@@ -358,16 +271,6 @@ function AppInner() {
     if (isRefreshing) setIsRefreshing(false);
   };
 
-  const handleInstallApp = async () => {
-    if (!deferredInstallPrompt) return;
-    haptics.medium();
-    deferredInstallPrompt.prompt();
-    const choice = await deferredInstallPrompt.userChoice;
-    if (choice?.outcome === 'accepted') {
-      setDeferredInstallPrompt(null);
-    }
-  };
-
   return (
     <div className="bg-background min-h-screen font-sans selection:bg-accent selection:text-background pb-1 relative">
       {isMobile && pullDistance > 0 && <PullToRefreshIndicator pullDistance={pullDistance} refreshing={isRefreshing} />}
@@ -393,7 +296,6 @@ function AppInner() {
         onTouchStart={onMainTouchStart}
         onTouchMove={onMainTouchMove}
         onTouchEnd={onMainTouchEnd}
-        className={isMobile && !mobileTabBarCollapsed ? 'pb-24' : ''}
       >
         <Suspense fallback={<div className="flex min-h-[40vh] items-center justify-center text-slate" aria-live="polite">Loading…</div>}>
           {currentTab === 'home' && <HomeTab gamesList={gamesList} standings={standings} rankings={rankings} meetings={meetings} siteContent={siteContent} setSiteContent={setSiteContent} dataLoaded={dataLoaded} onNavigateToEsports={() => handleTabChange('esports')} />}
@@ -404,16 +306,6 @@ function AppInner() {
       </main>
 
       <Footer onToggleAdmin={() => handleTabChange('admin')} onNavigate={handleTabChange} siteContent={siteContent} setSiteContent={setSiteContent} />
-      {isMobile && currentTab !== 'legal' && (
-        <MobileQuickTabBar
-          currentTab={currentTab}
-          onNavigate={handleTabChange}
-          collapsed={mobileTabBarCollapsed}
-          onToggleCollapsed={() => setMobileTabBarCollapsed((v) => !v)}
-          installAvailable={Boolean(deferredInstallPrompt)}
-          onInstall={handleInstallApp}
-        />
-      )}
 
       <ScrollToTop />
 

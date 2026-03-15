@@ -1,6 +1,6 @@
-import React, { useRef, useState, useEffect, useMemo } from 'react';
+import React, { useRef, useEffect, useMemo } from 'react';
 import gsap from 'gsap';
-import { IconArrowRight, IconSun, IconMoon } from './icons/SvgIcons';
+import { IconArrowRight, IconCalendar, IconDiscord, IconGamepad, IconHome, IconSun, IconMoon } from './icons/SvgIcons';
 import { cn } from '../utils/cn';
 import { useTheme } from '../context/useTheme';
 import { useHaptics } from '../hooks/useHaptics';
@@ -66,9 +66,7 @@ const ThemeToggle = ({ theme, toggleTheme }) => {
 };
 
 const Navbar = ({ currentTab, onNavigate, siteContent = null, setSiteContent, contentEditor, previewStatic = false }) => {
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
   const navRef = useRef(null);
-  const menuRef = useRef(null);
   const indicatorRef = useRef(null);
   const pillContainerRef = useRef(null);
   const homeRef = useRef(null);
@@ -100,7 +98,7 @@ const Navbar = ({ currentTab, onNavigate, siteContent = null, setSiteContent, co
       gsap.set('.nav-pill', { backgroundColor: colors.isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)', borderColor: colors.scrolledBorder });
     };
     applyScrolledStyle();
-  }, [currentTab, isMenuOpen, theme]);
+  }, [currentTab, theme]);
 
   // Morphing pill indicator — position relative to active tab button
   useEffect(() => {
@@ -124,25 +122,9 @@ const Navbar = ({ currentTab, onNavigate, siteContent = null, setSiteContent, co
     });
   }, [currentTab, theme, tabRefs]);
 
-  // Dropdown animation — GSAP only (no transition-all on items to avoid conflict), consistent start state
-  useEffect(() => {
-    if (isMenuOpen) {
-      gsap.set('.mobile-nav-item', { opacity: 0, y: -6 });
-      gsap.to('.mobile-nav-item', { opacity: 1, y: 0, duration: 0.2, stagger: 0.03, delay: 0.05, ease: 'power2.out', overwrite: true });
-    } else {
-      gsap.to('.mobile-nav-item', { opacity: 0, y: -6, duration: 0.12, ease: 'power2.in', overwrite: true });
-    }
-  }, [isMenuOpen]);
-
   const handleNavClick = (tab) => {
     haptics.selection();
     onNavigate(tab);
-    setIsMenuOpen(false);
-  };
-
-  const toggleMenu = () => {
-    haptics.light();
-    setIsMenuOpen(!isMenuOpen);
   };
 
   return (
@@ -154,6 +136,42 @@ const Navbar = ({ currentTab, onNavigate, siteContent = null, setSiteContent, co
         <button type="button" onClick={() => handleNavClick('home')} className="flex items-center gap-3 cursor-pointer z-10 p-0 border-0 bg-transparent" aria-label="Campbell High Esports – home">
           <img src="/logo-transparent.png" className="nav-logo h-10 w-10 sm:h-12 sm:w-12 object-contain transition-all !text-transparent" alt="Campbell High Esports – home" />
         </button>
+
+        <div className="md:hidden absolute left-1/2 -translate-x-1/2 flex items-center gap-1 rounded-full border border-slate/10 bg-slate/5 px-1.5 py-1">
+          <button
+            onClick={() => handleNavClick('home')}
+            aria-current={currentTab === 'home' ? 'page' : undefined}
+            aria-label="Home"
+            className={cn(
+              "min-w-[38px] min-h-[38px] rounded-full flex items-center justify-center touch-manipulation transition-all",
+              currentTab === 'home' ? "bg-accent/12 text-accent border border-accent/30" : "text-slate/60"
+            )}
+          >
+            <IconHome size={16} />
+          </button>
+          <button
+            onClick={() => handleNavClick('esports')}
+            aria-current={currentTab === 'esports' ? 'page' : undefined}
+            aria-label="Esports"
+            className={cn(
+              "min-w-[38px] min-h-[38px] rounded-full flex items-center justify-center touch-manipulation transition-all",
+              currentTab === 'esports' ? "bg-accent/12 text-accent border border-accent/30" : "text-slate/60"
+            )}
+          >
+            <IconGamepad size={16} />
+          </button>
+          <button
+            onClick={() => handleNavClick('meetings')}
+            aria-current={currentTab === 'meetings' ? 'page' : undefined}
+            aria-label="Meetings"
+            className={cn(
+              "min-w-[38px] min-h-[38px] rounded-full flex items-center justify-center touch-manipulation transition-all",
+              currentTab === 'meetings' ? "bg-accent/12 text-accent border border-accent/30" : "text-slate/60"
+            )}
+          >
+            <IconCalendar size={16} />
+          </button>
+        </div>
 
         <div ref={pillContainerRef} className="hidden md:flex items-center absolute left-1/2 -translate-x-1/2 gap-2 rounded-full p-1 nav-pill border border-transparent transition-colors duration-300">
           {/* Morphing active indicator */}
@@ -169,7 +187,7 @@ const Navbar = ({ currentTab, onNavigate, siteContent = null, setSiteContent, co
           </NavLink>
         </div>
 
-        {/* Right side: Actions (Desktop) & Hamburger (Mobile) */}
+        {/* Right side actions */}
         <div className="flex items-center gap-2 sm:gap-4 ml-auto shrink-0 z-10 relative">
           <ThemeToggle theme={theme} toggleTheme={toggleTheme} />
 
@@ -177,45 +195,18 @@ const Navbar = ({ currentTab, onNavigate, siteContent = null, setSiteContent, co
               <EditableSiteText as="span" contentKey="navbar.joinDiscord" fallback="Join Discord" siteContent={siteContent} setSiteContent={setSiteContent} editor={contentEditor} className="relative z-10 transition-colors duration-300" />
               <IconArrowRight size={16} className="relative z-10 transition-colors duration-300" />
             </a>
-
-          <button
-            className="md:hidden min-w-[44px] min-h-[44px] w-11 h-11 flex flex-col justify-center items-center gap-1.5 z-50 relative ml-2 touch-manipulation active:scale-95"
-            onClick={toggleMenu}
-            aria-label="Toggle menu"
+          <a
+            href="https://discord.gg/HZ2bQsmaSK"
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={() => haptics.light()}
+            aria-label="Join Discord"
+            className="md:hidden min-w-[38px] min-h-[38px] rounded-full bg-[#5865F2]/10 border border-[#5865F2]/20 text-[#5865F2] flex items-center justify-center touch-manipulation"
           >
-            <span className={cn("block w-6 h-[2px] rounded-full transition-transform duration-200 origin-center bg-current", isMenuOpen ? "translate-y-[8px] rotate-45" : "")}></span>
-            <span className={cn("block w-6 h-[2px] rounded-full transition-opacity duration-200 bg-current", isMenuOpen ? "opacity-0" : "")}></span>
-            <span className={cn("block w-6 h-[2px] rounded-full transition-transform duration-200 origin-center bg-current", isMenuOpen ? "-translate-y-[8px] -rotate-45" : "")}></span>
-          </button>
-        </div>
-      </div>
-
-      {/* Dropdown Menu (Mobile/Tablet) */}
-      <div
-        ref={menuRef}
-        style={{
-          maxHeight: isMenuOpen ? '600px' : '0px',
-          transition: 'max-height 0.25s cubic-bezier(0.32, 0.72, 0, 1)',
-          pointerEvents: isMenuOpen ? 'auto' : 'none',
-        }}
-        className="w-full md:hidden flex flex-col items-center justify-start font-mono z-0 overflow-hidden"
-      >
-        <div className="flex flex-col items-center justify-center gap-2 w-full pt-4 pb-2">
-          <button onClick={() => handleNavClick('home')} aria-current={currentTab === 'home' ? 'page' : undefined} className={cn("mobile-nav-item w-[85%] py-4 rounded-2xl text-xl font-bold touch-manipulation flex items-center justify-center", currentTab === 'home' ? "bg-accent/10 text-accent" : "text-primary hover:bg-slate-500/5")}><EditableSiteText as="span" contentKey="navbar.homeMobile" fallback="Home" siteContent={siteContent} setSiteContent={setSiteContent} editor={contentEditor} /></button>
-          <button onClick={() => handleNavClick('esports')} aria-current={currentTab === 'esports' ? 'page' : undefined} className={cn("mobile-nav-item w-[85%] py-4 rounded-2xl text-xl font-bold touch-manipulation flex items-center justify-center", currentTab === 'esports' ? "bg-accent/10 text-accent" : "text-primary hover:bg-slate-500/5")}><EditableSiteText as="span" contentKey="navbar.esportsMobile" fallback="Esports" siteContent={siteContent} setSiteContent={setSiteContent} editor={contentEditor} /></button>
-          <button onClick={() => handleNavClick('meetings')} aria-current={currentTab === 'meetings' ? 'page' : undefined} className={cn("mobile-nav-item w-[85%] py-4 rounded-2xl text-xl font-bold touch-manipulation flex items-center justify-center", currentTab === 'meetings' ? "bg-accent/10 text-accent" : "text-primary hover:bg-slate-500/5")}><EditableSiteText as="span" contentKey="navbar.meetingsMobile" fallback="Meetings" siteContent={siteContent} setSiteContent={setSiteContent} editor={contentEditor} /></button>
-          
-          <div className="w-[90%] h-[1px] bg-slate-500/10 my-2 mobile-nav-item" aria-hidden="true" />
-
-          <a href="https://discord.gg/HZ2bQsmaSK" target="_blank" rel="noopener noreferrer" 
-             onClick={() => haptics.light()}
-             className="mobile-nav-item bg-[#5865F2] text-white px-8 py-4 rounded-2xl font-sans font-bold w-[85%] flex items-center justify-center gap-3 active:scale-95 overflow-hidden group touch-manipulation shadow-lg shadow-indigo-500/20">
-            <EditableSiteText as="span" contentKey="navbar.joinDiscordMobile" fallback="Join Discord" siteContent={siteContent} setSiteContent={setSiteContent} editor={contentEditor} className="relative z-10 whitespace-nowrap" />
-            <IconArrowRight size={20} className="relative z-10" />
+            <IconDiscord size={16} />
           </a>
         </div>
       </div>
-
     </nav>
   );
 };

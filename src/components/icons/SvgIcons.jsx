@@ -196,6 +196,13 @@ export const IconArrowRight = ({ size, className }) => wrap(
   { size, className }
 );
 
+export const IconHome = ({ size, className }) => wrap(
+  <>
+    <path d="M3 10.5L12 3L21 10.5V20C21 20.5523 20.5523 21 20 21H14V14H10V21H4C3.44772 21 3 20.5523 3 20V10.5Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+  </>,
+  { size, className }
+);
+
 export const IconInstagram = ({ size, className }) => wrap(
   <>
     <path d="M16.5 3H7.5C5.01472 3 3 5.01472 3 7.5V16.5C3 18.9853 5.01472 21 7.5 21H16.5C18.9853 21 21 18.9853 21 16.5V7.5C21 5.01472 18.9853 3 16.5 3Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none" />

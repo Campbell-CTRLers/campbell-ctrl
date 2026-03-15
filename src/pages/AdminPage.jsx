@@ -3,7 +3,7 @@ import gsap from 'gsap';
 import {
   IconSettings, IconCloudUpload, IconCalendar, IconCheck, IconTrophy, IconX,
   IconUsers, IconChart, IconPencilEdit, IconLogOut, IconSun, IconMoon,
-  IconChevronLeft, IconMenu, IconEye, IconEyeOff, IconGamepad, IconSearch,
+  IconChevronLeft, IconGamepad, IconSearch,
 } from '../components/icons/SvgIcons';
 import { db, auth, googleProvider } from '../firebase';
 import { writeBatch, doc, getDoc } from 'firebase/firestore';
@@ -612,7 +612,7 @@ const AdminPage = ({
                 {isDirty && <span className="w-2 h-2 rounded-full bg-amber-500" aria-label="Unsaved changes" />}
               </div>
             </div>
-            <div className="flex items-center gap-2 shrink-0">
+            <div className="flex items-center gap-2 shrink-0 ml-2">
               <button
                 onClick={() => setMobileQuickActionsOpen((v) => !v)}
                 className="min-h-[38px] px-3 rounded-xl border border-slate/10 text-[10px] font-mono font-bold uppercase"
@@ -628,6 +628,13 @@ const AdminPage = ({
                 )}
               >
                 {isSaving ? 'Saving…' : 'Publish'}
+              </button>
+              <button
+                onClick={handleCloseAttempt}
+                className="min-h-[38px] min-w-[38px] rounded-xl border border-slate/10 text-slate/60 flex items-center justify-center"
+                aria-label="Exit admin"
+              >
+                <IconX size={14} />
               </button>
             </div>
           </div>
@@ -703,13 +710,6 @@ const AdminPage = ({
               <Icon size={16} /><span className="leading-none">{label.split(' ')[0]}</span>
             </button>
           ))}
-          <button onClick={handleSaveToCloud} disabled={isSaving} className={cn("flex flex-col items-center gap-1 transition-all text-[10px] font-black uppercase tracking-tight touch-manipulation", isDirty ? "text-accent" : "text-slate opacity-40")}>
-            {isSaving ? <div className="w-4 h-4 border-2 border-accent/30 border-t-accent rounded-full animate-spin" /> : <IconCloudUpload size={16} />}
-            {saveSuccess ? <span className="leading-none text-green-500">Done</span> : <span className="leading-none">Publish</span>}
-          </button>
-          <button onClick={handleCloseAttempt} className="flex flex-col items-center gap-1 transition-all text-[10px] font-black uppercase tracking-tight touch-manipulation text-slate opacity-60">
-            <IconX size={16} /><span className="leading-none">Exit</span>
-          </button>
         </div>
       </div>
 
