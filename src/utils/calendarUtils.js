@@ -143,6 +143,69 @@ export function icsToDataUri(icsText) {
   return 'data:text/calendar;charset=utf-8,' + encodeURIComponent(icsText);
 }
 
+function parseIcsDateTime(value) {
+  if (!value) return null;
+  const clean = String(value).trim();
+  const m = clean.match(/^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})?(Z)?$/);
+  if (!m) return null;
+  const [, y, mo, d, h, mi, s = '00', z] = m;
+  if (z) {
+    return new Date(Date.UTC(Number(y), Number(mo) - 1, Number(d), Number(h), Number(mi), Number(s)));
+  }
+  return new Date(Number(y), Number(mo) - 1, Number(d), Number(h), Number(mi), Number(s));
+}
+
+function toOutlookIso(date) {
+  return date ? date.toISOString() : '';
+}
+
+function toAppleCalshow(date) {
+  if (!date) return '';
+  const appleEpochMs = Date.UTC(2001, 0, 1, 0, 0, 0);
+  return `calshow:${Math.floor((date.getTime() - appleEpochMs) / 1000)}`;
+}
+
+export function openNativeAppWithFallback(nativeUrl, fallbackUrl, timeoutMs = 1200) {
+  if (typeof window === 'undefined') return;
+  if (!nativeUrl && fallbackUrl) {
+    window.location.assign(fallbackUrl);
+    return;
+  }
+  if (!nativeUrl) return;
+
+  let didHide = false;
+  let done = false;
+
+  const cleanup = () => {
+    if (done) return;
+    done = true;
+    window.removeEventListener('visibilitychange', onVisibility);
+    window.removeEventListener('pagehide', onPageHide);
+  };
+
+  const onVisibility = () => {
+    if (document.visibilityState === 'hidden') {
+      didHide = true;
+      cleanup();
+    }
+  };
+  const onPageHide = () => {
+    didHide = true;
+    cleanup();
+  };
+
+  window.addEventListener('visibilitychange', onVisibility);
+  window.addEventListener('pagehide', onPageHide);
+
+  window.location.assign(nativeUrl);
+  window.setTimeout(() => {
+    if (!didHide && fallbackUrl) {
+      window.location.assign(fallbackUrl);
+    }
+    cleanup();
+  }, timeoutMs);
+}
+
 export function icsToUrls(icsText) {
   const unfolded = icsText.replace(/\r?\n[ \t]/g, '');
   const veventMatch = unfolded.match(/BEGIN:VEVENT([\s\S]*?)END:VEVENT/);
@@ -175,10 +238,20 @@ export function icsToUrls(icsText) {
     allday: 'false',
   });
   const outlookUrl = `https://outlook.office.com/calendar/0/deeplink/compose?${outlookParams}`;
+  const startDate = parseIcsDateTime(dtstart);
+  const endDate = parseIcsDateTime(dtend);
+  const nativeOutlookParams = new URLSearchParams({
+    subject: summary || 'Campbell CTRL Event',
+    start: toOutlookIso(startDate),
+    end: toOutlookIso(endDate),
+    location: location || '',
+  });
+  const outlookNativeUrl = `ms-outlook://events/new?${nativeOutlookParams}`;
+  const appleNativeUrl = toAppleCalshow(startDate);
 
   const blob = new Blob([icsText], { type: 'text/calendar;charset=utf-8' });
   const blobUrl = URL.createObjectURL(blob);
   const appleDataUri = icsToDataUri(icsText);
 
-  return { googleUrl, outlookUrl, blobUrl, appleDataUri, icsText };
+  return { googleUrl, outlookUrl, outlookNativeUrl, appleNativeUrl, blobUrl, appleDataUri, icsText };
 }

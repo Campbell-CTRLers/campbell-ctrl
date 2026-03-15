@@ -123,13 +123,6 @@ function AppInner() {
   const authUnsubRef = useRef(null);
 
   useEffect(() => {
-    // Check for 30-day session expiry
-    const authExpiry = localStorage.getItem('auth_expiry');
-    if (authExpiry && Date.now() > Number(authExpiry)) {
-      auth.signOut();
-      localStorage.removeItem('auth_expiry');
-    }
-
     let cancelled = false;
     getDoc(doc(db, 'config', 'admins')).then((snap) => {
       if (cancelled) return;
@@ -220,7 +213,7 @@ function AppInner() {
       </a>
       <BackdropDecoration />
 
-      <Navbar currentTab={currentTab} onNavigate={handleTabChange} />
+      <Navbar currentTab={currentTab} onNavigate={handleTabChange} siteContent={siteContent} setSiteContent={setSiteContent} />
 
       {dataError && (
         <div className="sticky top-20 left-0 right-0 z-30 mx-4 max-w-2xl rounded-xl border border-slate/20 bg-slate/10 px-4 py-3 text-center text-sm text-primary md:left-1/2 md:mx-auto md:-translate-x-1/2" role="alert">
@@ -230,14 +223,14 @@ function AppInner() {
 
       <main id="main-content" tabIndex={-1}>
         <Suspense fallback={<div className="flex min-h-[40vh] items-center justify-center text-slate" aria-live="polite">Loading…</div>}>
-          {currentTab === 'home' && <HomeTab gamesList={gamesList} standings={standings} rankings={rankings} meetings={meetings} siteContent={siteContent} dataLoaded={dataLoaded} onNavigateToEsports={() => handleTabChange('esports')} />}
-          {currentTab === 'esports' && <EsportsTab gamesList={gamesList} standings={standings} rankings={rankings} dataLoaded={dataLoaded} siteContent={siteContent} />}
-          {currentTab === 'meetings' && <MeetingsTab meetings={meetings} siteContent={siteContent} />}
-          {currentTab === 'legal' && <LegalTab />}
+          {currentTab === 'home' && <HomeTab gamesList={gamesList} standings={standings} rankings={rankings} meetings={meetings} siteContent={siteContent} setSiteContent={setSiteContent} dataLoaded={dataLoaded} onNavigateToEsports={() => handleTabChange('esports')} />}
+          {currentTab === 'esports' && <EsportsTab gamesList={gamesList} standings={standings} rankings={rankings} dataLoaded={dataLoaded} siteContent={siteContent} setSiteContent={setSiteContent} />}
+          {currentTab === 'meetings' && <MeetingsTab meetings={meetings} siteContent={siteContent} setSiteContent={setSiteContent} />}
+          {currentTab === 'legal' && <LegalTab siteContent={siteContent} setSiteContent={setSiteContent} />}
         </Suspense>
       </main>
 
-      <Footer onToggleAdmin={() => handleTabChange('admin')} onNavigate={handleTabChange} />
+      <Footer onToggleAdmin={() => handleTabChange('admin')} onNavigate={handleTabChange} siteContent={siteContent} setSiteContent={setSiteContent} />
 
       <ScrollToTop />
 

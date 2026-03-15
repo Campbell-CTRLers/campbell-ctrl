@@ -8,16 +8,17 @@ import inPersonMeetingIcs from '../assets/in-person-meeting.ics?url';
 import iconGoogleCalendar from '../assets/icon-google-calendar.svg';
 import iconMicrosoftOutlook from '../assets/icon-microsoft-outlook.svg';
 import { useHaptics } from '../hooks/useHaptics';
-import { icsToDataUri } from '../utils/calendarUtils';
+import { openNativeAppWithFallback } from '../utils/calendarUtils';
 
 export function CalendarOptions({ compact = false, titleId }) {
   const containerRef = useRef(null);
   const haptics = useHaptics();
   const [googleUrl, setGoogleUrl] = useState('');
   const [outlookUrl, setOutlookUrl] = useState('');
-  const [appleDataUri, setAppleDataUri] = useState('');
   const [blobUrl, setBlobUrl] = useState('');
   const [icsText, setIcsText] = useState('');
+  const [outlookNativeUrl, setOutlookNativeUrl] = useState('');
+  const [appleNativeUrl, setAppleNativeUrl] = useState('');
 
   useEffect(() => {
     let active = true;
@@ -59,12 +60,35 @@ export function CalendarOptions({ compact = false, titleId }) {
           allday: 'false'
         });
         setOutlookUrl(`https://outlook.office.com/calendar/0/deeplink/compose?${outlookParams}`);
+        const startIso = dtstart
+          ? `${dtstart.slice(0, 4)}-${dtstart.slice(4, 6)}-${dtstart.slice(6, 8)}T${dtstart.slice(9, 11)}:${dtstart.slice(11, 13)}:00`
+          : '';
+        const endIso = dtend
+          ? `${dtend.slice(0, 4)}-${dtend.slice(4, 6)}-${dtend.slice(6, 8)}T${dtend.slice(9, 11)}:${dtend.slice(11, 13)}:00`
+          : '';
+        const nativeOutlookParams = new URLSearchParams({
+          subject: summary || 'Campbell CTRL Event',
+          start: startIso,
+          end: endIso,
+          location: location || '',
+        });
+        setOutlookNativeUrl(`ms-outlook://events/new?${nativeOutlookParams}`);
+
+        if (dtstart) {
+          const y = Number(dtstart.slice(0, 4));
+          const mo = Number(dtstart.slice(4, 6)) - 1;
+          const d = Number(dtstart.slice(6, 8));
+          const h = Number(dtstart.slice(9, 11));
+          const mi = Number(dtstart.slice(11, 13));
+          const appleEpochMs = Date.UTC(2001, 0, 1, 0, 0, 0);
+          const when = new Date(y, mo, d, h, mi, 0);
+          setAppleNativeUrl(`calshow:${Math.floor((when.getTime() - appleEpochMs) / 1000)}`);
+        }
 
         const blob = new Blob([text], { type: 'text/calendar;charset=utf-8' });
         createdUrl = URL.createObjectURL(blob);
         setBlobUrl(createdUrl);
         
-        setAppleDataUri(icsToDataUri(text));
       })
       .catch(err => {
         console.error('Failed to initialize calendar options:', err);
@@ -75,17 +99,21 @@ export function CalendarOptions({ compact = false, titleId }) {
     return () => { active = false; if (createdUrl) URL.revokeObjectURL(createdUrl); };
   }, []);
 
-  const ready = !!(googleUrl && outlookUrl && appleDataUri && blobUrl);
+  const ready = !!(googleUrl && outlookUrl && blobUrl);
   const filename = 'in-person-meeting.ics';
 
   const handleAppleAdd = async (e) => {
     e.preventDefault();
     if (!ready) return;
-    haptics.light();
+    haptics.openPanel?.();
+
+    if (appleNativeUrl) {
+      openNativeAppWithFallback(appleNativeUrl, googleUrl);
+      return;
+    }
 
     const file = new File([icsText], filename, { type: 'text/calendar' });
     const canShare = navigator.share && (navigator.canShare ? navigator.canShare({ files: [file] }) : false);
-
     if (canShare) {
       try {
         await navigator.share({ files: [file], title: 'Add to Calendar' });
@@ -95,7 +123,14 @@ export function CalendarOptions({ compact = false, titleId }) {
       }
     }
 
-    window.location.href = appleDataUri;
+    if (googleUrl) window.location.assign(googleUrl);
+  };
+
+  const handleOutlookAdd = (e) => {
+    e.preventDefault();
+    if (!ready) return;
+    haptics.openPanel?.();
+    openNativeAppWithFallback(outlookNativeUrl, outlookUrl);
   };
 
   return (
@@ -124,10 +159,9 @@ export function CalendarOptions({ compact = false, titleId }) {
           <img src={iconGoogleCalendar} alt="Google" className="w-10 h-10 group-hover:scale-110 transition-transform" />
           <span className="font-sans font-semibold text-primary text-[10px] uppercase tracking-wider">Google</span>
         </a>
-        <a
-          href={ready ? outlookUrl : undefined}
-          target="_blank"
-          rel="noreferrer"
+        <button
+          type="button"
+          onClick={handleOutlookAdd}
           className={cn(
             'flex flex-col items-center gap-3 p-4 rounded-2xl border border-slate/10 transition-all duration-300 group text-center',
             ready ? 'hover:border-accent/30 hover:bg-primary/5 cursor-pointer bg-slate/[0.02]' : 'opacity-40 pointer-events-none'
@@ -135,7 +169,7 @@ export function CalendarOptions({ compact = false, titleId }) {
         >
           <img src={iconMicrosoftOutlook} alt="Outlook" className="w-10 h-10 group-hover:scale-110 transition-transform" />
           <span className="font-sans font-semibold text-primary text-[10px] uppercase tracking-wider">Outlook</span>
-        </a>
+        </button>
         <button
           type="button"
           onClick={handleAppleAdd}

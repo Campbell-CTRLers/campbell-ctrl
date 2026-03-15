@@ -3,6 +3,7 @@ import { IconCalendar, IconUsers, IconMapPin, IconClock } from '../components/ic
 import { CalendarModal } from '../components/CalendarModal';
 import { EventAddToCalendar } from '../components/EventAddToCalendar';
 import { cn } from '../utils/cn';
+import { EditableSiteText } from '../components/content/EditableSiteText';
 
 const DAY_ORDER = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 const DAY_FULL = { Mon: 'Monday', Tue: 'Tuesday', Wed: 'Wednesday', Thu: 'Thursday', Fri: 'Friday', Sat: 'Saturday', Sun: 'Sunday' };
@@ -13,7 +14,7 @@ function getNextMeetingDay() {
   return map[jsDay];
 }
 
-const MeetingsTab = ({ meetings = [], siteContent }) => {
+const MeetingsTab = ({ meetings = [], siteContent, setSiteContent, contentEditor }) => {
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
 
   const mc = siteContent?.meetings || {};
@@ -84,9 +85,9 @@ const MeetingsTab = ({ meetings = [], siteContent }) => {
     <div className="pt-32 pb-24 px-4 sm:px-6 md:px-16 max-w-7xl mx-auto min-h-screen">
       <div className="tab-header mb-12 md:mb-16">
         <h1 className="font-sans font-bold text-5xl md:text-7xl text-primary tracking-tighter mb-4">
-          Club <span className="text-accent font-drama italic">{headingAccent}</span>
+          <EditableSiteText as="span" contentKey="meetings.headingPrefix" fallback="Club" siteContent={siteContent} setSiteContent={setSiteContent} editor={contentEditor} /> <EditableSiteText as="span" contentKey="meetings.headingAccent" fallback={headingAccent} siteContent={siteContent} setSiteContent={setSiteContent} editor={contentEditor} className="text-accent font-drama italic" />
         </h1>
-        <p className="font-roboto text-slate/80 text-lg max-w-2xl">{description}</p>
+        <EditableSiteText as="p" contentKey="meetings.description" fallback={description} siteContent={siteContent} setSiteContent={setSiteContent} editor={contentEditor} className="font-roboto text-slate/80 text-lg max-w-2xl" />
       </div>
 
       {hasMeetings ? (
@@ -204,9 +205,7 @@ const MeetingsTab = ({ meetings = [], siteContent }) => {
             <div className="bg-contrast-bg text-contrast-text rounded-[2rem] p-6 sm:p-8 relative overflow-hidden shadow-xl">
               <div className="absolute top-0 right-0 w-40 h-40 bg-accent/20 rounded-full blur-[60px] -mr-10 -mt-10" />
               <div className="relative z-10">
-                <h3 className="font-mono text-[10px] font-bold uppercase tracking-widest text-contrast-text/50 mb-5">
-                  Weekly Overview
-                </h3>
+                <EditableSiteText as="h3" contentKey="meetings.weeklyOverview" fallback="Weekly Overview" siteContent={siteContent} setSiteContent={setSiteContent} editor={contentEditor} className="font-mono text-[10px] font-bold uppercase tracking-widest text-contrast-text/50 mb-5" />
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <div className="font-display font-bold text-3xl sm:text-4xl text-contrast-text">
@@ -235,7 +234,7 @@ const MeetingsTab = ({ meetings = [], siteContent }) => {
                   <div className="w-9 h-9 rounded-full bg-accent/10 flex items-center justify-center shrink-0">
                     <IconMapPin size={16} className="text-accent" />
                   </div>
-                  <h3 className="font-sans font-bold text-sm text-primary">Where We Meet</h3>
+                <EditableSiteText as="h3" contentKey="meetings.whereWeMeet" fallback="Where We Meet" siteContent={siteContent} setSiteContent={setSiteContent} editor={contentEditor} className="font-sans font-bold text-sm text-primary" />
                 </div>
                 <div className="flex flex-col gap-2">
                   {stats.locations.map(loc => (
@@ -256,9 +255,9 @@ const MeetingsTab = ({ meetings = [], siteContent }) => {
                 <div className="w-9 h-9 rounded-full bg-accent/10 flex items-center justify-center shrink-0">
                   <IconUsers size={16} className="text-accent" />
                 </div>
-                <h3 className="font-sans font-bold text-sm text-primary">Who Can Join</h3>
+                <EditableSiteText as="h3" contentKey="meetings.whoCanJoinHeading" fallback="Who Can Join" siteContent={siteContent} setSiteContent={setSiteContent} editor={contentEditor} className="font-sans font-bold text-sm text-primary" />
               </div>
-              <p className="font-roboto text-sm text-slate/70 leading-relaxed">{whoDesc}</p>
+              <EditableSiteText as="p" contentKey="meetings.whoCanJoinDesc" fallback={whoDesc} siteContent={siteContent} setSiteContent={setSiteContent} editor={contentEditor} className="font-roboto text-sm text-slate/70 leading-relaxed" />
             </div>
 
             {/* Meetings list for reference */}
@@ -267,7 +266,7 @@ const MeetingsTab = ({ meetings = [], siteContent }) => {
                 <div className="w-9 h-9 rounded-full bg-accent/10 flex items-center justify-center shrink-0">
                   <IconCalendar size={16} className="text-accent" />
                 </div>
-                <h3 className="font-sans font-bold text-sm text-primary">All Meetings</h3>
+                <EditableSiteText as="h3" contentKey="meetings.allMeetingsHeading" fallback="All Meetings" siteContent={siteContent} setSiteContent={setSiteContent} editor={contentEditor} className="font-sans font-bold text-sm text-primary" />
               </div>
               <div className="flex flex-col gap-2">
                 {meetings.map(m => (
@@ -298,15 +297,13 @@ const MeetingsTab = ({ meetings = [], siteContent }) => {
           <div className="w-16 h-16 rounded-full bg-accent/10 flex items-center justify-center text-accent mb-6">
             <IconCalendar size={28} />
           </div>
-          <h2 className="font-sans font-bold text-2xl text-primary mb-2">No Meetings Scheduled</h2>
-          <p className="font-roboto text-slate/60 text-sm mb-8">
-            Check back soon — meeting times and locations will be posted here.
-          </p>
+          <EditableSiteText as="h2" contentKey="meetings.emptyHeading" fallback="No Meetings Scheduled" siteContent={siteContent} setSiteContent={setSiteContent} editor={contentEditor} className="font-sans font-bold text-2xl text-primary mb-2" />
+          <EditableSiteText as="p" contentKey="meetings.emptyDescription" fallback="Check back soon — meeting times and locations will be posted here." siteContent={siteContent} setSiteContent={setSiteContent} editor={contentEditor} className="font-roboto text-slate/60 text-sm mb-8" />
           <button
             onClick={() => setIsCalendarOpen(true)}
             className="bg-accent text-white px-6 py-3 rounded-full font-sans font-bold text-sm shadow-lg shadow-accent/20 hover:shadow-accent/40 transition-all active:scale-[0.98]"
           >
-            Add to Calendar
+            <EditableSiteText as="span" contentKey="meetings.emptyAddCalendar" fallback="Add to Calendar" siteContent={siteContent} setSiteContent={setSiteContent} editor={contentEditor} />
           </button>
         </div>
       )}

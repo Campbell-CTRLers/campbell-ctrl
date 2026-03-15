@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { IconX } from './icons/SvgIcons';
-import { meetingToIcs, gameToIcs, icsToUrls } from '../utils/calendarUtils';
+import { meetingToIcs, gameToIcs, icsToUrls, openNativeAppWithFallback } from '../utils/calendarUtils';
 import iconGoogleCalendar from '../assets/icon-google-calendar.svg';
 import iconMicrosoftOutlook from '../assets/icon-microsoft-outlook.svg';
 import AppleCalendarIcon from './AppleCalendarIcon';
@@ -13,7 +13,7 @@ export function EventAddToCalendar({ event, eventType, compact = false, fullWidt
   const haptics = useHaptics();
   const popoverRef = useRef(null);
 
-  const { googleUrl, outlookUrl, blobUrl, appleDataUri, icsText } = useMemo(() => {
+  const { googleUrl, outlookUrl, outlookNativeUrl, appleNativeUrl, blobUrl, icsText } = useMemo(() => {
     if (!event) return {};
     const ics = eventType === 'meeting' ? meetingToIcs(event) : gameToIcs(event);
     return icsToUrls(ics);
@@ -36,23 +36,38 @@ export function EventAddToCalendar({ event, eventType, compact = false, fullWidt
 
   const handleAppleAdd = async (e) => {
     e.preventDefault();
-    if (!ready || !icsText) return;
-    haptics.light();
+    if (!ready) return;
+    haptics.openPanel?.();
 
-    const file = new File([icsText], filename, { type: 'text/calendar' });
-    const canShare = navigator.share && (navigator.canShare ? navigator.canShare({ files: [file] }) : false);
+    if (appleNativeUrl) {
+      openNativeAppWithFallback(appleNativeUrl, googleUrl);
+      close();
+      return;
+    }
 
-    if (canShare) {
-      try {
-        await navigator.share({ files: [file], title: 'Add to Calendar' });
-        close();
-        return;
-      } catch (err) {
-        if (err.name === 'AbortError') return;
+    if (icsText) {
+      const file = new File([icsText], filename, { type: 'text/calendar' });
+      const canShare = navigator.share && (navigator.canShare ? navigator.canShare({ files: [file] }) : false);
+      if (canShare) {
+        try {
+          await navigator.share({ files: [file], title: 'Add to Calendar' });
+          close();
+          return;
+        } catch (err) {
+          if (err.name === 'AbortError') return;
+        }
       }
     }
 
-    window.location.href = appleDataUri;
+    if (googleUrl) window.location.assign(googleUrl);
+    close();
+  };
+
+  const handleOutlookAdd = (e) => {
+    e.preventDefault();
+    if (!ready) return;
+    haptics.openPanel?.();
+    openNativeAppWithFallback(outlookNativeUrl, outlookUrl);
     close();
   };
 
@@ -67,14 +82,14 @@ export function EventAddToCalendar({ event, eventType, compact = false, fullWidt
   const calendarOptions = ready && (
     <>
       <div className="grid grid-cols-3 gap-3">
-        <a href={googleUrl} target="_blank" rel="noreferrer" onClick={close} className={providerBtn}>
+        <a href={googleUrl} target="_blank" rel="noopener noreferrer" onClick={close} className={providerBtn}>
           <img src={iconGoogleCalendar} alt="Google" className="w-9 h-9" />
           <span className="font-mono text-[10px] font-bold text-primary uppercase">Google</span>
         </a>
-        <a href={outlookUrl} target="_blank" rel="noreferrer" onClick={close} className={providerBtn}>
+        <button type="button" onClick={handleOutlookAdd} className={cn(providerBtn, 'w-full bg-transparent cursor-pointer')}>
           <img src={iconMicrosoftOutlook} alt="Outlook" className="w-9 h-9" />
           <span className="font-mono text-[10px] font-bold text-primary uppercase">Outlook</span>
-        </a>
+        </button>
         <button type="button" onClick={handleAppleAdd} className={cn(providerBtn, 'w-full cursor-pointer bg-transparent')}>
           <div className="w-9 h-9 flex items-center justify-center">
             <AppleCalendarIcon className="w-7 h-7" />

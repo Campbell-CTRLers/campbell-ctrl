@@ -6,8 +6,9 @@ import { formatGameDate } from '../utils/gameUtils';
 import { LiveStandings } from '../components/LiveStandings';
 import { GlobalRankingsPanel } from '../components/Esports/GlobalRankingsPanel';
 import { cn } from '../utils/cn';
+import { EditableSiteText } from '../components/content/EditableSiteText';
 
-const EsportsTab = ({ gamesList, standings, rankings, dataLoaded = true, siteContent }) => {
+const EsportsTab = ({ gamesList, standings, rankings, dataLoaded = true, siteContent, setSiteContent, contentEditor }) => {
   const [rosterFilter, setRosterFilter] = useState('ALL');
 
   const heading = siteContent?.esports?.heading || 'Campbell';
@@ -17,8 +18,11 @@ const EsportsTab = ({ gamesList, standings, rankings, dataLoaded = true, siteCon
   return (
     <div className="pt-32 pb-24 px-4 sm:px-6 md:px-16 max-w-7xl mx-auto min-h-screen">
       <div className="tab-header mb-16">
-        <h1 className="font-sans font-bold text-5xl md:text-7xl text-primary tracking-tighter mb-4">{heading} <span className="text-accent font-drama italic">{headingAccent}</span></h1>
-        <p className="font-sans text-slate text-lg max-w-2xl">{description}</p>
+        <h1 className="font-sans font-bold text-5xl md:text-7xl text-primary tracking-tighter mb-4">
+          <EditableSiteText as="span" contentKey="esports.heading" fallback={heading} siteContent={siteContent} setSiteContent={setSiteContent} editor={contentEditor} />{' '}
+          <EditableSiteText as="span" contentKey="esports.headingAccent" fallback={headingAccent} siteContent={siteContent} setSiteContent={setSiteContent} editor={contentEditor} className="text-accent font-drama italic" />
+        </h1>
+        <EditableSiteText as="p" contentKey="esports.description" fallback={description} siteContent={siteContent} setSiteContent={setSiteContent} editor={contentEditor} className="font-sans text-slate text-lg max-w-2xl" />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch mb-12">
@@ -26,7 +30,7 @@ const EsportsTab = ({ gamesList, standings, rankings, dataLoaded = true, siteCon
         <div className="esports-card lg:col-span-7 bg-background rounded-[2rem] p-5 sm:p-8 border border-slate/10 shadow-xl">
           <div className="flex items-center gap-3 mb-8 pb-6 border-b border-slate/10">
             <IconGamepad className="text-accent" size={28} />
-            <h2 className="font-sans font-bold text-2xl text-primary">PlayVS Schedule</h2>
+            <EditableSiteText as="h2" contentKey="esports.scheduleHeading" fallback="PlayVS Schedule" siteContent={siteContent} setSiteContent={setSiteContent} editor={contentEditor} className="font-sans font-bold text-2xl text-primary" />
           </div>
           <div className="flex flex-col gap-4">
             {!dataLoaded ? (
@@ -68,8 +72,8 @@ const EsportsTab = ({ gamesList, standings, rankings, dataLoaded = true, siteCon
             ) : (
               <div className="py-20 text-center bg-primary/[0.02] rounded-3xl border border-dashed border-slate/20">
                 <IconGamepad className="mx-auto text-slate/20 mb-4" size={48} />
-                <h3 className="font-sans font-bold text-xl text-primary/60">No upcoming events</h3>
-                <p className="font-sans text-slate/40 text-sm mt-1">Check back later for new match schedules.</p>
+                <EditableSiteText as="h3" contentKey="esports.emptyHeading" fallback="No upcoming events" siteContent={siteContent} setSiteContent={setSiteContent} editor={contentEditor} className="font-sans font-bold text-xl text-primary/60" />
+                <EditableSiteText as="p" contentKey="esports.emptyDescription" fallback="Check back later for new match schedules." siteContent={siteContent} setSiteContent={setSiteContent} editor={contentEditor} className="font-sans text-slate/40 text-sm mt-1" />
               </div>
             )}
           </div>
@@ -77,13 +81,13 @@ const EsportsTab = ({ gamesList, standings, rankings, dataLoaded = true, siteCon
 
         {/* Live Standings Panel (Reused) */}
         <div className="esports-card lg:col-span-5">
-          <div className="h-full"><LiveStandings standings={standings} fullHeight rosterFilter={rosterFilter} onRosterFilterChange={setRosterFilter} /></div>
+          <div className="h-full"><LiveStandings standings={standings} fullHeight rosterFilter={rosterFilter} onRosterFilterChange={setRosterFilter} siteContent={siteContent} setSiteContent={setSiteContent} contentEditor={contentEditor} /></div>
         </div>
       </div>
 
       {/* Global Rankings Panel */}
       <div className="esports-card w-full">
-        <GlobalRankingsPanel standingsSource={standings} rankings={rankings} rosterFilter={rosterFilter} onRosterFilterChange={setRosterFilter} />
+        <GlobalRankingsPanel standingsSource={standings} rankings={rankings} rosterFilter={rosterFilter} onRosterFilterChange={setRosterFilter} siteContent={siteContent} setSiteContent={setSiteContent} contentEditor={contentEditor} />
       </div>
     </div>
   );

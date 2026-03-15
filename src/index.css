@@ -159,6 +159,21 @@ body {
   background: transparent;
 }
 
+/* Admin desktop content overrides apply only on md+ */
+.editable-site-node {
+  --editable-x: 0px;
+  --editable-y: 0px;
+}
+
+@media (min-width: 768px) {
+  .editable-site-node {
+    position: relative;
+    left: var(--editable-x);
+    top: var(--editable-y);
+    font-size: var(--editable-font-size, inherit);
+  }
+}
+
 /* Custom scrollbar for dark mode */
 [data-theme="dark"] .custom-scrollbar::-webkit-scrollbar-track {
   background: rgb(255 255 255 / 3%);

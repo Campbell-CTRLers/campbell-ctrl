@@ -91,15 +91,6 @@ const AdminPage = ({
   }, [rememberMe, isAuthenticated]);
 
   useEffect(() => {
-    const expiry = localStorage.getItem('auth_expiry');
-    if (expiry && Date.now() > Number(expiry)) {
-      signOut(auth);
-      localStorage.removeItem('auth_expiry');
-      setIsAuthenticated(false);
-    }
-  }, []);
-
-  useEffect(() => {
     if (isAuthenticated && !saveSuccess && originalDataRef.current) return;
     if (isAuthenticated) {
       originalDataRef.current = JSON.parse(JSON.stringify({ gamesList, standings, rankings, meetings, siteContent }));
@@ -195,8 +186,8 @@ const AdminPage = ({
   const handleGoogleSignIn = async () => {
     setIsAuthenticating(true);
     setErrorMsg('');
-    const authExpiry = rememberMe ? Date.now() + 30 * 24 * 60 * 60 * 1000 : 0;
     try {
+      await setPersistence(auth, rememberMe ? browserLocalPersistence : browserSessionPersistence);
       haptics.light();
       const result = await signInWithPopup(auth, googleProvider);
       const snap = await getDoc(doc(db, 'config', 'admins'));
@@ -208,8 +199,6 @@ const AdminPage = ({
         setErrorMsg('Unauthorized account.');
         return;
       }
-      if (rememberMe) localStorage.setItem('auth_expiry', String(authExpiry));
-      else localStorage.removeItem('auth_expiry');
       haptics.success();
       setIsAuthenticated(true);
     } catch (_err) {
@@ -223,17 +212,17 @@ const AdminPage = ({
     setIsSaving(true);
     setSaveErrorMsg('');
     try {
-      haptics.medium();
+      haptics.saveStart?.();
       const batch = writeBatch(db);
       const data = JSON.parse(JSON.stringify({ gamesList, standings, rankings, meetings, siteContent }));
       batch.set(doc(db, 'global', 'data'), data);
       await batch.commit();
-      haptics.success();
+      haptics.saveSuccess?.();
       confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 }, colors: ['#0038A8', '#FFFFFF', '#000000'] });
       setSaveSuccess(true);
       setTimeout(() => setSaveSuccess(false), 2000);
     } catch (_err) {
-      haptics.error();
+      haptics.saveError?.();
       setSaveErrorMsg(_err.message || 'Failed to sync with cloud.');
     } finally { setIsSaving(false); }
   };
@@ -251,7 +240,7 @@ const AdminPage = ({
     const isDel = roster === 'DEL';
     setGamesList(gamesList.map((g) => (g.id === id ? { ...g, isAlt, isDel } : g)));
   };
-  const deleteGame = (id) => { haptics.light(); setGamesList(gamesList.filter(g => g.id !== id)); if (activeControlId === id) setActiveControlId(null); };
+  const deleteGame = (id) => { haptics.destructive?.(); setGamesList(gamesList.filter(g => g.id !== id)); if (activeControlId === id) setActiveControlId(null); };
 
   const handleAddStanding = () => {
     haptics.selection();
@@ -277,7 +266,7 @@ const AdminPage = ({
     setRankings(rankings.map((r) => (sameTeam(r, standing) ? { ...r, isAlt, isDel } : r)));
   };
   const deleteStanding = (id) => {
-    haptics.light();
+    haptics.destructive?.();
     const standing = standings.find((s) => s.id === id);
     if (standing) {
       const rankIdx = rankings.findIndex((r) => sameTeam(r, standing));
@@ -311,7 +300,7 @@ const AdminPage = ({
     setStandings(standings.map((s) => (sameTeam(s, ranking) ? { ...s, isAlt, isDel } : s)));
   };
   const deleteRanking = (id) => {
-    haptics.light();
+    haptics.destructive?.();
     const ranking = rankings.find((r) => r.id === id);
     if (ranking) {
       const standIdx = standings.findIndex((s) => sameTeam(s, ranking));
@@ -328,7 +317,7 @@ const AdminPage = ({
     if (isMobileView()) setActiveControlId(newId);
   };
   const updateMeeting = (id, field, value) => setMeetings(meetings.map((m) => (m.id === id ? { ...m, [field]: value } : m)));
-  const deleteMeeting = (id) => { haptics.light(); setMeetings(meetings.filter((m) => m.id !== id)); if (activeControlId === id) setActiveControlId(null); };
+  const deleteMeeting = (id) => { haptics.destructive?.(); setMeetings(meetings.filter((m) => m.id !== id)); if (activeControlId === id) setActiveControlId(null); };
 
   const handleCloseAttempt = useCallback(() => {
     haptics.rigid();
@@ -355,7 +344,6 @@ const AdminPage = ({
   const handleSignOut = async () => {
     haptics.light();
     await signOut(auth);
-    localStorage.removeItem('auth_expiry');
     setIsAuthenticated(false);
     onClose();
   };
@@ -395,11 +383,11 @@ const AdminPage = ({
                       <div className={cn("w-2 h-1.5 border-l-2 border-b-2 border-white -rotate-45 mb-0.5 transition-all duration-300", rememberMe ? "opacity-100 scale-100" : "opacity-0 scale-50")} />
                     </div>
                   </div>
-                  <span className="font-sans text-xs font-bold text-slate/50 group-hover:text-primary transition-colors select-none">Stay signed in for 30 days</span>
+                  <span className="font-sans text-xs font-bold text-slate/50 group-hover:text-primary transition-colors select-none">Stay signed in on this device</span>
                 </label>
                 <div className="flex flex-col items-center text-center gap-0.5">
                   <span className="font-mono text-[8px] text-accent/40 font-bold uppercase tracking-[0.2em]">Security Protocol</span>
-                  <p className="font-sans text-[9px] text-slate/30 leading-relaxed max-w-[200px]">Authentication persists for 1 month. Enable only on private devices.</p>
+                  <p className="font-sans text-[9px] text-slate/30 leading-relaxed max-w-[200px]">Uses secure Firebase persistence. Enable only on private devices.</p>
                 </div>
               </div>
             </>
@@ -488,7 +476,16 @@ const AdminPage = ({
             <AdminMeetingsEditor meetings={meetings} onAddMeeting={handleAddMeeting} updateMeeting={updateMeeting} deleteMeeting={deleteMeeting} setActiveControlId={setActiveControlId} />
           )}
           {adminTab === 'content' && (
-            <AdminContentEditor siteContent={siteContent} setSiteContent={setSiteContent} isMobile={isMobileView()} />
+            <AdminContentEditor
+              siteContent={siteContent}
+              setSiteContent={setSiteContent}
+              isMobile={isMobileView()}
+              gamesList={gamesList}
+              standings={standings}
+              rankings={rankings}
+              meetings={meetings}
+              dataLoaded={true}
+            />
           )}
         </div>
 

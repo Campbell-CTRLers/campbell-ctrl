@@ -5,6 +5,7 @@ import { cn } from '../utils/cn';
 import { useTheme } from '../context/useTheme';
 import { useHaptics } from '../hooks/useHaptics';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
+import { EditableSiteText } from './content/EditableSiteText';
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -64,7 +65,7 @@ const ThemeToggle = ({ theme, toggleTheme }) => {
   );
 };
 
-const Navbar = ({ currentTab, onNavigate }) => {
+const Navbar = ({ currentTab, onNavigate, siteContent = null, setSiteContent, contentEditor, previewStatic = false }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const navRef = useRef(null);
   const menuRef = useRef(null);
@@ -145,7 +146,10 @@ const Navbar = ({ currentTab, onNavigate }) => {
   };
 
   return (
-    <nav ref={navRef} className="fixed top-6 left-1/2 -translate-x-1/2 z-40 flex flex-col px-6 py-3 w-[90%] max-w-5xl rounded-[2.5rem] md:rounded-full transition-all duration-300 border border-transparent overflow-hidden">
+    <nav ref={navRef} className={cn(
+      "flex flex-col px-6 py-3 w-[90%] max-w-5xl rounded-[2.5rem] md:rounded-full transition-all duration-300 border border-transparent overflow-hidden",
+      previewStatic ? "sticky top-3 z-20 mx-auto mt-3" : "fixed top-6 left-1/2 -translate-x-1/2 z-40"
+    )}>
       <div className="flex items-center justify-between w-full h-12 shrink-0">
         <button type="button" onClick={() => handleNavClick('home')} className="flex items-center gap-3 cursor-pointer z-10 p-0 border-0 bg-transparent" aria-label="Campbell High Esports – home">
           <img src="/logo-transparent.png" className="nav-logo h-10 w-10 sm:h-12 sm:w-12 object-contain transition-all !text-transparent" alt="Campbell High Esports – home" />
@@ -154,17 +158,23 @@ const Navbar = ({ currentTab, onNavigate }) => {
         <div ref={pillContainerRef} className="hidden md:flex items-center absolute left-1/2 -translate-x-1/2 gap-2 rounded-full p-1 nav-pill border border-transparent transition-colors duration-300">
           {/* Morphing active indicator */}
           <div ref={indicatorRef} className="absolute h-8 bg-accent/15 border border-accent/20 rounded-full pointer-events-none z-0" style={{ width: 0, left: 0, top: 0 }}></div>
-          <NavLink linkRef={homeRef} tabName="home" isActive={currentTab === 'home'} onClick={() => handleNavClick('home')} className={cn("nav-link relative z-10 px-4 py-2 font-roboto font-semibold tracking-wide text-sm rounded-full transition-colors", currentTab === 'home' ? "font-bold text-accent" : "")}>Home</NavLink>
-          <NavLink linkRef={esportsRef} tabName="esports" isActive={currentTab === 'esports'} onClick={() => handleNavClick('esports')} className={cn("nav-link relative z-10 px-4 py-2 font-roboto font-semibold tracking-wide text-sm rounded-full transition-colors", currentTab === 'esports' ? "font-bold text-accent" : "")}>Esports</NavLink>
-          <NavLink linkRef={meetingsRef} tabName="meetings" isActive={currentTab === 'meetings'} onClick={() => handleNavClick('meetings')} className={cn("nav-link relative z-10 px-4 py-2 font-roboto font-semibold tracking-wide text-sm rounded-full transition-colors", currentTab === 'meetings' ? "font-bold text-accent" : "")}>Meetings</NavLink>
+          <NavLink linkRef={homeRef} tabName="home" isActive={currentTab === 'home'} onClick={() => handleNavClick('home')} className={cn("nav-link relative z-10 px-4 py-2 font-roboto font-semibold tracking-wide text-sm rounded-full transition-colors", currentTab === 'home' ? "font-bold text-accent" : "")}>
+            <EditableSiteText as="span" contentKey="navbar.home" fallback="Home" siteContent={siteContent} setSiteContent={setSiteContent} editor={contentEditor} />
+          </NavLink>
+          <NavLink linkRef={esportsRef} tabName="esports" isActive={currentTab === 'esports'} onClick={() => handleNavClick('esports')} className={cn("nav-link relative z-10 px-4 py-2 font-roboto font-semibold tracking-wide text-sm rounded-full transition-colors", currentTab === 'esports' ? "font-bold text-accent" : "")}>
+            <EditableSiteText as="span" contentKey="navbar.esports" fallback="Esports" siteContent={siteContent} setSiteContent={setSiteContent} editor={contentEditor} />
+          </NavLink>
+          <NavLink linkRef={meetingsRef} tabName="meetings" isActive={currentTab === 'meetings'} onClick={() => handleNavClick('meetings')} className={cn("nav-link relative z-10 px-4 py-2 font-roboto font-semibold tracking-wide text-sm rounded-full transition-colors", currentTab === 'meetings' ? "font-bold text-accent" : "")}>
+            <EditableSiteText as="span" contentKey="navbar.meetings" fallback="Meetings" siteContent={siteContent} setSiteContent={setSiteContent} editor={contentEditor} />
+          </NavLink>
         </div>
 
         {/* Right side: Actions (Desktop) & Hamburger (Mobile) */}
         <div className="flex items-center gap-2 sm:gap-4 ml-auto shrink-0 z-10 relative">
           <ThemeToggle theme={theme} toggleTheme={toggleTheme} />
 
-          <a href="https://discord.gg/HZ2bQsmaSK" target="_blank" rel="noreferrer" className="hidden md:flex bg-[#5865F2] hover:bg-[#4752C4] text-white px-5 py-2 rounded-full font-sans font-semibold text-sm items-center gap-2 w-fit transition-opacity hover:opacity-90">
-              <span className="relative z-10 transition-colors duration-300">Join Discord</span>
+          <a href="https://discord.gg/HZ2bQsmaSK" target="_blank" rel="noopener noreferrer" className="hidden md:flex bg-[#5865F2] hover:bg-[#4752C4] text-white px-5 py-2 rounded-full font-sans font-semibold text-sm items-center gap-2 w-fit transition-opacity hover:opacity-90">
+              <EditableSiteText as="span" contentKey="navbar.joinDiscord" fallback="Join Discord" siteContent={siteContent} setSiteContent={setSiteContent} editor={contentEditor} className="relative z-10 transition-colors duration-300" />
               <IconArrowRight size={16} className="relative z-10 transition-colors duration-300" />
             </a>
 
@@ -191,16 +201,16 @@ const Navbar = ({ currentTab, onNavigate }) => {
         className="w-full md:hidden flex flex-col items-center justify-start font-mono z-0 overflow-hidden"
       >
         <div className="flex flex-col items-center justify-center gap-2 w-full pt-4 pb-2">
-          <button onClick={() => handleNavClick('home')} aria-current={currentTab === 'home' ? 'page' : undefined} className={cn("mobile-nav-item w-[85%] py-4 rounded-2xl text-xl font-bold touch-manipulation flex items-center justify-center", currentTab === 'home' ? "bg-accent/10 text-accent" : "text-primary hover:bg-slate-500/5")}>Home</button>
-          <button onClick={() => handleNavClick('esports')} aria-current={currentTab === 'esports' ? 'page' : undefined} className={cn("mobile-nav-item w-[85%] py-4 rounded-2xl text-xl font-bold touch-manipulation flex items-center justify-center", currentTab === 'esports' ? "bg-accent/10 text-accent" : "text-primary hover:bg-slate-500/5")}>Esports</button>
-          <button onClick={() => handleNavClick('meetings')} aria-current={currentTab === 'meetings' ? 'page' : undefined} className={cn("mobile-nav-item w-[85%] py-4 rounded-2xl text-xl font-bold touch-manipulation flex items-center justify-center", currentTab === 'meetings' ? "bg-accent/10 text-accent" : "text-primary hover:bg-slate-500/5")}>Meetings</button>
+          <button onClick={() => handleNavClick('home')} aria-current={currentTab === 'home' ? 'page' : undefined} className={cn("mobile-nav-item w-[85%] py-4 rounded-2xl text-xl font-bold touch-manipulation flex items-center justify-center", currentTab === 'home' ? "bg-accent/10 text-accent" : "text-primary hover:bg-slate-500/5")}><EditableSiteText as="span" contentKey="navbar.homeMobile" fallback="Home" siteContent={siteContent} setSiteContent={setSiteContent} editor={contentEditor} /></button>
+          <button onClick={() => handleNavClick('esports')} aria-current={currentTab === 'esports' ? 'page' : undefined} className={cn("mobile-nav-item w-[85%] py-4 rounded-2xl text-xl font-bold touch-manipulation flex items-center justify-center", currentTab === 'esports' ? "bg-accent/10 text-accent" : "text-primary hover:bg-slate-500/5")}><EditableSiteText as="span" contentKey="navbar.esportsMobile" fallback="Esports" siteContent={siteContent} setSiteContent={setSiteContent} editor={contentEditor} /></button>
+          <button onClick={() => handleNavClick('meetings')} aria-current={currentTab === 'meetings' ? 'page' : undefined} className={cn("mobile-nav-item w-[85%] py-4 rounded-2xl text-xl font-bold touch-manipulation flex items-center justify-center", currentTab === 'meetings' ? "bg-accent/10 text-accent" : "text-primary hover:bg-slate-500/5")}><EditableSiteText as="span" contentKey="navbar.meetingsMobile" fallback="Meetings" siteContent={siteContent} setSiteContent={setSiteContent} editor={contentEditor} /></button>
           
           <div className="w-[90%] h-[1px] bg-slate-500/10 my-2 mobile-nav-item" aria-hidden="true" />
 
-          <a href="https://discord.gg/HZ2bQsmaSK" target="_blank" rel="noreferrer" 
+          <a href="https://discord.gg/HZ2bQsmaSK" target="_blank" rel="noopener noreferrer" 
              onClick={() => haptics.light()}
              className="mobile-nav-item bg-[#5865F2] text-white px-8 py-4 rounded-2xl font-sans font-bold w-[85%] flex items-center justify-center gap-3 active:scale-95 overflow-hidden group touch-manipulation shadow-lg shadow-indigo-500/20">
-            <span className="relative z-10 whitespace-nowrap">Join Discord</span>
+            <EditableSiteText as="span" contentKey="navbar.joinDiscordMobile" fallback="Join Discord" siteContent={siteContent} setSiteContent={setSiteContent} editor={contentEditor} className="relative z-10 whitespace-nowrap" />
             <IconArrowRight size={20} className="relative z-10" />
           </a>
         </div>

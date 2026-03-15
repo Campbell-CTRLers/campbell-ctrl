@@ -4,10 +4,11 @@ import { GameIcon } from './SharedUI';
 import { SegmentGroup } from './Esports/GlobalRankingsPanel';
 import { ROSTER_OPTIONS } from './Esports/constants';
 import { cn } from '../utils/cn';
+import { EditableSiteText } from './content/EditableSiteText';
 
 const CARD_HEADER_CLASS = "font-sans font-bold text-sm text-primary uppercase tracking-tight";
 
-export function LiveStandings({ standings, fullHeight, rosterFilter = 'ALL', onRosterFilterChange, compact, noCard }) {
+export function LiveStandings({ standings, fullHeight, rosterFilter = 'ALL', onRosterFilterChange, compact, noCard, siteContent = null, setSiteContent, contentEditor }) {
   const sortedStandings = useMemo(() => {
     let list = [...standings];
     if (rosterFilter === 'VARSITY') list = list.filter((s) => !s.isAlt && !s.isDel);
@@ -23,8 +24,8 @@ export function LiveStandings({ standings, fullHeight, rosterFilter = 'ALL', onR
   const header = (
     <div className={cn("flex justify-between items-start", compact ? "mb-3" : "mb-4")}>
       <div>
-        <h3 className={cn(compact && noCard ? CARD_HEADER_CLASS : "font-display font-bold text-primary tracking-tight", compact && !noCard ? "text-sm" : compact ? "" : "text-2xl mb-2")}>CTRL Standings</h3>
-        {!compact && <p className="font-roboto text-slate/80 text-sm">Win-loss records across all titles.</p>}
+        <EditableSiteText as="h3" contentKey="standings.heading" fallback="CTRL Standings" siteContent={siteContent} setSiteContent={setSiteContent} editor={contentEditor} className={cn(compact && noCard ? CARD_HEADER_CLASS : "font-display font-bold text-primary tracking-tight", compact && !noCard ? "text-sm" : compact ? "" : "text-2xl mb-2")} />
+        {!compact && <EditableSiteText as="p" contentKey="standings.subheading" fallback="Win-loss records across all titles." siteContent={siteContent} setSiteContent={setSiteContent} editor={contentEditor} className="font-roboto text-slate/80 text-sm" />}
       </div>
       {!compact && <IconTrophy className="text-accent opacity-80" size={32} />}
     </div>
@@ -64,7 +65,7 @@ export function LiveStandings({ standings, fullHeight, rosterFilter = 'ALL', onR
           </div>
         ))}
         {sortedStandings.length === 0 && (
-          <div className="h-full flex items-center justify-center font-mono text-xs text-slate/50">No data available.</div>
+          <EditableSiteText as="div" contentKey="standings.empty" fallback="No data available." siteContent={siteContent} setSiteContent={setSiteContent} editor={contentEditor} className="h-full flex items-center justify-center font-mono text-xs text-slate/50" />
         )}
       </div>
     </>
