@@ -282,7 +282,7 @@ export const EditableSiteText = ({
       {...rest}
       data-content-key={contentKey}
       suppressContentEditableWarning
-      contentEditable={editingEnabled && selected && mode === 'edit'}
+      contentEditable={editingEnabled && selected && mode === 'edit' && !locked}
       onClick={onSelect}
       onInput={onInput}
       onPointerDown={onPointerDown}

@@ -312,30 +312,42 @@ const AdminPage = ({
 
   const duplicateLastRecord = () => {
     haptics.selection();
-    if (adminTab === 'schedule' && gamesList.length) {
-      const source = gamesList[gamesList.length - 1];
-      setGamesList([...gamesList, { ...source, id: Date.now() }]);
+    if (adminTab === 'schedule') {
+      setGamesList((prev) => {
+        if (!prev.length) return prev;
+        const source = prev[prev.length - 1];
+        return [...prev, { ...source, id: Date.now() }];
+      });
       return;
     }
-    if (adminTab === 'standings' && standings.length) {
-      const source = standings[standings.length - 1];
-      setStandings([...standings, { ...source, id: Date.now() * 1000 }]);
+    if (adminTab === 'standings') {
+      setStandings((prev) => {
+        if (!prev.length) return prev;
+        const source = prev[prev.length - 1];
+        return [...prev, { ...source, id: Date.now() * 1000 }];
+      });
       return;
     }
-    if (adminTab === 'rankings' && rankings.length) {
-      const source = rankings[rankings.length - 1];
-      setRankings([...rankings, { ...source, id: Date.now() * 1000 }]);
+    if (adminTab === 'rankings') {
+      setRankings((prev) => {
+        if (!prev.length) return prev;
+        const source = prev[prev.length - 1];
+        return [...prev, { ...source, id: Date.now() * 1000 }];
+      });
       return;
     }
-    if (adminTab === 'meetings' && meetings.length) {
-      const source = meetings[meetings.length - 1];
-      setMeetings([...meetings, { ...source, id: Date.now() }]);
+    if (adminTab === 'meetings') {
+      setMeetings((prev) => {
+        if (!prev.length) return prev;
+        const source = prev[prev.length - 1];
+        return [...prev, { ...source, id: Date.now() }];
+      });
     }
   };
 
   const shiftTimesByMinutes = (minutes) => {
     if (adminTab === 'schedule') {
-      setGamesList(gamesList.map((g) => {
+      setGamesList((prev) => prev.map((g) => {
         const parsed = parseClockToMinutes(g.time || '4:00 PM');
         if (parsed == null) return g;
         return { ...g, time: formatMinutesToClock(parsed + minutes) };
@@ -344,7 +356,7 @@ const AdminPage = ({
       return;
     }
     if (adminTab === 'meetings') {
-      setMeetings(meetings.map((m) => {
+      setMeetings((prev) => prev.map((m) => {
         const s = parseClockToMinutes(m.startTime || '3:30 PM');
         const e = parseClockToMinutes(m.endTime || '5:30 PM');
         return {

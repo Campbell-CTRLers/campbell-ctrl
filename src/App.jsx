@@ -250,8 +250,10 @@ function AppInner() {
     const absDx = Math.abs(dx);
     const absDy = Math.abs(dy);
 
-    if (pullDistance > 80 && swipeRef.current.atTop && !pullTriggeredRef.current) {
+    if (dy > 80 && swipeRef.current.atTop && !pullTriggeredRef.current) {
       pullTriggeredRef.current = true;
+      swipeRef.current.active = false;
+      setPullDistance(0);
       setIsRefreshing(true);
       haptics.medium();
       window.location.reload();

@@ -39,6 +39,7 @@ const AdminControlSheet = forwardRef(({
 }, ref) => {
   const [step, setStep] = useState('basics');
   const meetingLocationOptions = useMemo(() => buildMeetingLocationOptions(meetings), [meetings]);
+  const meetingLocationOptionsKey = meetingLocationOptions.join('|');
   const sheetTitle = adminTab === 'meetings'
     ? (activeControlItem?.title || 'Meeting')
     : (activeControlItem?.game || activeControlItem?.opponent);
@@ -206,6 +207,7 @@ const AdminControlSheet = forwardRef(({
                 <label className="font-mono text-[9px] text-slate/40 uppercase pl-1">Location</label>
                 <div className="grid grid-cols-[1fr_auto] gap-2">
                   <CustomDropdown
+                    key={`control-meeting-location-${meetingLocationOptionsKey}`}
                     value={activeControlItem.location || ''}
                     onChange={(value) => updateMeeting(activeControlId, 'location', value)}
                     options={meetingLocationOptions}

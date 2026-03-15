@@ -30,6 +30,7 @@ const AdminMeetingsEditor = ({
     ? meetings.filter((m) => `${m.title || ''} ${m.location || ''} ${Array.isArray(m.days) ? m.days.join(' ') : m.days || ''}`.toLowerCase().includes(query))
     : meetings;
   const locationOptions = buildMeetingLocationOptions(meetings);
+  const locationOptionsKey = locationOptions.join('|');
 
   const toggleDay = (meetingId, dayId) => {
     haptics.light();
@@ -124,6 +125,7 @@ const AdminMeetingsEditor = ({
               <div className="flex-1 min-w-[120px] max-w-[180px]">
                 <div className="flex items-center gap-2">
                   <CustomDropdown
+                    key={`meeting-location-${m.id}-${locationOptionsKey}`}
                     value={m.location || ''}
                     onChange={(value) => updateMeeting(m.id, 'location', value)}
                     options={locationOptions}
