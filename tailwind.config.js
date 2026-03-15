@@ -18,7 +18,7 @@ export default {
         campbell: "rgb(var(--color-campbell) / <alpha-value>)"
       },
       fontFamily: {
-        sans: ["Plus Jakarta Sans", "sans-serif"],
+        sans: ["Roboto", "Plus Jakarta Sans", "sans-serif"],
         display: ["Outfit", "sans-serif"],
         roboto: ["Roboto", "sans-serif"],
         drama: ["Playfair Display", "serif"],

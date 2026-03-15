@@ -64,7 +64,7 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   overflow-x: hidden;
-  font-family: "Plus Jakarta Sans", sans-serif;
+  font-family: "Roboto", "Plus Jakarta Sans", sans-serif;
   font-feature-settings: "ss01", "ss02", "cv01", "cv11";
 }
 

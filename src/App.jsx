@@ -9,11 +9,11 @@ import { ThemeProvider } from './context/ThemeContext.jsx';
 import { MobileProvider } from './context/MobileProvider';
 import { useMobile } from './hooks/useMobile';
 import Navbar from './components/Navbar';
-import AdminDashboard from './components/AdminDashboard';
 import { useHaptics } from './hooks/useHaptics';
 import Footer from './components/Footer';
 import { BackdropDecoration } from './components/BackdropDecoration';
 import { ScrollToTop } from './components/ScrollToTop';
+import { sanitizeCloudData } from './utils/dataSecurity';
 
 // Lazy-load tabs — only the active tab's JS is downloaded
 const HomeTab = lazy(() => import('./pages/HomeTab'));
@@ -124,7 +124,6 @@ function AppInner() {
     document.title = `${segment} | Campbell CTRL`;
   }, [currentTab]);
 
-  const [isAdmin, setIsAdmin] = useState(false);
   const [authenticatedUser, setAuthenticatedUser] = useState(null);
   const [authInitialized, setAuthInitialized] = useState(false);
   const [gamesList, setGamesList] = useState([]);
@@ -137,31 +136,34 @@ function AppInner() {
 
 // ─── AUTH & DATA LISTENERS ───────────────────────────────────────────
 
-  const authUnsubRef = useRef(null);
-
   useEffect(() => {
-    let cancelled = false;
-    getDoc(doc(db, 'config', 'admins')).then((snap) => {
-      if (cancelled) return;
-      const allowedEmails = (snap.exists() ? snap.data().emails || [] : [])
-        .map(e => e.toLowerCase());
-      authUnsubRef.current = onAuthStateChanged(auth, (user) => {
-        const isAuthorized = user && allowedEmails.includes(user.email?.toLowerCase());
-        setAuthenticatedUser(isAuthorized ? user : null);
-        setAuthInitialized(true);
-      });
-    }).catch(() => {
-      if (cancelled) return;
-      authUnsubRef.current = onAuthStateChanged(auth, () => {
+    let active = true;
+    const unsub = onAuthStateChanged(auth, async (user) => {
+      if (!active) return;
+      if (!user) {
         setAuthenticatedUser(null);
         setAuthInitialized(true);
-      });
+        return;
+      }
+      try {
+        const snap = await getDoc(doc(db, 'config', 'admins'));
+        if (!active) return;
+        const allowedEmails = (snap.exists() ? snap.data().emails || [] : [])
+          .map((email) => String(email || '').trim().toLowerCase());
+        const signedInEmail = String(user.email || '').trim().toLowerCase();
+        const isAuthorized = Boolean(signedInEmail) && allowedEmails.includes(signedInEmail);
+        setAuthenticatedUser(isAuthorized ? user : null);
+      } catch {
+        if (!active) return;
+        setAuthenticatedUser(null);
+      } finally {
+        if (active) setAuthInitialized(true);
+      }
     });
 
     return () => {
-      cancelled = true;
-      authUnsubRef.current?.();
-      authUnsubRef.current = null;
+      active = false;
+      unsub();
     };
   }, []);
 
@@ -172,20 +174,20 @@ function AppInner() {
         setDataError(null);
         setDataLoaded(true);
         if (docSnap.exists()) {
-          const data = docSnap.data();
+          const data = sanitizeCloudData(docSnap.data());
           const threeHoursAgo = Date.now() - 3 * 60 * 60 * 1000;
-          const filteredGames = (data.gamesList || []).filter(game => {
+          const filteredGames = data.gamesList.filter((game) => {
             if (!game.date) return true;
             try {
               const eventTime = new Date(`${game.date} ${game.time || '12:00 PM'}`).getTime();
               return isNaN(eventTime) || eventTime > threeHoursAgo;
             } catch { return true; }
           });
-          if (data.gamesList) setGamesList(filteredGames);
-          if (data.standings) setStandings(data.standings);
-          if (data.rankings) setRankings(data.rankings);
-          setMeetings(data.meetings || []);
-          if (data.siteContent) setSiteContent(data.siteContent);
+          setGamesList(filteredGames);
+          setStandings(data.standings);
+          setRankings(data.rankings);
+          setMeetings(data.meetings);
+          setSiteContent(data.siteContent);
         }
       },
       (err) => {
@@ -308,21 +310,6 @@ function AppInner() {
       <Footer onToggleAdmin={() => handleTabChange('admin')} onNavigate={handleTabChange} siteContent={siteContent} setSiteContent={setSiteContent} />
 
       <ScrollToTop />
-
-      <AdminDashboard
-        isAdmin={isAdmin}
-        onClose={() => setIsAdmin(false)}
-        gamesList={gamesList}
-        setGamesList={setGamesList}
-        standings={standings}
-        setStandings={setStandings}
-        rankings={rankings}
-        setRankings={setRankings}
-        meetings={meetings}
-        setMeetings={setMeetings}
-        authenticatedUser={authenticatedUser}
-        authInitialized={authInitialized}
-      />
     </div>
   );
 }
