@@ -23,6 +23,7 @@ import AdminSafetySheet from '../components/admin/AdminSafetySheet';
 import AdminControlSheet from '../components/admin/AdminControlSheet';
 import AdminContentEditor from '../components/admin/AdminContentEditor';
 import { teamKey, sameTeam } from '../components/admin/constants';
+import { sanitizeCloudData } from '../utils/dataSecurity';
 
 const SIDEBAR_TABS = [
   { id: 'schedule', label: 'Schedule', Icon: IconGamepad },
@@ -31,6 +32,7 @@ const SIDEBAR_TABS = [
   { id: 'meetings', label: 'Meetings', Icon: IconUsers },
   { id: 'content', label: 'Site Content', Icon: IconPencilEdit },
 ];
+const MOBILE_TABS = SIDEBAR_TABS.filter((tab) => tab.id !== 'content');
 
 const MOBILE_DRAFT_STORAGE_KEY = 'adminMobileDraft.v1';
 
@@ -83,6 +85,9 @@ const AdminPage = ({
   const [mobileCommandQuery, setMobileCommandQuery] = useState('');
   const [mobileQuickActionsOpen, setMobileQuickActionsOpen] = useState(false);
   const [pendingMobileDraft, setPendingMobileDraft] = useState(null);
+  const [isMobileViewport, setIsMobileViewport] = useState(() => (
+    typeof window !== 'undefined' ? window.innerWidth < 768 : false
+  ));
 
   const safetySheetRef = useRef(null);
   const controlSheetRef = useRef(null);
@@ -143,10 +148,20 @@ const AdminPage = ({
     return () => { document.body.style.overflow = ''; };
   }, []);
 
-  const isMobileView = () => typeof window !== 'undefined' && window.innerWidth < 768;
+  useEffect(() => {
+    if (typeof window === 'undefined') return undefined;
+    const onResize = () => setIsMobileViewport(window.innerWidth < 768);
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
 
   useEffect(() => {
-    if (!isAuthenticated || !authInitialized || !isMobileView() || hasCheckedMobileDraftRef.current) return;
+    if (!isMobileViewport || adminTab !== 'content') return;
+    setAdminTab('schedule');
+  }, [adminTab, isMobileViewport]);
+
+  useEffect(() => {
+    if (!isAuthenticated || !authInitialized || !isMobileViewport || hasCheckedMobileDraftRef.current) return;
     hasCheckedMobileDraftRef.current = true;
     try {
       const raw = window.localStorage.getItem(MOBILE_DRAFT_STORAGE_KEY);
@@ -160,10 +175,10 @@ const AdminPage = ({
     } catch {
       // Ignore malformed mobile drafts.
     }
-  }, [authInitialized, gamesList, isAuthenticated, meetings, rankings, siteContent, standings]);
+  }, [authInitialized, gamesList, isAuthenticated, isMobileViewport, meetings, rankings, siteContent, standings]);
 
   useEffect(() => {
-    if (!isAuthenticated || !isMobileView()) return;
+    if (!isAuthenticated || !isMobileViewport) return;
     try {
       const payload = {
         updatedAt: Date.now(),
@@ -173,32 +188,32 @@ const AdminPage = ({
     } catch {
       // Best-effort mobile autosave only.
     }
-  }, [gamesList, isAuthenticated, meetings, rankings, siteContent, standings]);
+  }, [gamesList, isAuthenticated, isMobileViewport, meetings, rankings, siteContent, standings]);
 
   // Safety sheet animations
   useEffect(() => {
     if (showSafetySheet && safetySheetRef.current) {
-      const d = isMobileView() ? 0.35 : 0.5;
+      const d = isMobileViewport ? 0.35 : 0.5;
       gsap.fromTo(safetySheetRef.current, { y: '100%' }, { y: '0%', duration: d, ease: 'power3.out' });
     }
-  }, [showSafetySheet]);
+  }, [isMobileViewport, showSafetySheet]);
 
   const closeSafetySheet = (onDone) => {
     if (!safetySheetRef.current) { setShowSafetySheet(false); onDone?.(); return; }
-    const d = isMobileView() ? 0.2 : 0.25;
+    const d = isMobileViewport ? 0.2 : 0.25;
     gsap.to(safetySheetRef.current, { y: '100%', duration: d, ease: 'power2.in', onComplete: () => { setShowSafetySheet(false); onDone?.(); } });
   };
 
   useEffect(() => {
     if (activeControlId && controlSheetRef.current) {
-      const d = isMobileView() ? 0.35 : 0.5;
+      const d = isMobileViewport ? 0.35 : 0.5;
       gsap.fromTo(controlSheetRef.current, { y: '100%' }, { y: '0%', duration: d, ease: 'power3.out' });
     }
-  }, [activeControlId]);
+  }, [activeControlId, isMobileViewport]);
 
   const closeControlSheet = () => {
     if (!controlSheetRef.current) { setActiveControlId(null); return; }
-    const d = isMobileView() ? 0.2 : 0.25;
+    const d = isMobileViewport ? 0.2 : 0.25;
     gsap.to(controlSheetRef.current, { y: '100%', duration: d, ease: 'power2.in', onComplete: () => setActiveControlId(null) });
   };
 
@@ -254,8 +269,10 @@ const AdminPage = ({
       haptics.light();
       const result = await signInWithPopup(auth, googleProvider);
       const snap = await getDoc(doc(db, 'config', 'admins'));
-      const allowedEmails = (snap.exists() ? snap.data().emails || [] : []).map(e => e.toLowerCase());
-      const isAuthorized = allowedEmails.includes(result.user.email?.toLowerCase());
+      const allowedEmails = (snap.exists() ? snap.data().emails || [] : [])
+        .map((entry) => String(entry || '').trim().toLowerCase());
+      const signedInEmail = String(result.user.email || '').trim().toLowerCase();
+      const isAuthorized = Boolean(signedInEmail) && allowedEmails.includes(signedInEmail);
       if (!isAuthorized) {
         await signOut(auth);
         haptics.error();
@@ -277,7 +294,7 @@ const AdminPage = ({
     try {
       haptics.saveStart?.();
       const batch = writeBatch(db);
-      const data = JSON.parse(JSON.stringify({ gamesList, standings, rankings, meetings, siteContent }));
+      const data = sanitizeCloudData({ gamesList, standings, rankings, meetings, siteContent });
       batch.set(doc(db, 'global', 'data'), data);
       await batch.commit();
       haptics.saveSuccess?.();
@@ -293,11 +310,12 @@ const AdminPage = ({
   const restoreMobileDraft = () => {
     if (!pendingMobileDraft) return;
     haptics.success();
-    setGamesList(pendingMobileDraft.gamesList || []);
-    setStandings(pendingMobileDraft.standings || []);
-    setRankings(pendingMobileDraft.rankings || []);
-    setMeetings(pendingMobileDraft.meetings || []);
-    setSiteContent(pendingMobileDraft.siteContent || null);
+    const restored = sanitizeCloudData(pendingMobileDraft);
+    setGamesList(restored.gamesList);
+    setStandings(restored.standings);
+    setRankings(restored.rankings);
+    setMeetings(restored.meetings);
+    setSiteContent(restored.siteContent);
     setPendingMobileDraft(null);
   };
 
@@ -362,7 +380,7 @@ const AdminPage = ({
     haptics.selection();
     const newId = Date.now();
     setGamesList([...gamesList, { id: newId, game: 'Smash Bros', opponent: 'TBD', date: '', time: '4:00 PM', type: 'PlayVS Rank', isAlt: false, isDel: false }]);
-    if (isMobileView()) setActiveControlId(newId);
+    if (isMobileViewport) setActiveControlId(newId);
   };
   const updateGame = (id, field, value) => setGamesList(gamesList.map(g => g.id === id ? { ...g, [field]: value } : g));
   const setGameRoster = (id, roster) => {
@@ -377,7 +395,7 @@ const AdminPage = ({
     const newId = Date.now() * 1000;
     setStandings([...standings, { id: newId, team: 'Campbell eSpartans', game: 'Smash Bros', wins: 0, losses: 0, leagueRank: '', leagueName: 'PlayVS', isAlt: false, isDel: false }]);
     setRankings([...rankings, { id: newId + 1, team: 'Campbell eSpartans', game: 'Smash Bros', leagueRank: '', leagueName: 'PlayVS', isAlt: false, isDel: false }]);
-    if (isMobileView()) setActiveControlId(newId);
+    if (isMobileViewport) setActiveControlId(newId);
   };
   const updateStanding = (id, field, value) => {
     const standing = standings.find((s) => s.id === id);
@@ -411,7 +429,7 @@ const AdminPage = ({
     const newId = Date.now() * 1000;
     setRankings([...rankings, { id: newId, team: 'Campbell eSpartans', game: 'Smash Bros', leagueRank: '', leagueName: 'PlayVS', isAlt: false, isDel: false }]);
     setStandings([...standings, { id: newId + 1, team: 'Campbell eSpartans', game: 'Smash Bros', wins: 0, losses: 0, leagueRank: '', leagueName: 'PlayVS', isAlt: false, isDel: false }]);
-    if (isMobileView()) setActiveControlId(newId);
+    if (isMobileViewport) setActiveControlId(newId);
   };
   const updateRanking = (id, field, value) => {
     const ranking = rankings.find((r) => r.id === id);
@@ -444,7 +462,7 @@ const AdminPage = ({
     haptics.selection();
     const newId = Date.now();
     setMeetings([...meetings, { id: newId, title: 'Club Meeting', days: ['Fri'], startTime: '3:30 PM', endTime: '5:30 PM', location: 'Learning Commons', description: '' }]);
-    if (isMobileView()) setActiveControlId(newId);
+    if (isMobileViewport) setActiveControlId(newId);
   };
   const updateMeeting = (id, field, value) => setMeetings(meetings.map((m) => (m.id === id ? { ...m, [field]: value } : m)));
   const deleteMeeting = (id) => { haptics.destructive?.(); setMeetings(meetings.filter((m) => m.id !== id)); if (activeControlId === id) setActiveControlId(null); };
@@ -535,6 +553,7 @@ const AdminPage = ({
   // --- MAIN ADMIN PAGE ---
   const forceCompactSidebar = adminTab === 'content';
   const effectiveSidebarCollapsed = sidebarCollapsed || forceCompactSidebar;
+  const mobileTabOptions = MOBILE_TABS;
 
   return (
     <div className="fixed inset-0 z-[100] bg-background flex flex-col md:flex-row overflow-hidden">
@@ -607,7 +626,7 @@ const AdminPage = ({
               <div className="font-mono text-[9px] uppercase tracking-[0.2em] text-slate/40">Admin Mobile</div>
               <div className="flex items-center gap-2">
                 <span className="font-sans font-black text-sm uppercase tracking-tight truncate">
-                  {SIDEBAR_TABS.find((t) => t.id === adminTab)?.label || 'Admin'}
+                  {(isMobileViewport ? mobileTabOptions : SIDEBAR_TABS).find((t) => t.id === adminTab)?.label || 'Admin'}
                 </span>
                 {isDirty && <span className="w-2 h-2 rounded-full bg-amber-500" aria-label="Unsaved changes" />}
               </div>
@@ -693,7 +712,7 @@ const AdminPage = ({
             <AdminContentEditor
               siteContent={siteContent}
               setSiteContent={setSiteContent}
-              isMobile={isMobileView()}
+              isMobile={isMobileViewport}
               gamesList={gamesList}
               standings={standings}
               rankings={rankings}
@@ -705,7 +724,7 @@ const AdminPage = ({
 
         {/* Mobile bottom nav */}
         <div className="md:hidden fixed bottom-0 left-0 right-0 bg-background border-t border-slate/15 px-2 pt-3 pb-[calc(2rem+env(safe-area-inset-bottom,0px))] flex items-center justify-around z-40 shadow-[0_-15px_50px_rgba(0,0,0,0.7)] touch-manipulation">
-          {SIDEBAR_TABS.map(({ id, label, Icon }) => (
+          {mobileTabOptions.map(({ id, label, Icon }) => (
             <button key={id} onClick={() => { haptics.selection(); setAdminTab(id); }} className={cn("flex flex-col items-center gap-1 transition-all text-[10px] font-black uppercase tracking-tight touch-manipulation", adminTab === id ? "text-accent scale-110" : "text-slate opacity-40")}>
               <Icon size={16} /><span className="leading-none">{label.split(' ')[0]}</span>
             </button>

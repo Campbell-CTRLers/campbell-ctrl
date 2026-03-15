@@ -37,7 +37,7 @@ export const Hero = ({ content, siteContent = null, setSiteContent, contentEdito
         }`}
       >
         <h1 className="flex flex-col items-center gap-0 w-full mb-1">
-          <EditableSiteText as="span" contentKey="hero.line1" fallback={line1} siteContent={siteContent} setSiteContent={setSiteContent} editor={contentEditor} className="font-display font-black text-2xl sm:text-4xl md:text-6xl lg:text-7xl tracking-tight uppercase text-white leading-tight" />
+          <EditableSiteText as="span" contentKey="hero.line1" fallback={line1} siteContent={siteContent} setSiteContent={setSiteContent} editor={contentEditor} className="font-sans font-black italic text-2xl sm:text-4xl md:text-6xl lg:text-7xl tracking-tight uppercase text-white leading-tight drop-shadow-[0_6px_18px_rgba(0,0,0,0.45)]" />
           <EditableSiteText as="span" contentKey="hero.line2" fallback={line2} siteContent={siteContent} setSiteContent={setSiteContent} editor={contentEditor} className="font-drama italic text-6xl sm:text-7xl md:text-[8rem] lg:text-[10rem] text-accent leading-[0.9] drop-shadow-[0_0_15px_rgba(0,56,168,0.6)] -mt-1 md:-mt-4 tracking-tighter" />
         </h1>
         <EditableSiteText as="p" contentKey="hero.description" fallback={description} siteContent={siteContent} setSiteContent={setSiteContent} editor={contentEditor} className="font-roboto text-[16px] sm:text-lg md:text-xl text-primary max-w-[280px] sm:max-w-md md:max-w-2xl leading-relaxed drop-shadow-md px-2 sm:px-0 font-normal transition-all" />

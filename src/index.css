@@ -64,8 +64,55 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   overflow-x: hidden;
-  font-family: "Plus Jakarta Sans", sans-serif;
+  font-family: Roboto, "Plus Jakarta Sans", sans-serif;
   font-feature-settings: "ss01", "ss02", "cv01", "cv11";
+}
+
+/* Consistent button status feedback across UI */
+button:not(.no-btn-anim),
+a.btn-anim {
+  transition:
+    background-color 180ms ease,
+    border-color 180ms ease,
+    color 180ms ease,
+    box-shadow 180ms ease,
+    filter 180ms ease,
+    opacity 180ms ease;
+}
+
+button:not(.no-btn-anim):enabled:hover,
+a.btn-anim:hover {
+  filter: brightness(1.04);
+  box-shadow: 0 8px 22px rgb(0 0 0 / 12%);
+}
+
+button:not(.no-btn-anim):enabled:active,
+a.btn-anim:active {
+  filter: brightness(0.97);
+}
+
+button:not(.no-btn-anim):focus-visible,
+a.btn-anim:focus-visible {
+  outline: none;
+  box-shadow:
+    0 0 0 2px rgb(var(--color-background)),
+    0 0 0 4px rgb(var(--color-accent) / 50%);
+}
+
+button:not(.no-btn-anim)[aria-current="page"],
+button:not(.no-btn-anim)[aria-pressed="true"],
+button:not(.no-btn-anim)[data-state="active"],
+button:not(.no-btn-anim)[data-active="true"] {
+  box-shadow:
+    inset 0 0 0 1px rgb(var(--color-accent) / 35%),
+    0 10px 24px rgb(0 56 168 / 14%);
+}
+
+button:not(.no-btn-anim):disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  box-shadow: none;
+  filter: none;
 }
 
 /* Simple button hover */

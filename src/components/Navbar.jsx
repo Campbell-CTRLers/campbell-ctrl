@@ -34,6 +34,7 @@ const NavLink = ({ children, onClick, className, tabName, isActive, linkRef }) =
 
 const ThemeToggle = ({ theme, toggleTheme }) => {
   const haptics = useHaptics();
+  const nextThemeLabel = theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode';
   
   const handleClick = () => {
     haptics.light();
@@ -43,9 +44,9 @@ const ThemeToggle = ({ theme, toggleTheme }) => {
   return (
     <button
       onClick={handleClick}
-      className="group relative flex items-center justify-center min-w-[44px] min-h-[44px] w-11 h-11 sm:w-9 sm:h-9 sm:min-w-0 sm:min-h-0 rounded-full hover:bg-slate-500/10 active:scale-90 transition-all text-current overflow-hidden touch-manipulation"
-      aria-label="Toggle Theme"
-      title="Toggle Theme"
+      className="group relative flex items-center justify-center min-w-[44px] min-h-[44px] w-11 h-11 sm:w-9 sm:h-9 sm:min-w-0 sm:min-h-0 rounded-full hover:bg-slate-500/10 active:scale-90 transition-all text-current overflow-visible touch-manipulation"
+      aria-label={nextThemeLabel}
+      aria-pressed={theme === 'dark'}
     >
       <IconSun 
         size={18} 
@@ -61,6 +62,9 @@ const ThemeToggle = ({ theme, toggleTheme }) => {
           theme === 'dark' ? "rotate-180 scale-0 opacity-0" : "rotate-0 scale-100 opacity-100 group-hover:-rotate-12 group-hover:scale-110"
         )} 
       />
+      <span className="pointer-events-none absolute left-1/2 top-full mt-2 -translate-x-1/2 whitespace-nowrap rounded-lg border border-slate/15 bg-background/95 px-2.5 py-1 text-[10px] font-mono uppercase tracking-wide text-slate/70 opacity-0 translate-y-1 transition-all duration-200 group-hover:opacity-100 group-hover:translate-y-0 group-focus-visible:opacity-100 group-focus-visible:translate-y-0">
+        {nextThemeLabel}
+      </span>
     </button>
   );
 };

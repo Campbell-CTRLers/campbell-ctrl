@@ -529,9 +529,9 @@ const AdminContentEditor = ({
   }
 
   return (
-    <div className="relative h-full min-h-[calc(100vh-11rem)] bg-background">
-      <div className="absolute inset-x-0 top-3 z-40 px-4">
-        <div className="mx-auto w-full max-w-6xl">
+    <div className="relative h-full min-h-[calc(100vh-11rem)] bg-background flex flex-col">
+      <div className="sticky top-0 z-30 px-4 pt-3 pb-3 border-b border-slate/10 bg-background/95 backdrop-blur-xl">
+        <div className="mx-auto w-full max-w-6xl max-h-[46vh] overflow-y-auto custom-scrollbar pr-1">
           <div className="rounded-2xl border border-slate/10 bg-background/95 backdrop-blur-md px-4 py-3 shadow-xl">
             <div className="flex flex-wrap items-center gap-3">
               <span className="font-mono text-[9px] font-black text-accent uppercase tracking-[0.2em]">
@@ -859,10 +859,7 @@ const AdminContentEditor = ({
         ref={canvasRef}
         data-editor-canvas
         onClick={clearSelection}
-        className={cn(
-          "h-full overflow-y-auto custom-scrollbar",
-          selectedKey ? "pt-[29rem] lg:pt-[22rem]" : "pt-[18rem] lg:pt-[12rem]"
-        )}
+        className="flex-1 overflow-y-auto custom-scrollbar pt-4"
       >
         {guidesEnabled && guideState.showVertical && <div className="pointer-events-none fixed inset-y-0 left-1/2 -translate-x-1/2 w-px bg-accent/50 z-30" />}
         {guidesEnabled && guideState.showHorizontal && <div className="pointer-events-none fixed inset-x-0 top-1/2 -translate-y-1/2 h-px bg-accent/50 z-30" />}

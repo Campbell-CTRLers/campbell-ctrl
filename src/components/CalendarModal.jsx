@@ -75,7 +75,7 @@ export function CalendarOptions({ compact = false, titleId }) {
         <a
           href={ready ? googleUrl : undefined}
           target="_blank"
-          rel="noreferrer"
+          rel="noopener noreferrer"
           className={cn(
             'flex flex-col items-center gap-3 p-4 rounded-2xl border border-slate/10 transition-all duration-300 group text-center',
             ready ? 'hover:border-accent/30 hover:bg-primary/5 cursor-pointer bg-slate/[0.02]' : 'opacity-40 pointer-events-none'
