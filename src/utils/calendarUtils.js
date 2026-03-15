@@ -219,31 +219,12 @@ export function openNativeAppWithFallback(nativeUrl, fallbackUrl, timeoutMs = 12
     if (nextFallback) window.location.assign(nextFallback);
   };
 
-  // #region agent log
-  window.__calendarDebugLog?.({
-    hypothesisId: 'A',
-    location: 'calendarUtils.js:openNativeAppWithFallback:entry',
-    message: 'Native launch requested',
-    data: { nativeCount: nativeUrls.length, fallbackCount: fallbackUrls.length },
-    timestamp: Date.now(),
-  });
-  // #endregion
-
   if (!nativeUrls.length && fallbackUrls.length) {
     openFallback();
     return;
   }
   if (!nativeUrls.length) return;
   if (nativeUrls.some(url => /^calshow:/i.test(url)) && !isApplePlatform()) {
-    // #region agent log
-    window.__calendarDebugLog?.({
-      hypothesisId: 'B',
-      location: 'calendarUtils.js:openNativeAppWithFallback:nonAppleBypass',
-      message: 'Bypassing calshow on non-Apple platform',
-      data: { userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : '' },
-      timestamp: Date.now(),
-    });
-    // #endregion
     openFallback();
     return;
   }
@@ -264,15 +245,6 @@ export function openNativeAppWithFallback(nativeUrl, fallbackUrl, timeoutMs = 12
   const onVisibility = () => {
     if (document.visibilityState === 'hidden') {
       didHide = true;
-      // #region agent log
-      window.__calendarDebugLog?.({
-        hypothesisId: 'C',
-        location: 'calendarUtils.js:openNativeAppWithFallback:onVisibility',
-        message: 'Page hidden after native launch',
-        data: { attempt },
-        timestamp: Date.now(),
-      });
-      // #endregion
       cleanup();
     }
   };
@@ -290,26 +262,8 @@ export function openNativeAppWithFallback(nativeUrl, fallbackUrl, timeoutMs = 12
       return;
     }
     const nextNative = nativeUrls[attempt];
-    // #region agent log
-    window.__calendarDebugLog?.({
-      hypothesisId: 'A',
-      location: 'calendarUtils.js:openNativeAppWithFallback:attemptNative',
-      message: 'Attempting native URL',
-      data: { attempt, nextNative: nextNative || null },
-      timestamp: Date.now(),
-    });
-    // #endregion
     attempt += 1;
     if (!nextNative) {
-      // #region agent log
-      window.__calendarDebugLog?.({
-        hypothesisId: 'D',
-        location: 'calendarUtils.js:openNativeAppWithFallback:openFallback',
-        message: 'All native attempts exhausted; opening fallback',
-        data: { remainingFallbacks: fallbackUrls.length },
-        timestamp: Date.now(),
-      });
-      // #endregion
       openFallback();
       cleanup();
       return;
