@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
+import { EditableSiteText } from '../content/EditableSiteText';
 
-export const Hero = ({ content }) => {
+export const Hero = ({ content, siteContent = null, setSiteContent, contentEditor }) => {
   const [visible, setVisible] = useState(false);
 
   const line1 = content?.line1 || 'Campbell CTRL';
@@ -36,22 +37,16 @@ export const Hero = ({ content }) => {
         }`}
       >
         <h1 className="flex flex-col items-center gap-0 w-full mb-1">
-          <span className="font-display font-black text-2xl sm:text-4xl md:text-6xl lg:text-7xl tracking-tight uppercase text-white leading-tight">
-            {line1}
-          </span>
-          <span className="font-drama italic text-6xl sm:text-7xl md:text-[8rem] lg:text-[10rem] text-accent leading-[0.9] drop-shadow-[0_0_15px_rgba(0,56,168,0.6)] -mt-1 md:-mt-4 tracking-tighter">
-            {line2}
-          </span>
+          <EditableSiteText as="span" contentKey="hero.line1" fallback={line1} siteContent={siteContent} setSiteContent={setSiteContent} editor={contentEditor} className="font-display font-black text-2xl sm:text-4xl md:text-6xl lg:text-7xl tracking-tight uppercase text-white leading-tight" />
+          <EditableSiteText as="span" contentKey="hero.line2" fallback={line2} siteContent={siteContent} setSiteContent={setSiteContent} editor={contentEditor} className="font-drama italic text-6xl sm:text-7xl md:text-[8rem] lg:text-[10rem] text-accent leading-[0.9] drop-shadow-[0_0_15px_rgba(0,56,168,0.6)] -mt-1 md:-mt-4 tracking-tighter" />
         </h1>
-        <p className="font-roboto text-[16px] sm:text-lg md:text-xl text-primary max-w-[280px] sm:max-w-md md:max-w-2xl leading-relaxed drop-shadow-md px-2 sm:px-0 font-normal transition-all">
-          {description}
-        </p>
+        <EditableSiteText as="p" contentKey="hero.description" fallback={description} siteContent={siteContent} setSiteContent={setSiteContent} editor={contentEditor} className="font-roboto text-[16px] sm:text-lg md:text-xl text-primary max-w-[280px] sm:max-w-md md:max-w-2xl leading-relaxed drop-shadow-md px-2 sm:px-0 font-normal transition-all" />
         <div className="mt-5 md:mt-8">
           <button
             onClick={scrollToContent}
             className="bg-[#111113] hover:bg-black text-white px-8 py-3.5 rounded-full font-sans font-bold text-sm md:text-base transition-opacity shadow-lg border border-white/5 active:opacity-90 touch-manipulation"
           >
-            {buttonText}
+            <EditableSiteText as="span" contentKey="hero.buttonText" fallback={buttonText} siteContent={siteContent} setSiteContent={setSiteContent} editor={contentEditor} />
           </button>
         </div>
       </div>

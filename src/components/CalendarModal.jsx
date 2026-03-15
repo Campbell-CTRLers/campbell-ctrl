@@ -8,20 +8,18 @@ import inPersonMeetingIcs from '../assets/in-person-meeting.ics?url';
 import iconGoogleCalendar from '../assets/icon-google-calendar.svg';
 import iconMicrosoftOutlook from '../assets/icon-microsoft-outlook.svg';
 import { useHaptics } from '../hooks/useHaptics';
-import { icsToDataUri } from '../utils/calendarUtils';
+import { icsToUrls, openNativeAppWithFallback, downloadIcsFile } from '../utils/calendarUtils';
 
 export function CalendarOptions({ compact = false, titleId }) {
   const containerRef = useRef(null);
   const haptics = useHaptics();
   const [googleUrl, setGoogleUrl] = useState('');
   const [outlookUrl, setOutlookUrl] = useState('');
-  const [appleDataUri, setAppleDataUri] = useState('');
-  const [blobUrl, setBlobUrl] = useState('');
   const [icsText, setIcsText] = useState('');
+  const [outlookNativeUrl, setOutlookNativeUrl] = useState('');
 
   useEffect(() => {
     let active = true;
-    let createdUrl = '';
     fetch(inPersonMeetingIcs)
       .then(r => {
         if (!r.ok) {
@@ -31,71 +29,33 @@ export function CalendarOptions({ compact = false, titleId }) {
       })
       .then(text => {
         if (!active) return;
+        const urls = icsToUrls(text);
+        setGoogleUrl(urls.googleUrl || '');
+        setOutlookUrl(urls.outlookUrl || '');
+        setOutlookNativeUrl(urls.outlookNativeUrl || '');
         setIcsText(text);
-        const unfolded = text.replace(/\r?\n[ \t]/g, '');
-        const veventMatch = unfolded.match(/BEGIN:VEVENT([\s\S]*?)END:VEVENT/);
-        const vevent = veventMatch ? veventMatch[1] : unfolded;
-        const get = key => {
-          const m = vevent.match(new RegExp('^' + key + '[^:]*:(.+)', 'm'));
-          return m ? m[1].trim() : '';
-        };
-        const dtstart = get('DTSTART');
-        const dtend = get('DTEND');
-        const rrule = get('RRULE');
-        const summary = get('SUMMARY');
-        const location = get('LOCATION').replace(/\\,/g, ',').replace(/\\n/g, ' ');
         
-        const googleParams = new URLSearchParams({ action: 'TEMPLATE', text: summary, dates: `${dtstart}/${dtend}`, location });
-        if (rrule) googleParams.set('recur', `RRULE:${rrule}`);
-        setGoogleUrl(`https://calendar.google.com/calendar/render?${googleParams}`);
-
-        const outlookParams = new URLSearchParams({
-          path: '/calendar/action/compose',
-          rru: 'addevent',
-          subject: summary,
-          startdt: dtstart,
-          enddt: dtend,
-          location: location,
-          allday: 'false'
-        });
-        setOutlookUrl(`https://outlook.office.com/calendar/0/deeplink/compose?${outlookParams}`);
-
-        const blob = new Blob([text], { type: 'text/calendar;charset=utf-8' });
-        createdUrl = URL.createObjectURL(blob);
-        setBlobUrl(createdUrl);
-        
-        setAppleDataUri(icsToDataUri(text));
       })
       .catch(err => {
         console.error('Failed to initialize calendar options:', err);
-        if (active && createdUrl) {
-          URL.revokeObjectURL(createdUrl);
-        }
+        if (active) setIcsText('');
       });
-    return () => { active = false; if (createdUrl) URL.revokeObjectURL(createdUrl); };
+    return () => { active = false; };
   }, []);
 
-  const ready = !!(googleUrl && outlookUrl && appleDataUri && blobUrl);
-  const filename = 'in-person-meeting.ics';
-
-  const handleAppleAdd = async (e) => {
+  const ready = !!(googleUrl && outlookUrl && icsText);
+  const handleAppleAdd = (e) => {
     e.preventDefault();
     if (!ready) return;
-    haptics.light();
+    haptics.openPanel?.();
+    downloadIcsFile(icsText, 'campbell-ctrl-meeting.ics');
+  };
 
-    const file = new File([icsText], filename, { type: 'text/calendar' });
-    const canShare = navigator.share && (navigator.canShare ? navigator.canShare({ files: [file] }) : false);
-
-    if (canShare) {
-      try {
-        await navigator.share({ files: [file], title: 'Add to Calendar' });
-        return;
-      } catch (err) {
-        if (err.name === 'AbortError') return;
-      }
-    }
-
-    window.location.href = appleDataUri;
+  const handleOutlookAdd = (e) => {
+    e.preventDefault();
+    if (!ready) return;
+    haptics.openPanel?.();
+    openNativeAppWithFallback(outlookNativeUrl, outlookUrl);
   };
 
   return (
@@ -124,10 +84,9 @@ export function CalendarOptions({ compact = false, titleId }) {
           <img src={iconGoogleCalendar} alt="Google" className="w-10 h-10 group-hover:scale-110 transition-transform" />
           <span className="font-sans font-semibold text-primary text-[10px] uppercase tracking-wider">Google</span>
         </a>
-        <a
-          href={ready ? outlookUrl : undefined}
-          target="_blank"
-          rel="noreferrer"
+        <button
+          type="button"
+          onClick={handleOutlookAdd}
           className={cn(
             'flex flex-col items-center gap-3 p-4 rounded-2xl border border-slate/10 transition-all duration-300 group text-center',
             ready ? 'hover:border-accent/30 hover:bg-primary/5 cursor-pointer bg-slate/[0.02]' : 'opacity-40 pointer-events-none'
@@ -135,7 +94,7 @@ export function CalendarOptions({ compact = false, titleId }) {
         >
           <img src={iconMicrosoftOutlook} alt="Outlook" className="w-10 h-10 group-hover:scale-110 transition-transform" />
           <span className="font-sans font-semibold text-primary text-[10px] uppercase tracking-wider">Outlook</span>
-        </a>
+        </button>
         <button
           type="button"
           onClick={handleAppleAdd}

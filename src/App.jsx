@@ -25,11 +25,26 @@ const AdminPage = lazy(() => import('./pages/AdminPage'));
 gsap.registerPlugin(ScrollTrigger, ScrollToPlugin);
 
 const VALID_TABS = ['home', 'esports', 'meetings', 'legal', 'admin'];
+const MOBILE_PRIMARY_TABS = ['home', 'esports', 'meetings'];
+
+const PullToRefreshIndicator = ({ pullDistance = 0, refreshing = false }) => (
+  <div
+    className="md:hidden fixed left-1/2 -translate-x-1/2 z-50 pointer-events-none transition-all duration-150"
+    style={{ top: `max(0.5rem, ${Math.min(84, pullDistance)}px)` }}
+    aria-hidden
+  >
+    <div className="px-3 py-1.5 rounded-full border border-slate/15 bg-background/90 backdrop-blur-md text-[10px] font-mono uppercase tracking-[0.2em] text-slate/60">
+      {refreshing ? 'Refreshing' : pullDistance > 75 ? 'Release to refresh' : 'Pull to refresh'}
+    </div>
+  </div>
+);
 
 // Inner component so it can use the useMobile hook (needs MobileProvider above)
 function AppInner() {
   const { isMobile } = useMobile();
   const scrollTriggerTimeoutRef = useRef(null);
+  const swipeRef = useRef({ startX: 0, startY: 0, active: false, atTop: false });
+  const pullTriggeredRef = useRef(false);
 
   const getInitialTab = () => {
     const path = window.location.pathname.replace('/', '').toLowerCase();
@@ -38,6 +53,8 @@ function AppInner() {
 
   const [currentTab, setCurrentTab] = useState(getInitialTab);
   const [isTransitioning, setIsTransitioning] = useState(false);
+  const [pullDistance, setPullDistance] = useState(0);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const haptics = useHaptics();
 
   const handleTabChange = useCallback((newTab, isPopState = false) => {
@@ -123,13 +140,6 @@ function AppInner() {
   const authUnsubRef = useRef(null);
 
   useEffect(() => {
-    // Check for 30-day session expiry
-    const authExpiry = localStorage.getItem('auth_expiry');
-    if (authExpiry && Date.now() > Number(authExpiry)) {
-      auth.signOut();
-      localStorage.removeItem('auth_expiry');
-    }
-
     let cancelled = false;
     getDoc(doc(db, 'config', 'admins')).then((snap) => {
       if (cancelled) return;
@@ -210,8 +220,60 @@ function AppInner() {
     );
   }
 
+  const onMainTouchStart = (e) => {
+    if (!isMobile || currentTab === 'legal') return;
+    if (!e.touches?.length) return;
+    const t = e.touches[0];
+    swipeRef.current.active = true;
+    swipeRef.current.startX = t.clientX;
+    swipeRef.current.startY = t.clientY;
+    swipeRef.current.atTop = window.scrollY <= 0;
+    pullTriggeredRef.current = false;
+  };
+
+  const onMainTouchMove = (e) => {
+    if (!isMobile || !swipeRef.current.active) return;
+    const t = e.touches?.[0];
+    if (!t) return;
+    const dy = t.clientY - swipeRef.current.startY;
+    if (swipeRef.current.atTop && dy > 0 && !pullTriggeredRef.current) {
+      setPullDistance(Math.min(dy, 110));
+    }
+  };
+
+  const onMainTouchEnd = (e) => {
+    if (!isMobile || !swipeRef.current.active) return;
+    const touch = e.changedTouches?.[0];
+    if (!touch) return;
+    const dx = touch.clientX - swipeRef.current.startX;
+    const dy = touch.clientY - swipeRef.current.startY;
+    const absDx = Math.abs(dx);
+    const absDy = Math.abs(dy);
+
+    if (pullDistance > 80 && swipeRef.current.atTop && !pullTriggeredRef.current) {
+      pullTriggeredRef.current = true;
+      setIsRefreshing(true);
+      haptics.medium();
+      window.location.reload();
+      return;
+    }
+
+    if (absDx > 65 && absDx > absDy * 1.35) {
+      const idx = MOBILE_PRIMARY_TABS.indexOf(currentTab);
+      if (idx !== -1) {
+        if (dx < 0 && idx < MOBILE_PRIMARY_TABS.length - 1) handleTabChange(MOBILE_PRIMARY_TABS[idx + 1]);
+        if (dx > 0 && idx > 0) handleTabChange(MOBILE_PRIMARY_TABS[idx - 1]);
+      }
+    }
+
+    swipeRef.current.active = false;
+    setPullDistance(0);
+    if (isRefreshing) setIsRefreshing(false);
+  };
+
   return (
     <div className="bg-background min-h-screen font-sans selection:bg-accent selection:text-background pb-1 relative">
+      {isMobile && pullDistance > 0 && <PullToRefreshIndicator pullDistance={pullDistance} refreshing={isRefreshing} />}
       <a
         href="#main-content"
         className="hidden md:block fixed left-4 top-4 z-[100] -translate-y-[200%] rounded-lg bg-accent px-4 py-2 text-background font-semibold shadow-lg transition-transform focus:outline-none focus-visible:translate-y-0 focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background"
@@ -220,7 +282,7 @@ function AppInner() {
       </a>
       <BackdropDecoration />
 
-      <Navbar currentTab={currentTab} onNavigate={handleTabChange} />
+      <Navbar currentTab={currentTab} onNavigate={handleTabChange} siteContent={siteContent} setSiteContent={setSiteContent} />
 
       {dataError && (
         <div className="sticky top-20 left-0 right-0 z-30 mx-4 max-w-2xl rounded-xl border border-slate/20 bg-slate/10 px-4 py-3 text-center text-sm text-primary md:left-1/2 md:mx-auto md:-translate-x-1/2" role="alert">
@@ -228,16 +290,22 @@ function AppInner() {
         </div>
       )}
 
-      <main id="main-content" tabIndex={-1}>
+      <main
+        id="main-content"
+        tabIndex={-1}
+        onTouchStart={onMainTouchStart}
+        onTouchMove={onMainTouchMove}
+        onTouchEnd={onMainTouchEnd}
+      >
         <Suspense fallback={<div className="flex min-h-[40vh] items-center justify-center text-slate" aria-live="polite">Loading…</div>}>
-          {currentTab === 'home' && <HomeTab gamesList={gamesList} standings={standings} rankings={rankings} meetings={meetings} siteContent={siteContent} dataLoaded={dataLoaded} onNavigateToEsports={() => handleTabChange('esports')} />}
-          {currentTab === 'esports' && <EsportsTab gamesList={gamesList} standings={standings} rankings={rankings} dataLoaded={dataLoaded} siteContent={siteContent} />}
-          {currentTab === 'meetings' && <MeetingsTab meetings={meetings} siteContent={siteContent} />}
-          {currentTab === 'legal' && <LegalTab />}
+          {currentTab === 'home' && <HomeTab gamesList={gamesList} standings={standings} rankings={rankings} meetings={meetings} siteContent={siteContent} setSiteContent={setSiteContent} dataLoaded={dataLoaded} onNavigateToEsports={() => handleTabChange('esports')} />}
+          {currentTab === 'esports' && <EsportsTab gamesList={gamesList} standings={standings} rankings={rankings} dataLoaded={dataLoaded} siteContent={siteContent} setSiteContent={setSiteContent} />}
+          {currentTab === 'meetings' && <MeetingsTab meetings={meetings} dataLoaded={dataLoaded} siteContent={siteContent} setSiteContent={setSiteContent} />}
+          {currentTab === 'legal' && <LegalTab siteContent={siteContent} setSiteContent={setSiteContent} />}
         </Suspense>
       </main>
 
-      <Footer onToggleAdmin={() => handleTabChange('admin')} onNavigate={handleTabChange} />
+      <Footer onToggleAdmin={() => handleTabChange('admin')} onNavigate={handleTabChange} siteContent={siteContent} setSiteContent={setSiteContent} />
 
       <ScrollToTop />
 

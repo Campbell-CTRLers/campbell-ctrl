@@ -5,34 +5,46 @@ import { WebHaptics } from 'web-haptics';
  * Optimized for mobile devices with a safe guard for desktop.
  */
 const hapticsEngine = typeof window !== 'undefined' ? new WebHaptics() : null;
+const supported = Boolean(hapticsEngine);
+
+const safeTrigger = (pattern) => {
+  if (!supported) return;
+  try {
+    hapticsEngine.trigger(pattern);
+  } catch {
+    // Fail quietly on unsupported platforms.
+  }
+};
 
 export const haptics = {
     /** Selection tap */
-    selection: () => hapticsEngine?.trigger('selection'),
+    selection: () => safeTrigger('selection'),
     
     /** Soft impact */
-    soft: () => hapticsEngine?.trigger('soft'),
+    soft: () => safeTrigger('soft'),
     
     /** Light impact */
-    light: () => hapticsEngine?.trigger('light'),
+    light: () => safeTrigger('light'),
     
     /** Medium impact */
-    medium: () => hapticsEngine?.trigger('medium'),
+    medium: () => safeTrigger('medium'),
     
     /** Heavy impact */
-    heavy: () => hapticsEngine?.trigger('heavy'),
+    heavy: () => safeTrigger('heavy'),
     
     /** Rigid impact */
-    rigid: () => hapticsEngine?.trigger('rigid'),
+    rigid: () => safeTrigger('rigid'),
     
     /** Success sequence */
-    success: () => hapticsEngine?.trigger('success'),
+    success: () => safeTrigger('success'),
     
     /** Warning sequence */
-    warning: () => hapticsEngine?.trigger('warning'),
+    warning: () => safeTrigger('warning'),
     
     /** Error sequence */
-    error: () => hapticsEngine?.trigger('error'),
+    error: () => safeTrigger('error'),
+
+    isSupported: () => supported,
 };
 
 export default haptics;

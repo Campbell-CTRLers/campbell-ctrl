@@ -3,7 +3,7 @@ import gsap from 'gsap';
 import {
   IconSettings, IconCloudUpload, IconCalendar, IconCheck, IconTrophy, IconX,
   IconUsers, IconChart, IconPencilEdit, IconLogOut, IconSun, IconMoon,
-  IconChevronLeft, IconMenu, IconEye, IconEyeOff, IconGamepad,
+  IconChevronLeft, IconGamepad, IconSearch,
 } from '../components/icons/SvgIcons';
 import { db, auth, googleProvider } from '../firebase';
 import { writeBatch, doc, getDoc } from 'firebase/firestore';
@@ -32,6 +32,29 @@ const SIDEBAR_TABS = [
   { id: 'content', label: 'Site Content', Icon: IconPencilEdit },
 ];
 
+const MOBILE_DRAFT_STORAGE_KEY = 'adminMobileDraft.v1';
+
+const parseClockToMinutes = (value) => {
+  if (!value) return null;
+  const m = String(value).trim().match(/^(\d{1,2})(?::(\d{2}))?\s*(AM|PM)?$/i);
+  if (!m) return null;
+  let h = Number(m[1]);
+  const mm = Number(m[2] || 0);
+  const ampm = String(m[3] || '').toUpperCase();
+  if (ampm === 'PM' && h < 12) h += 12;
+  if (ampm === 'AM' && h === 12) h = 0;
+  return (h * 60) + mm;
+};
+
+const formatMinutesToClock = (minutes) => {
+  const total = ((minutes % 1440) + 1440) % 1440;
+  const h24 = Math.floor(total / 60);
+  const mm = String(total % 60).padStart(2, '0');
+  const suffix = h24 >= 12 ? 'PM' : 'AM';
+  const h12 = h24 % 12 || 12;
+  return `${h12}:${mm} ${suffix}`;
+};
+
 const AdminPage = ({
   onClose,
   gamesList, setGamesList,
@@ -57,10 +80,14 @@ const AdminPage = ({
 
   const [activeControlId, setActiveControlId] = useState(null);
   const [showSafetySheet, setShowSafetySheet] = useState(false);
+  const [mobileCommandQuery, setMobileCommandQuery] = useState('');
+  const [mobileQuickActionsOpen, setMobileQuickActionsOpen] = useState(false);
+  const [pendingMobileDraft, setPendingMobileDraft] = useState(null);
 
   const safetySheetRef = useRef(null);
   const controlSheetRef = useRef(null);
   const tabContentRef = useRef(null);
+  const hasCheckedMobileDraftRef = useRef(false);
 
   const originalDataRef = useRef(null);
   const hasSyncedRef = useRef(false);
@@ -91,15 +118,6 @@ const AdminPage = ({
   }, [rememberMe, isAuthenticated]);
 
   useEffect(() => {
-    const expiry = localStorage.getItem('auth_expiry');
-    if (expiry && Date.now() > Number(expiry)) {
-      signOut(auth);
-      localStorage.removeItem('auth_expiry');
-      setIsAuthenticated(false);
-    }
-  }, []);
-
-  useEffect(() => {
     if (isAuthenticated && !saveSuccess && originalDataRef.current) return;
     if (isAuthenticated) {
       originalDataRef.current = JSON.parse(JSON.stringify({ gamesList, standings, rankings, meetings, siteContent }));
@@ -115,11 +133,47 @@ const AdminPage = ({
   }, [adminTab, isAuthenticated]);
 
   useEffect(() => {
+    if (adminTab === 'content' && !sidebarCollapsed) {
+      setSidebarCollapsed(true);
+    }
+  }, [adminTab, sidebarCollapsed]);
+
+  useEffect(() => {
     document.body.style.overflow = 'hidden';
     return () => { document.body.style.overflow = ''; };
   }, []);
 
   const isMobileView = () => typeof window !== 'undefined' && window.innerWidth < 768;
+
+  useEffect(() => {
+    if (!isAuthenticated || !authInitialized || !isMobileView() || hasCheckedMobileDraftRef.current) return;
+    hasCheckedMobileDraftRef.current = true;
+    try {
+      const raw = window.localStorage.getItem(MOBILE_DRAFT_STORAGE_KEY);
+      if (!raw) return;
+      const parsed = JSON.parse(raw);
+      if (!parsed?.data) return;
+      const current = { gamesList, standings, rankings, meetings, siteContent };
+      if (JSON.stringify(parsed.data) !== JSON.stringify(current)) {
+        setPendingMobileDraft(parsed.data);
+      }
+    } catch {
+      // Ignore malformed mobile drafts.
+    }
+  }, [authInitialized, gamesList, isAuthenticated, meetings, rankings, siteContent, standings]);
+
+  useEffect(() => {
+    if (!isAuthenticated || !isMobileView()) return;
+    try {
+      const payload = {
+        updatedAt: Date.now(),
+        data: { gamesList, standings, rankings, meetings, siteContent },
+      };
+      window.localStorage.setItem(MOBILE_DRAFT_STORAGE_KEY, JSON.stringify(payload));
+    } catch {
+      // Best-effort mobile autosave only.
+    }
+  }, [gamesList, isAuthenticated, meetings, rankings, siteContent, standings]);
 
   // Safety sheet animations
   useEffect(() => {
@@ -195,8 +249,8 @@ const AdminPage = ({
   const handleGoogleSignIn = async () => {
     setIsAuthenticating(true);
     setErrorMsg('');
-    const authExpiry = rememberMe ? Date.now() + 30 * 24 * 60 * 60 * 1000 : 0;
     try {
+      await setPersistence(auth, rememberMe ? browserLocalPersistence : browserSessionPersistence);
       haptics.light();
       const result = await signInWithPopup(auth, googleProvider);
       const snap = await getDoc(doc(db, 'config', 'admins'));
@@ -208,8 +262,6 @@ const AdminPage = ({
         setErrorMsg('Unauthorized account.');
         return;
       }
-      if (rememberMe) localStorage.setItem('auth_expiry', String(authExpiry));
-      else localStorage.removeItem('auth_expiry');
       haptics.success();
       setIsAuthenticated(true);
     } catch (_err) {
@@ -223,19 +275,86 @@ const AdminPage = ({
     setIsSaving(true);
     setSaveErrorMsg('');
     try {
-      haptics.medium();
+      haptics.saveStart?.();
       const batch = writeBatch(db);
       const data = JSON.parse(JSON.stringify({ gamesList, standings, rankings, meetings, siteContent }));
       batch.set(doc(db, 'global', 'data'), data);
       await batch.commit();
-      haptics.success();
+      haptics.saveSuccess?.();
       confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 }, colors: ['#0038A8', '#FFFFFF', '#000000'] });
       setSaveSuccess(true);
       setTimeout(() => setSaveSuccess(false), 2000);
     } catch (_err) {
-      haptics.error();
+      haptics.saveError?.();
       setSaveErrorMsg(_err.message || 'Failed to sync with cloud.');
     } finally { setIsSaving(false); }
+  };
+
+  const restoreMobileDraft = () => {
+    if (!pendingMobileDraft) return;
+    haptics.success();
+    setGamesList(pendingMobileDraft.gamesList || []);
+    setStandings(pendingMobileDraft.standings || []);
+    setRankings(pendingMobileDraft.rankings || []);
+    setMeetings(pendingMobileDraft.meetings || []);
+    setSiteContent(pendingMobileDraft.siteContent || null);
+    setPendingMobileDraft(null);
+  };
+
+  const dismissMobileDraft = () => {
+    setPendingMobileDraft(null);
+    try {
+      window.localStorage.removeItem(MOBILE_DRAFT_STORAGE_KEY);
+    } catch {
+      // Ignore storage cleanup errors.
+    }
+  };
+
+  const duplicateLastRecord = () => {
+    haptics.selection();
+    if (adminTab === 'schedule' && gamesList.length) {
+      const source = gamesList[gamesList.length - 1];
+      setGamesList([...gamesList, { ...source, id: Date.now() }]);
+      return;
+    }
+    if (adminTab === 'standings' && standings.length) {
+      const source = standings[standings.length - 1];
+      setStandings([...standings, { ...source, id: Date.now() * 1000 }]);
+      return;
+    }
+    if (adminTab === 'rankings' && rankings.length) {
+      const source = rankings[rankings.length - 1];
+      setRankings([...rankings, { ...source, id: Date.now() * 1000 }]);
+      return;
+    }
+    if (adminTab === 'meetings' && meetings.length) {
+      const source = meetings[meetings.length - 1];
+      setMeetings([...meetings, { ...source, id: Date.now() }]);
+    }
+  };
+
+  const shiftTimesByMinutes = (minutes) => {
+    if (adminTab === 'schedule') {
+      setGamesList(gamesList.map((g) => {
+        const parsed = parseClockToMinutes(g.time || '4:00 PM');
+        if (parsed == null) return g;
+        return { ...g, time: formatMinutesToClock(parsed + minutes) };
+      }));
+      haptics.light();
+      return;
+    }
+    if (adminTab === 'meetings') {
+      setMeetings(meetings.map((m) => {
+        const s = parseClockToMinutes(m.startTime || '3:30 PM');
+        const e = parseClockToMinutes(m.endTime || '5:30 PM');
+        return {
+          ...m,
+          startTime: s == null ? m.startTime : formatMinutesToClock(s + minutes),
+          endTime: e == null ? m.endTime : formatMinutesToClock(e + minutes),
+        };
+      }));
+      haptics.light();
+    }
   };
 
   // CRUD handlers
@@ -251,7 +370,7 @@ const AdminPage = ({
     const isDel = roster === 'DEL';
     setGamesList(gamesList.map((g) => (g.id === id ? { ...g, isAlt, isDel } : g)));
   };
-  const deleteGame = (id) => { haptics.light(); setGamesList(gamesList.filter(g => g.id !== id)); if (activeControlId === id) setActiveControlId(null); };
+  const deleteGame = (id) => { haptics.destructive?.(); setGamesList(gamesList.filter(g => g.id !== id)); if (activeControlId === id) setActiveControlId(null); };
 
   const handleAddStanding = () => {
     haptics.selection();
@@ -277,7 +396,7 @@ const AdminPage = ({
     setRankings(rankings.map((r) => (sameTeam(r, standing) ? { ...r, isAlt, isDel } : r)));
   };
   const deleteStanding = (id) => {
-    haptics.light();
+    haptics.destructive?.();
     const standing = standings.find((s) => s.id === id);
     if (standing) {
       const rankIdx = rankings.findIndex((r) => sameTeam(r, standing));
@@ -311,7 +430,7 @@ const AdminPage = ({
     setStandings(standings.map((s) => (sameTeam(s, ranking) ? { ...s, isAlt, isDel } : s)));
   };
   const deleteRanking = (id) => {
-    haptics.light();
+    haptics.destructive?.();
     const ranking = rankings.find((r) => r.id === id);
     if (ranking) {
       const standIdx = standings.findIndex((s) => sameTeam(s, ranking));
@@ -328,7 +447,7 @@ const AdminPage = ({
     if (isMobileView()) setActiveControlId(newId);
   };
   const updateMeeting = (id, field, value) => setMeetings(meetings.map((m) => (m.id === id ? { ...m, [field]: value } : m)));
-  const deleteMeeting = (id) => { haptics.light(); setMeetings(meetings.filter((m) => m.id !== id)); if (activeControlId === id) setActiveControlId(null); };
+  const deleteMeeting = (id) => { haptics.destructive?.(); setMeetings(meetings.filter((m) => m.id !== id)); if (activeControlId === id) setActiveControlId(null); };
 
   const handleCloseAttempt = useCallback(() => {
     haptics.rigid();
@@ -354,8 +473,12 @@ const AdminPage = ({
 
   const handleSignOut = async () => {
     haptics.light();
+    try {
+      window.localStorage.removeItem(MOBILE_DRAFT_STORAGE_KEY);
+    } catch {
+      // Ignore storage cleanup errors.
+    }
     await signOut(auth);
-    localStorage.removeItem('auth_expiry');
     setIsAuthenticated(false);
     onClose();
   };
@@ -395,11 +518,11 @@ const AdminPage = ({
                       <div className={cn("w-2 h-1.5 border-l-2 border-b-2 border-white -rotate-45 mb-0.5 transition-all duration-300", rememberMe ? "opacity-100 scale-100" : "opacity-0 scale-50")} />
                     </div>
                   </div>
-                  <span className="font-sans text-xs font-bold text-slate/50 group-hover:text-primary transition-colors select-none">Stay signed in for 30 days</span>
+                  <span className="font-sans text-xs font-bold text-slate/50 group-hover:text-primary transition-colors select-none">Stay signed in on this device</span>
                 </label>
                 <div className="flex flex-col items-center text-center gap-0.5">
                   <span className="font-mono text-[8px] text-accent/40 font-bold uppercase tracking-[0.2em]">Security Protocol</span>
-                  <p className="font-sans text-[9px] text-slate/30 leading-relaxed max-w-[200px]">Authentication persists for 1 month. Enable only on private devices.</p>
+                  <p className="font-sans text-[9px] text-slate/30 leading-relaxed max-w-[200px]">Uses secure Firebase persistence. Enable only on private devices.</p>
                 </div>
               </div>
             </>
@@ -410,15 +533,18 @@ const AdminPage = ({
   }
 
   // --- MAIN ADMIN PAGE ---
+  const forceCompactSidebar = adminTab === 'content';
+  const effectiveSidebarCollapsed = sidebarCollapsed || forceCompactSidebar;
+
   return (
     <div className="fixed inset-0 z-[100] bg-background flex flex-col md:flex-row overflow-hidden">
       {/* No mobile top bar — navigation lives entirely in the bottom bar */}
 
       {/* Desktop sidebar */}
-      <aside className={cn("hidden md:flex flex-col border-r border-slate/10 bg-background shrink-0 transition-all duration-300", sidebarCollapsed ? "w-[72px]" : "w-64")}>
-        <div className={cn("flex items-center gap-3 p-6 pb-4", sidebarCollapsed && "justify-center px-3")}>
+      <aside className={cn("hidden md:flex flex-col border-r border-slate/10 bg-background shrink-0 transition-all duration-300", effectiveSidebarCollapsed ? "w-[72px]" : "w-64")}>
+        <div className={cn("flex items-center gap-3 p-6 pb-4", effectiveSidebarCollapsed && "justify-center px-3")}>
           <div className="w-10 h-10 bg-accent/10 rounded-2xl flex items-center justify-center text-accent shrink-0"><IconSettings size={20} /></div>
-          {!sidebarCollapsed && (
+          {!effectiveSidebarCollapsed && (
             <div className="flex flex-col min-w-0">
               <span className="font-sans font-black text-lg text-primary uppercase tracking-tighter italic leading-none">ADMIN</span>
               <span className="font-mono text-[9px] text-slate/40 mt-1 uppercase tracking-widest truncate">{email}</span>
@@ -428,29 +554,31 @@ const AdminPage = ({
 
         <nav className="flex flex-col gap-1 px-3 flex-1 mt-2">
           {SIDEBAR_TABS.map(({ id, label, Icon }) => (
-            <button key={id} onClick={() => { haptics.selection(); setAdminTab(id); }} className={cn("flex items-center gap-3 px-4 py-3 rounded-xl font-sans font-semibold text-sm transition-all", sidebarCollapsed && "justify-center px-0", adminTab === id ? "bg-accent/10 text-accent" : "text-slate/60 hover:text-primary hover:bg-slate/5")} title={sidebarCollapsed ? label : undefined}>
+            <button key={id} onClick={() => { haptics.selection(); setAdminTab(id); }} className={cn("flex items-center gap-3 px-4 py-3 rounded-xl font-sans font-semibold text-sm transition-all", effectiveSidebarCollapsed && "justify-center px-0", adminTab === id ? "bg-accent/10 text-accent" : "text-slate/60 hover:text-primary hover:bg-slate/5")} title={effectiveSidebarCollapsed ? label : undefined}>
               <Icon size={18} className="shrink-0" />
-              {!sidebarCollapsed && label}
+              {!effectiveSidebarCollapsed && label}
             </button>
           ))}
         </nav>
 
-        <div className={cn("flex flex-col gap-1 p-3 border-t border-slate/10", sidebarCollapsed && "items-center")}>
-          <button onClick={() => { haptics.light(); setSidebarCollapsed(!sidebarCollapsed); }} className="flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm text-slate/40 hover:text-primary hover:bg-slate/5 transition-all" title={sidebarCollapsed ? 'Expand' : 'Collapse'}>
-            <IconChevronLeft size={18} className={cn("transition-transform shrink-0", sidebarCollapsed && "rotate-180")} />
-            {!sidebarCollapsed && <span className="font-semibold">Collapse</span>}
-          </button>
-          <button onClick={toggleTheme} className={cn("flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm text-slate/40 hover:text-primary hover:bg-slate/5 transition-all", sidebarCollapsed && "justify-center px-0")} title={theme === 'dark' ? 'Light Mode' : 'Dark Mode'}>
+        <div className={cn("flex flex-col gap-1 p-3 border-t border-slate/10", effectiveSidebarCollapsed && "items-center")}>
+          {!forceCompactSidebar && (
+            <button onClick={() => { haptics.light(); setSidebarCollapsed(!sidebarCollapsed); }} className="flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm text-slate/40 hover:text-primary hover:bg-slate/5 transition-all" title={sidebarCollapsed ? 'Expand' : 'Collapse'}>
+              <IconChevronLeft size={18} className={cn("transition-transform shrink-0", sidebarCollapsed && "rotate-180")} />
+              {!sidebarCollapsed && <span className="font-semibold">Collapse</span>}
+            </button>
+          )}
+          <button onClick={toggleTheme} className={cn("flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm text-slate/40 hover:text-primary hover:bg-slate/5 transition-all", effectiveSidebarCollapsed && "justify-center px-0")} title={theme === 'dark' ? 'Light Mode' : 'Dark Mode'}>
             {theme === 'dark' ? <IconSun size={18} className="shrink-0" /> : <IconMoon size={18} className="shrink-0" />}
-            {!sidebarCollapsed && <span className="font-semibold">{theme === 'dark' ? 'Light Mode' : 'Dark Mode'}</span>}
+            {!effectiveSidebarCollapsed && <span className="font-semibold">{theme === 'dark' ? 'Light Mode' : 'Dark Mode'}</span>}
           </button>
-          <button onClick={handleCloseAttempt} className={cn("flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm text-slate/40 hover:text-primary hover:bg-slate/5 transition-all", sidebarCollapsed && "justify-center px-0")} title="Back to Site">
+          <button onClick={handleCloseAttempt} className={cn("flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm text-slate/40 hover:text-primary hover:bg-slate/5 transition-all", effectiveSidebarCollapsed && "justify-center px-0")} title="Back to Site">
             <IconChevronLeft size={18} className="shrink-0" />
-            {!sidebarCollapsed && <span className="font-semibold">Back to Site</span>}
+            {!effectiveSidebarCollapsed && <span className="font-semibold">Back to Site</span>}
           </button>
-          <button onClick={handleSignOut} className={cn("flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm text-red-500/40 hover:text-red-500 hover:bg-red-500/5 transition-all", sidebarCollapsed && "justify-center px-0")} title="Sign Out">
+          <button onClick={handleSignOut} className={cn("flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm text-red-500/40 hover:text-red-500 hover:bg-red-500/5 transition-all", effectiveSidebarCollapsed && "justify-center px-0")} title="Sign Out">
             <IconLogOut size={18} className="shrink-0" />
-            {!sidebarCollapsed && <span className="font-semibold">Sign Out</span>}
+            {!effectiveSidebarCollapsed && <span className="font-semibold">Sign Out</span>}
           </button>
         </div>
       </aside>
@@ -473,39 +601,115 @@ const AdminPage = ({
           </div>
         </header>
 
+        <div className="md:hidden sticky top-0 z-30 border-b border-slate/10 bg-background/95 backdrop-blur-xl px-3 pt-[max(0.6rem,env(safe-area-inset-top,0px))] pb-2">
+          <div className="flex items-center justify-between gap-2">
+            <div className="min-w-0">
+              <div className="font-mono text-[9px] uppercase tracking-[0.2em] text-slate/40">Admin Mobile</div>
+              <div className="flex items-center gap-2">
+                <span className="font-sans font-black text-sm uppercase tracking-tight truncate">
+                  {SIDEBAR_TABS.find((t) => t.id === adminTab)?.label || 'Admin'}
+                </span>
+                {isDirty && <span className="w-2 h-2 rounded-full bg-amber-500" aria-label="Unsaved changes" />}
+              </div>
+            </div>
+            <div className="flex items-center gap-2 shrink-0 ml-2">
+              <button
+                onClick={() => setMobileQuickActionsOpen((v) => !v)}
+                className="min-h-[38px] px-3 rounded-xl border border-slate/10 text-[10px] font-mono font-bold uppercase"
+              >
+                Quick
+              </button>
+              <button
+                onClick={handleSaveToCloud}
+                disabled={isSaving}
+                className={cn(
+                  "min-h-[38px] px-3 rounded-xl border text-[10px] font-mono font-bold uppercase flex items-center gap-1.5",
+                  isDirty ? "border-accent/30 bg-accent/10 text-accent" : "border-slate/10 text-slate/50"
+                )}
+              >
+                {isSaving ? 'Saving…' : 'Publish'}
+              </button>
+              <button
+                onClick={handleCloseAttempt}
+                className="min-h-[38px] min-w-[38px] rounded-xl border border-slate/10 text-slate/60 flex items-center justify-center"
+                aria-label="Exit admin"
+              >
+                <IconX size={14} />
+              </button>
+            </div>
+          </div>
+          <div className="mt-2 relative">
+            <IconSearch size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate/35" />
+            <input
+              value={mobileCommandQuery}
+              onChange={(e) => setMobileCommandQuery(e.target.value)}
+              placeholder="Command search (game, meeting, rank...)"
+              className="w-full h-10 rounded-xl border border-slate/10 bg-slate/5 pl-9 pr-3 text-xs"
+            />
+          </div>
+          {pendingMobileDraft && (
+            <div className="mt-2 rounded-xl border border-amber-500/20 bg-amber-500/10 px-3 py-2">
+              <p className="text-[10px] font-mono text-amber-700 uppercase tracking-wide">Found local draft from previous mobile session.</p>
+              <div className="mt-2 flex gap-2">
+                <button onClick={restoreMobileDraft} className="flex-1 min-h-[36px] rounded-lg border border-emerald-500/30 bg-emerald-500/10 text-[10px] font-mono font-bold uppercase text-emerald-700">Restore</button>
+                <button onClick={dismissMobileDraft} className="flex-1 min-h-[36px] rounded-lg border border-slate/15 bg-background text-[10px] font-mono font-bold uppercase text-slate/60">Discard</button>
+              </div>
+            </div>
+          )}
+          {mobileQuickActionsOpen && (
+            <div className="mt-2 rounded-xl border border-slate/10 bg-slate/5 p-2.5 grid grid-cols-2 gap-2">
+              <button onClick={duplicateLastRecord} className="min-h-[38px] rounded-lg border border-slate/10 bg-background text-[10px] font-mono font-bold uppercase">Duplicate Last</button>
+              <button onClick={() => setMobileCommandQuery('')} className="min-h-[38px] rounded-lg border border-slate/10 bg-background text-[10px] font-mono font-bold uppercase">Clear Search</button>
+              {(adminTab === 'schedule' || adminTab === 'meetings') && (
+                <>
+                  <button onClick={() => shiftTimesByMinutes(30)} className="min-h-[38px] rounded-lg border border-slate/10 bg-background text-[10px] font-mono font-bold uppercase">+30 Min</button>
+                  <button onClick={() => shiftTimesByMinutes(-30)} className="min-h-[38px] rounded-lg border border-slate/10 bg-background text-[10px] font-mono font-bold uppercase">-30 Min</button>
+                </>
+              )}
+            </div>
+          )}
+        </div>
+
         {/* Tab content */}
-        <div ref={tabContentRef} className="flex-1 overflow-y-auto custom-scrollbar px-4 sm:px-8 py-6 pb-40 md:pb-8">
+        <div ref={tabContentRef} className={cn(
+          "flex-1 custom-scrollbar",
+          adminTab === 'content'
+            ? "overflow-hidden px-0 py-0 pb-28 md:pb-0"
+            : "overflow-y-auto px-4 sm:px-8 py-6 pb-40 md:pb-8"
+        )}>
           {adminTab === 'schedule' && (
-            <AdminScheduleEditor gamesList={gamesList} onAddGame={handleAddGame} updateGame={updateGame} setGameRoster={setGameRoster} deleteGame={deleteGame} setActiveControlId={setActiveControlId} />
+            <AdminScheduleEditor gamesList={gamesList} onAddGame={handleAddGame} updateGame={updateGame} setGameRoster={setGameRoster} deleteGame={deleteGame} setActiveControlId={setActiveControlId} searchQuery={mobileCommandQuery} />
           )}
           {adminTab === 'standings' && (
-            <AdminStandingsEditor standings={standings} onSync={syncStandingsWithRankings} onAddStanding={handleAddStanding} updateStanding={updateStanding} setStandingRoster={setStandingRoster} deleteStanding={deleteStanding} setActiveControlId={setActiveControlId} />
+            <AdminStandingsEditor standings={standings} onSync={syncStandingsWithRankings} onAddStanding={handleAddStanding} updateStanding={updateStanding} setStandingRoster={setStandingRoster} deleteStanding={deleteStanding} setActiveControlId={setActiveControlId} searchQuery={mobileCommandQuery} />
           )}
           {adminTab === 'rankings' && (
-            <AdminRankingsEditor rankings={rankings} onSync={syncStandingsWithRankings} onAddRanking={handleAddRanking} updateRanking={updateRanking} setRankingRoster={setRankingRoster} deleteRanking={deleteRanking} setActiveControlId={setActiveControlId} />
+            <AdminRankingsEditor rankings={rankings} onSync={syncStandingsWithRankings} onAddRanking={handleAddRanking} updateRanking={updateRanking} setRankingRoster={setRankingRoster} deleteRanking={deleteRanking} setActiveControlId={setActiveControlId} searchQuery={mobileCommandQuery} />
           )}
           {adminTab === 'meetings' && (
-            <AdminMeetingsEditor meetings={meetings} onAddMeeting={handleAddMeeting} updateMeeting={updateMeeting} deleteMeeting={deleteMeeting} setActiveControlId={setActiveControlId} />
+            <AdminMeetingsEditor meetings={meetings} onAddMeeting={handleAddMeeting} updateMeeting={updateMeeting} deleteMeeting={deleteMeeting} setActiveControlId={setActiveControlId} searchQuery={mobileCommandQuery} />
           )}
           {adminTab === 'content' && (
-            <AdminContentEditor siteContent={siteContent} setSiteContent={setSiteContent} isMobile={isMobileView()} />
+            <AdminContentEditor
+              siteContent={siteContent}
+              setSiteContent={setSiteContent}
+              isMobile={isMobileView()}
+              gamesList={gamesList}
+              standings={standings}
+              rankings={rankings}
+              meetings={meetings}
+              dataLoaded={true}
+            />
           )}
         </div>
 
         {/* Mobile bottom nav */}
         <div className="md:hidden fixed bottom-0 left-0 right-0 bg-background border-t border-slate/15 px-2 pt-3 pb-[calc(2rem+env(safe-area-inset-bottom,0px))] flex items-center justify-around z-40 shadow-[0_-15px_50px_rgba(0,0,0,0.7)] touch-manipulation">
           {SIDEBAR_TABS.map(({ id, label, Icon }) => (
-            <button key={id} onClick={() => { haptics.selection(); setAdminTab(id); }} className={cn("flex flex-col items-center gap-1 transition-all text-[8px] font-black uppercase tracking-tighter touch-manipulation", adminTab === id ? "text-accent scale-110" : "text-slate opacity-40")}>
+            <button key={id} onClick={() => { haptics.selection(); setAdminTab(id); }} className={cn("flex flex-col items-center gap-1 transition-all text-[10px] font-black uppercase tracking-tight touch-manipulation", adminTab === id ? "text-accent scale-110" : "text-slate opacity-40")}>
               <Icon size={16} /><span className="leading-none">{label.split(' ')[0]}</span>
             </button>
           ))}
-          <button onClick={handleSaveToCloud} disabled={isSaving} className={cn("flex flex-col items-center gap-1 transition-all text-[8px] font-black uppercase tracking-tighter touch-manipulation", isDirty ? "text-accent" : "text-slate opacity-40")}>
-            {isSaving ? <div className="w-4 h-4 border-2 border-accent/30 border-t-accent rounded-full animate-spin" /> : <IconCloudUpload size={16} />}
-            {saveSuccess ? <span className="leading-none text-green-500">Done</span> : <span className="leading-none">Publish</span>}
-          </button>
-          <button onClick={handleCloseAttempt} className="flex flex-col items-center gap-1 transition-all text-[8px] font-black uppercase tracking-tighter touch-manipulation text-slate opacity-60">
-            <IconX size={16} /><span className="leading-none">Exit</span>
-          </button>
         </div>
       </div>
 
@@ -539,6 +743,7 @@ const AdminPage = ({
           updateStanding={updateStanding}
           updateRanking={updateRanking}
           updateMeeting={adminTab === 'meetings' ? updateMeeting : undefined}
+          meetings={meetings}
           haptics={haptics}
         />
       )}

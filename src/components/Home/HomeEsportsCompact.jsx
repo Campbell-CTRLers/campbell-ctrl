@@ -5,33 +5,32 @@ import { LiveStandings } from '../LiveStandings';
 import { GlobalRankingsPanel } from '../Esports/GlobalRankingsPanel';
 import { IconChevronRight } from '../icons/SvgIcons';
 import { cn } from '../../utils/cn';
+import { EditableSiteText } from '../content/EditableSiteText';
 
 const CARD_CLASS = "rounded-2xl border border-slate/10 bg-slate/5 p-4 flex flex-col min-h-0";
 const HEADER_CLASS = "font-sans font-bold text-sm text-primary uppercase tracking-tight mb-3";
 
-const CtaLink = ({ label, onNavigateToEsports }) =>
+const CtaLink = ({ label, contentKey, onNavigateToEsports, siteContent, setSiteContent, contentEditor }) =>
   onNavigateToEsports ? (
     <button
       onClick={onNavigateToEsports}
       className="mt-3 pt-3 border-t border-slate/10 min-h-[44px] flex items-center gap-1 font-mono text-[10px] text-slate/60 hover:text-accent transition-colors w-full justify-end touch-manipulation active:scale-[0.98] py-2"
     >
-      {label}
+      <EditableSiteText as="span" contentKey={contentKey} fallback={label} siteContent={siteContent} setSiteContent={setSiteContent} editor={contentEditor} />
       <IconChevronRight size={12} />
     </button>
   ) : null;
 
-export const HomeEsportsCompact = ({ gamesList, standings, rankings, dataLoaded, onNavigateToEsports }) => {
+export const HomeEsportsCompact = ({ gamesList, standings, rankings, dataLoaded, onNavigateToEsports, siteContent = null, setSiteContent, contentEditor }) => {
   return (
     <section className="w-full py-12 md:py-16 px-6 md:px-16 bg-background">
       <div className="max-w-7xl mx-auto">
-        <h2 className="font-sans font-bold text-xl md:text-2xl text-primary mb-2 tracking-tight">
-          Schedule, Standings & Rankings
-        </h2>
-        <p className="text-slate/60 text-sm mb-6">Quick overview — tap Esports for full details.</p>
+        <EditableSiteText as="h2" contentKey="homeEsports.heading" fallback="Schedule, Standings & Rankings" siteContent={siteContent} setSiteContent={setSiteContent} editor={contentEditor} className="font-sans font-bold text-xl md:text-2xl text-primary mb-2 tracking-tight" />
+        <EditableSiteText as="p" contentKey="homeEsports.subheading" fallback="Quick overview — tap Esports for full details." siteContent={siteContent} setSiteContent={setSiteContent} editor={contentEditor} className="text-slate/60 text-sm mb-6" />
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
           {/* Schedule */}
           <div className={CARD_CLASS}>
-            <h3 className={HEADER_CLASS}>Upcoming</h3>
+            <EditableSiteText as="h3" contentKey="homeEsports.upcomingHeading" fallback="Upcoming" siteContent={siteContent} setSiteContent={setSiteContent} editor={contentEditor} className={HEADER_CLASS} />
             <div className="flex flex-col gap-2 overflow-y-auto max-h-[280px] custom-scrollbar pr-1 flex-1 min-h-0">
               {!dataLoaded ? (
                 <div className="py-8 text-center text-slate text-xs">Loading…</div>
@@ -57,26 +56,26 @@ export const HomeEsportsCompact = ({ gamesList, standings, rankings, dataLoaded,
                   );
                 })
               ) : (
-                <div className="py-6 text-center text-slate/50 text-xs">No upcoming events</div>
+                <EditableSiteText as="div" contentKey="homeEsports.noUpcoming" fallback="No upcoming events" siteContent={siteContent} setSiteContent={setSiteContent} editor={contentEditor} className="py-6 text-center text-slate/50 text-xs" />
               )}
             </div>
-            <CtaLink label="View full schedule" onNavigateToEsports={onNavigateToEsports} />
+            <CtaLink label="View full schedule" contentKey="homeEsports.ctaSchedule" onNavigateToEsports={onNavigateToEsports} siteContent={siteContent} setSiteContent={setSiteContent} contentEditor={contentEditor} />
           </div>
 
           {/* Standings */}
           <div className={CARD_CLASS}>
             <div className="flex-1 min-h-0 flex flex-col overflow-hidden max-h-[280px]">
-              <LiveStandings standings={standings} fullHeight compact noCard />
+              <LiveStandings standings={standings} fullHeight compact noCard siteContent={siteContent} setSiteContent={setSiteContent} contentEditor={contentEditor} />
             </div>
-            <CtaLink label="View standings" onNavigateToEsports={onNavigateToEsports} />
+            <CtaLink label="View standings" contentKey="homeEsports.ctaStandings" onNavigateToEsports={onNavigateToEsports} siteContent={siteContent} setSiteContent={setSiteContent} contentEditor={contentEditor} />
           </div>
 
           {/* Global Rankings */}
           <div className={CARD_CLASS}>
             <div className="flex-1 min-h-0 flex flex-col overflow-hidden max-h-[280px]">
-              <GlobalRankingsPanel standingsSource={standings} rankings={rankings} compact noCard />
+              <GlobalRankingsPanel standingsSource={standings} rankings={rankings} compact noCard siteContent={siteContent} setSiteContent={setSiteContent} contentEditor={contentEditor} />
             </div>
-            <CtaLink label="Explore rankings" onNavigateToEsports={onNavigateToEsports} />
+            <CtaLink label="Explore rankings" contentKey="homeEsports.ctaRankings" onNavigateToEsports={onNavigateToEsports} siteContent={siteContent} setSiteContent={setSiteContent} contentEditor={contentEditor} />
           </div>
         </div>
       </div>

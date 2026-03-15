@@ -4,6 +4,7 @@
 
 const DAY_TO_ICS = { Mon: 'MO', Tue: 'TU', Wed: 'WE', Thu: 'TH', Fri: 'FR', Sat: 'SA', Sun: 'SU' };
 const TZ = 'America/New_York';
+const BRAND_PREFIX = 'Campbell CTRL - ';
 
 function parseTimeTo24(timeStr) {
   if (!timeStr) return { h: 15, m: 30 };
@@ -47,8 +48,16 @@ function escapeIcsText(value) {
     .replace(/\r?\n/g, '\\n');
 }
 
+function withBrandPrefix(value, fallback = '') {
+  const clean = String(value || fallback || '').trim();
+  if (!clean) return 'Campbell CTRL';
+  return clean.toLowerCase().startsWith(BRAND_PREFIX.toLowerCase())
+    ? clean
+    : `${BRAND_PREFIX}${clean}`;
+}
+
 export function meetingToIcs(meeting) {
-  const title = escapeIcsText(meeting.title || 'Campbell CTRL Meeting');
+  const title = escapeIcsText(withBrandPrefix(meeting.title, 'Meeting'));
   const location = escapeIcsText(meeting.location);
   const desc = escapeIcsText(meeting.description);
   const days = Array.isArray(meeting.days) ? meeting.days : (meeting.days ? [meeting.days] : ['Fri']);
@@ -108,8 +117,8 @@ END:VCALENDAR`.replace(/\n/g, '\r\n');
 export function gameToIcs(game) {
   const summaryRaw = game.game && game.opponent
     ? `${game.game} vs ${game.opponent}`
-    : (game.title || game.game || 'Campbell CTRL Match');
-  const summary = escapeIcsText(summaryRaw);
+    : (game.title || game.game || 'Match');
+  const summary = escapeIcsText(withBrandPrefix(summaryRaw, 'Match'));
   const dateStr = game.date || new Date().toISOString().slice(0, 10);
   const time = parseTimeTo24(game.time || '6:00 PM');
   const d = new Date(dateStr + 'T12:00:00');
@@ -141,6 +150,169 @@ END:VCALENDAR`.replace(/\n/g, '\r\n');
 
 export function icsToDataUri(icsText) {
   return 'data:text/calendar;charset=utf-8,' + encodeURIComponent(icsText);
+}
+
+export function downloadIcsFile(icsText, filename = 'campbell-ctrl-event.ics') {
+  if (typeof window === 'undefined' || typeof document === 'undefined') return;
+  const blob = new Blob([icsText], { type: 'text/calendar;charset=utf-8' });
+  const blobUrl = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = blobUrl;
+  link.download = filename;
+  link.rel = 'noopener';
+  link.style.display = 'none';
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  window.setTimeout(() => URL.revokeObjectURL(blobUrl), 10000);
+}
+
+function parseIcsDateTime(value) {
+  if (!value) return null;
+  const clean = String(value).trim().replace(/^[^:]+:/, '');
+  const dateOnly = clean.match(/^(\d{4})(\d{2})(\d{2})$/);
+  if (dateOnly) {
+    const [, y, mo, d] = dateOnly;
+    // Parse date-only events to local noon to avoid DST boundary rollovers.
+    return new Date(Number(y), Number(mo) - 1, Number(d), 12, 0, 0);
+  }
+  const m = clean.match(/^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})?(Z)?$/);
+  if (!m) return null;
+  const [, y, mo, d, h, mi, s = '00', z] = m;
+  if (z) {
+    return new Date(Date.UTC(Number(y), Number(mo) - 1, Number(d), Number(h), Number(mi), Number(s)));
+  }
+  return new Date(Number(y), Number(mo) - 1, Number(d), Number(h), Number(mi), Number(s));
+}
+
+function toOutlookIso(date) {
+  return date ? date.toISOString() : '';
+}
+
+function toAppleCalshow(date) {
+  if (!date) return '';
+  const appleEpochMs = Date.UTC(2001, 0, 1, 0, 0, 0);
+  return `calshow:${Math.floor((date.getTime() - appleEpochMs) / 1000)}`;
+}
+
+function toAppleCalshowSlash(date) {
+  if (!date) return '';
+  const appleEpochMs = Date.UTC(2001, 0, 1, 0, 0, 0);
+  return `calshow://${Math.floor((date.getTime() - appleEpochMs) / 1000)}`;
+}
+
+function normalizeUrlList(value) {
+  return (Array.isArray(value) ? value : [value])
+    .filter(item => typeof item === 'string')
+    .map(item => item.trim())
+    .filter(Boolean);
+}
+
+function isApplePlatform() {
+  if (typeof navigator === 'undefined') return false;
+  const ua = navigator.userAgent || '';
+  const platform = navigator.platform || '';
+  const iOS = /iPad|iPhone|iPod/i.test(ua);
+  const macOS = /Mac/i.test(platform);
+  const iPadOS = macOS && Number(navigator.maxTouchPoints || 0) > 1;
+  return iOS || macOS || iPadOS;
+}
+
+function isCustomProtocol(url) {
+  return /^[a-zA-Z][a-zA-Z\d+.-]*:/.test(url) && !/^(https?|data|blob):/i.test(url);
+}
+
+function openCustomProtocol(url) {
+  if (typeof document === 'undefined' || !document.body) return false;
+  const iframe = document.createElement('iframe');
+  iframe.style.display = 'none';
+  iframe.setAttribute('aria-hidden', 'true');
+  iframe.tabIndex = -1;
+  iframe.src = url;
+  document.body.appendChild(iframe);
+  window.setTimeout(() => iframe.remove(), 1500);
+  return true;
+}
+
+export function openNativeAppWithFallback(nativeUrl, fallbackUrl, timeoutMs = 1200) {
+  if (typeof window === 'undefined') return;
+  const nativeUrls = normalizeUrlList(nativeUrl);
+  const fallbackUrls = normalizeUrlList(fallbackUrl);
+  const openFallback = () => {
+    const nextFallback = fallbackUrls.shift();
+    if (nextFallback) window.location.assign(nextFallback);
+  };
+
+  if (!nativeUrls.length && fallbackUrls.length) {
+    openFallback();
+    return;
+  }
+  if (!nativeUrls.length) return;
+  if (nativeUrls.some(url => /^calshow:/i.test(url)) && !isApplePlatform()) {
+    openFallback();
+    return;
+  }
+
+  let didHide = false;
+  let done = false;
+  let timerId = 0;
+  let attempt = 0;
+
+  const cleanup = () => {
+    if (done) return;
+    done = true;
+    window.removeEventListener('visibilitychange', onVisibility);
+    window.removeEventListener('pagehide', onPageHide);
+    if (timerId) window.clearTimeout(timerId);
+  };
+
+  const onVisibility = () => {
+    if (document.visibilityState === 'hidden') {
+      didHide = true;
+      cleanup();
+    }
+  };
+  const onPageHide = () => {
+    didHide = true;
+    cleanup();
+  };
+
+  window.addEventListener('visibilitychange', onVisibility);
+  window.addEventListener('pagehide', onPageHide);
+
+  const tryOpenNext = () => {
+    if (didHide || done) {
+      cleanup();
+      return;
+    }
+    const nextNative = nativeUrls[attempt];
+    attempt += 1;
+    if (!nextNative) {
+      openFallback();
+      cleanup();
+      return;
+    }
+    try {
+      if (isCustomProtocol(nextNative)) {
+        if (!openCustomProtocol(nextNative)) {
+          window.location.assign(nextNative);
+        }
+      } else {
+        window.location.assign(nextNative);
+      }
+    } catch {
+      // If scheme assignment fails synchronously, continue to fallback cycle.
+    }
+    timerId = window.setTimeout(() => {
+      if (didHide) {
+        cleanup();
+        return;
+      }
+      tryOpenNext();
+    }, timeoutMs);
+  };
+
+  tryOpenNext();
 }
 
 export function icsToUrls(icsText) {
@@ -175,10 +347,20 @@ export function icsToUrls(icsText) {
     allday: 'false',
   });
   const outlookUrl = `https://outlook.office.com/calendar/0/deeplink/compose?${outlookParams}`;
+  const startDate = parseIcsDateTime(dtstart);
+  const endDate = parseIcsDateTime(dtend);
+  const nativeOutlookParams = new URLSearchParams({
+    subject: summary || 'Campbell CTRL Event',
+    start: toOutlookIso(startDate),
+    end: toOutlookIso(endDate),
+    location: location || '',
+  });
+  const outlookNativeUrl = `ms-outlook://events/new?${nativeOutlookParams}`;
+  const appleNativeUrl = [toAppleCalshow(startDate), toAppleCalshowSlash(startDate)].filter(Boolean);
 
   const blob = new Blob([icsText], { type: 'text/calendar;charset=utf-8' });
   const blobUrl = URL.createObjectURL(blob);
   const appleDataUri = icsToDataUri(icsText);
 
-  return { googleUrl, outlookUrl, blobUrl, appleDataUri, icsText };
+  return { googleUrl, outlookUrl, outlookNativeUrl, appleNativeUrl, blobUrl, appleDataUri, icsText };
 }

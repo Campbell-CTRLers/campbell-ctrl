@@ -1,378 +1,893 @@
-import React, { useState } from 'react';
-import { IconEye, IconEyeOff, IconPlus, IconTrash, IconRotate, IconX, IconChevronDown, IconChevronUp } from '../icons/SvgIcons';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { IconRotate } from '../icons/SvgIcons';
 import { cn } from '../../utils/cn';
 import { useHaptics } from '../../hooks/useHaptics';
+import HomeTab from '../../pages/HomeTab';
+import EsportsTab from '../../pages/EsportsTab';
+import MeetingsTab from '../../pages/MeetingsTab';
+import LegalTab from '../../pages/LegalTab';
+import Navbar from '../Navbar';
+import Footer from '../Footer';
+import {
+  listEditableKeys,
+  readEditableMeta,
+  readEditablePosition,
+  readEditableStyle,
+  readEditableText,
+  resetEditableByPredicate,
+  resetEditableMeta,
+  resetEditablePosition,
+  resetEditableStyle,
+  resetEditableStyleAndPosition,
+  resetEditableText,
+  updateEditableMeta,
+  updateEditablePosition,
+  updateEditableStyle,
+  updateEditableText,
+} from '../../utils/siteContentEditor';
 
-const DEFAULTS = {
-  hero: {
-    line1: 'Campbell CTRL',
-    line2: 'eSpartans',
-    description: "Campbell High School\u2019s official esports and gaming club.",
-    buttonText: 'Learn More',
-  },
-  about: {
-    heading: 'About the Club',
-    description: 'Campbell CTRL is Campbell High School\u2019s official esports and gaming club. We practice weekly, compete in PlayVS leagues, and represent Campbell at the state level.',
-    cards: [
-      { title: 'Open to all', desc: 'From complete beginners to varsity competitors. Everyone is welcome.' },
-      { title: 'Multiple games', desc: 'Rocket League, Smash Bros, Splatoon 3, Marvel Rivals, Mario Kart, and more.' },
-      { title: 'PlayVS competitive', desc: 'Official Campbell eSpartans rosters competing in Georgia and PlayVS leagues.' },
-    ],
-  },
-  meetings: {
-    heading: 'Club Meetings.',
-    headingAccent: 'Meetings.',
-    description: 'Where the community comes together. We practice, discuss strategies, and hang out every week after school.',
-    featuredTitle: 'Friday Sessions',
-    featuredBadge: 'EVERY WEEK',
-    timeDesc: '3:30 PM \u2013 5:30 PM directly after school.',
-    locationDesc: 'The Learning Commons (Library). Follow the glow of monitors.',
-    whoDesc: 'Anyone from complete beginners to varsity level competitors.',
-  },
-  esports: {
-    heading: 'Campbell',
-    headingAccent: 'eSpartans.',
-    description: 'The official PlayVS competitive core of Campbell CTRL. View upcoming schedules, match results, and live team standings across all active rosters.',
-  },
-  design: {
-    accentColor: '#0038A8',
-    headingFont: 'sans',
-    bodyFont: 'roboto',
-    heroSpacing: 'normal',
-    sectionSpacing: 'normal',
-    cardRounding: 'large',
-  },
+const MODES = [
+  { id: 'select', label: 'Select' },
+  { id: 'edit', label: 'Edit' },
+  { id: 'move', label: 'Move' },
+];
+
+const PREVIEW_TABS = [
+  { id: 'home', label: 'Home' },
+  { id: 'esports', label: 'Esports' },
+  { id: 'meetings', label: 'Meetings' },
+  { id: 'legal', label: 'Legal' },
+];
+
+const GRANULARITY_OPTIONS = [
+  { id: 'element', label: 'Element' },
+  { id: 'line', label: 'Line' },
+  { id: 'word', label: 'Word' },
+  { id: 'container', label: 'Container' },
+];
+
+const DENSITY_OPTIONS = [
+  { id: 'minimal', label: 'Minimal' },
+  { id: 'standard', label: 'Standard' },
+  { id: 'detailed', label: 'Detailed' },
+];
+
+const MAX_HISTORY = 50;
+
+const deepClone = (value) => JSON.parse(JSON.stringify(value || {}));
+const asJson = (value) => JSON.stringify(value || {});
+const getBaseKey = (key) => String(key || '').split('::')[0];
+const isEditableTypingTarget = (target) => {
+  if (!target) return false;
+  const tag = target.tagName?.toLowerCase();
+  if (tag === 'input' || tag === 'textarea' || tag === 'select') return true;
+  return Boolean(target.isContentEditable);
 };
 
-const SectionLabel = ({ children }) => (
-  <span className="font-mono text-[9px] font-bold text-accent uppercase tracking-[0.2em]">{children}</span>
-);
-
-const FieldLabel = ({ children, hint }) => (
-  <div className="flex items-baseline gap-2 mb-1.5">
-    <label className="font-sans text-xs font-bold text-primary">{children}</label>
-    {hint && <span className="font-mono text-[9px] text-slate/40">{hint}</span>}
-  </div>
-);
-
-const TextInput = ({ value, onChange, placeholder, multiline = false, className }) => {
-  const base = "w-full bg-slate/5 border border-slate/10 rounded-xl px-4 py-3 font-sans text-sm text-primary placeholder:text-slate/30 focus:outline-none focus:border-accent/40 focus:ring-1 focus:ring-accent/20 transition-all resize-none";
-  if (multiline) {
-    return <textarea value={value} onChange={onChange} placeholder={placeholder} rows={3} className={cn(base, className)} />;
-  }
-  return <input type="text" value={value} onChange={onChange} placeholder={placeholder} className={cn(base, className)} />;
+const extractEditorSnapshot = (siteContent) => {
+  const root = siteContent?.globalEditor || {};
+  return {
+    text: deepClone(root.text),
+    style: deepClone(root.style),
+    position: deepClone(root.position),
+    meta: deepClone(root.meta),
+  };
 };
 
-const SelectInput = ({ value, onChange, options, className }) => (
-  <select value={value} onChange={onChange} className={cn("w-full bg-slate/5 border border-slate/10 rounded-xl px-4 py-3 font-sans text-sm text-primary focus:outline-none focus:border-accent/40 transition-all", className)}>
-    {options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-  </select>
-);
-
-const CollapsibleSection = ({ label, children, defaultOpen = false, onReset }) => {
-  const [open, setOpen] = useState(defaultOpen);
-  return (
-    <div className="bg-slate/[0.03] rounded-2xl border border-slate/10 overflow-hidden">
-      <button type="button" onClick={() => setOpen(!open)} className="w-full flex items-center justify-between p-5 text-left">
-        <SectionLabel>{label}</SectionLabel>
-        <div className="flex items-center gap-2">
-          {onReset && (
-            <span onClick={(e) => { e.stopPropagation(); onReset(); }} className="flex items-center gap-1 text-[9px] font-mono font-bold text-slate/40 hover:text-accent transition-colors cursor-pointer">
-              <IconRotate size={10} />RESET
-            </span>
-          )}
-          {open ? <IconChevronUp size={14} className="text-slate/40" /> : <IconChevronDown size={14} className="text-slate/40" />}
-        </div>
-      </button>
-      {open && <div className="px-5 pb-5 flex flex-col gap-4">{children}</div>}
-    </div>
-  );
+const diffChangedKeys = (draft, published) => {
+  const changed = new Set();
+  ['text', 'style', 'position', 'meta'].forEach((bucket) => {
+    const keys = new Set([
+      ...Object.keys(draft?.[bucket] || {}),
+      ...Object.keys(published?.[bucket] || {}),
+    ]);
+    keys.forEach((key) => {
+      if (asJson(draft?.[bucket]?.[key]) !== asJson(published?.[bucket]?.[key])) changed.add(key);
+    });
+  });
+  return changed;
 };
 
-const AdminContentEditor = ({ siteContent, setSiteContent, isMobile = false }) => {
+const keyToTab = (key) => {
+  if (!key) return 'global';
+  const base = getBaseKey(key);
+  const p = base.split('.')[0];
+  if (['legal'].includes(p)) return 'legal';
+  if (['meetings', 'homeMeetings'].includes(p)) return 'meetings';
+  if (['esports', 'standings', 'rankings', 'globalRankings'].includes(p)) return 'esports';
+  if (['home', 'hero', 'about', 'homeEsports', 'liveStandings'].includes(p)) return 'home';
+  if (['navbar', 'footer'].includes(p)) return 'global';
+  return 'global';
+};
+
+const NumberField = ({ value, onChange, min, max, step = 1 }) => (
+  <input
+    type="number"
+    value={value}
+    min={min}
+    max={max}
+    step={step}
+    onChange={onChange}
+    className="w-full bg-slate/5 border border-slate/10 rounded-xl px-2.5 py-2 font-mono text-xs text-primary focus:outline-none focus:border-accent/40"
+  />
+);
+
+const AdminContentEditor = ({
+  siteContent,
+  setSiteContent,
+  isMobile = false,
+  gamesList = [],
+  standings = [],
+  rankings = [],
+  meetings = [],
+  dataLoaded = true,
+}) => {
   const haptics = useHaptics();
-  const [showPreview, setShowPreview] = useState(!isMobile);
-  const [fullscreenPreview, setFullscreenPreview] = useState(false);
+  const fileImportRef = useRef(null);
+  const canvasRef = useRef(null);
 
-  const content = {
-    hero: { ...DEFAULTS.hero, ...(siteContent?.hero || {}) },
-    about: { ...DEFAULTS.about, ...(siteContent?.about || {}), cards: siteContent?.about?.cards || DEFAULTS.about.cards },
-    meetings: { ...DEFAULTS.meetings, ...(siteContent?.meetings || {}) },
-    esports: { ...DEFAULTS.esports, ...(siteContent?.esports || {}) },
-    design: { ...DEFAULTS.design, ...(siteContent?.design || {}) },
-  };
+  const [previewTab, setPreviewTab] = useState('home');
+  const [mode, setMode] = useState('select');
+  const [selectedKey, setSelectedKey] = useState(null);
+  const [previewVersion, setPreviewVersion] = useState('draft');
+  const [selectionGranularity, setSelectionGranularity] = useState('element');
+  const [selectionDensity, setSelectionDensity] = useState('standard');
+  const [showOutlines, setShowOutlines] = useState(true);
+  const [snapEnabled, setSnapEnabled] = useState(true);
+  const [gridSize, setGridSize] = useState(8);
+  const [shiftAxisLock, setShiftAxisLock] = useState(true);
+  const [guidesEnabled, setGuidesEnabled] = useState(true);
+  const [guideState, setGuideState] = useState({ showVertical: false, showHorizontal: false });
+  const [nudgeStep, setNudgeStep] = useState(1);
+  const [availableKeys, setAvailableKeys] = useState([]);
+  const [keySearch, setKeySearch] = useState('');
+  const [mobileManualKey, setMobileManualKey] = useState('');
+  const [recentSelections, setRecentSelections] = useState([]);
+  const [publishedSnapshot, setPublishedSnapshot] = useState(() => extractEditorSnapshot(siteContent));
+  const [historyRevision, setHistoryRevision] = useState(0);
 
-  const update = (section, field, value) => {
+  const undoRef = useRef([]);
+  const redoRef = useRef([]);
+  const skipHistoryRef = useRef(false);
+  const previousSnapshotRef = useRef(extractEditorSnapshot(siteContent));
+  const previousSnapshotJsonRef = useRef(asJson(previousSnapshotRef.current));
+
+  const draftSnapshot = useMemo(() => extractEditorSnapshot(siteContent), [siteContent]);
+  const draftSnapshotJson = useMemo(() => asJson(draftSnapshot), [draftSnapshot]);
+
+  useEffect(() => {
+    if (skipHistoryRef.current) {
+      skipHistoryRef.current = false;
+      previousSnapshotRef.current = deepClone(draftSnapshot);
+      previousSnapshotJsonRef.current = draftSnapshotJson;
+      return;
+    }
+    if (previousSnapshotJsonRef.current === draftSnapshotJson) return;
+    undoRef.current.push(deepClone(previousSnapshotRef.current));
+    if (undoRef.current.length > MAX_HISTORY) undoRef.current.shift();
+    redoRef.current = [];
+    previousSnapshotRef.current = deepClone(draftSnapshot);
+    previousSnapshotJsonRef.current = draftSnapshotJson;
+    setHistoryRevision((v) => v + 1);
+  }, [draftSnapshot, draftSnapshotJson]);
+
+  const previewSiteContent = useMemo(() => {
+    if (previewVersion === 'draft') return siteContent;
+    return {
+      ...(siteContent || {}),
+      globalEditor: deepClone(publishedSnapshot),
+    };
+  }, [publishedSnapshot, previewVersion, siteContent]);
+
+  const selectedStyle = selectedKey ? readEditableStyle(siteContent, selectedKey) : {};
+  const selectedPosition = selectedKey ? readEditablePosition(siteContent, selectedKey) : { x: 0, y: 0 };
+  const selectedMeta = selectedKey ? readEditableMeta(siteContent, getBaseKey(selectedKey)) : { locked: false };
+  const selectedBaseKey = getBaseKey(selectedKey);
+  const selectedFontSize = selectedStyle?.fontSize ?? 16;
+  const selectedFontWeight = selectedStyle?.fontWeight ?? 400;
+  const selectedLineHeight = selectedStyle?.lineHeight ?? 1.3;
+  const selectedLetterSpacing = selectedStyle?.letterSpacing ?? 0;
+  const selectedTextAlign = selectedStyle?.textAlign ?? 'left';
+  const selectedTextTransform = selectedStyle?.textTransform ?? 'none';
+  const applySnapshot = useCallback((snapshot) => {
+    skipHistoryRef.current = true;
     setSiteContent((prev) => ({
-      ...prev,
-      [section]: { ...(prev?.[section] || {}), [field]: value },
+      ...(prev || {}),
+      globalEditor: deepClone(snapshot),
     }));
+  }, [setSiteContent]);
+
+  const canUndo = undoRef.current.length > 0;
+  const canRedo = redoRef.current.length > 0;
+
+  const undo = useCallback(() => {
+    if (!undoRef.current.length) return;
+    const previous = undoRef.current.pop();
+    redoRef.current.push(deepClone(draftSnapshot));
+    applySnapshot(previous);
+    haptics.soft();
+    setHistoryRevision((v) => v + 1);
+  }, [applySnapshot, draftSnapshot, haptics]);
+
+  const redo = useCallback(() => {
+    if (!redoRef.current.length) return;
+    const next = redoRef.current.pop();
+    undoRef.current.push(deepClone(draftSnapshot));
+    applySnapshot(next);
+    haptics.soft();
+    setHistoryRevision((v) => v + 1);
+  }, [applySnapshot, draftSnapshot, haptics]);
+
+  const registerSelection = useCallback((key, _currentText = '') => {
+    setSelectedKey(key);
+    setRecentSelections((prev) => {
+      const next = [key, ...prev.filter((item) => item !== key)];
+      return next.slice(0, 8);
+    });
+    haptics.editSelect?.();
+  }, [haptics]);
+
+  const editor = useMemo(() => ({
+    enabled: !isMobile && previewVersion === 'draft',
+    mode,
+    selectedKey,
+    haptics,
+    selectionGranularity: selectionGranularity === 'container' ? 'element' : selectionGranularity,
+    showOutlines: showOutlines || selectionDensity !== 'minimal',
+    layout: {
+      snapEnabled,
+      gridSize,
+      shiftAxisLock,
+    },
+    setGuideState: (next) => {
+      if (!guidesEnabled) return;
+      setGuideState(next);
+    },
+    setSelectedKey: registerSelection,
+  }), [
+    gridSize,
+    guidesEnabled,
+    haptics,
+    isMobile,
+    mode,
+    previewVersion,
+    registerSelection,
+    selectedKey,
+    selectionDensity,
+    selectionGranularity,
+    shiftAxisLock,
+    showOutlines,
+    snapEnabled,
+  ]);
+
+  useEffect(() => {
+    setShowOutlines(selectionDensity !== 'minimal');
+  }, [selectionDensity]);
+
+  const clearSelection = () => {
+    setSelectedKey(null);
+    haptics.soft();
   };
 
-  const updateCard = (index, field, value) => {
-    const cards = [...content.about.cards];
-    cards[index] = { ...cards[index], [field]: value };
-    update('about', 'cards', cards);
+  const updateSelectedFontSize = (value) => {
+    if (!selectedKey) return;
+    updateEditableStyle(setSiteContent, selectedKey, { fontSize: Number(value) });
   };
 
-  const addCard = () => {
-    haptics.selection();
-    update('about', 'cards', [...content.about.cards, { title: 'New Feature', desc: 'Describe this feature here.' }]);
+  const updateSelectedStyle = (patch) => {
+    if (!selectedKey) return;
+    updateEditableStyle(setSiteContent, selectedKey, patch);
   };
 
-  const removeCard = (index) => {
+  const updateSelectedPosition = useCallback((x, y) => {
+    if (!selectedKey) return;
+    updateEditablePosition(setSiteContent, selectedKey, { x, y });
+  }, [selectedKey, setSiteContent]);
+
+  const nudgeSelected = useCallback((dx, dy, multiplier = 1) => {
+    if (!selectedKey) return;
+    haptics.soft();
+    const step = Number(nudgeStep || 1) * multiplier;
+    updateSelectedPosition(
+      Number(selectedPosition.x || 0) + (dx * step),
+      Number(selectedPosition.y || 0) + (dy * step)
+    );
+  }, [haptics, nudgeStep, selectedKey, selectedPosition.x, selectedPosition.y, updateSelectedPosition]);
+
+  const resetCurrentTab = () => {
+    const keysFromDom = Array.from(canvasRef.current?.querySelectorAll?.('[data-content-key]') || [])
+      .map((node) => node.getAttribute('data-content-key'))
+      .filter(Boolean);
+    const baseKeys = new Set(keysFromDom.map(getBaseKey));
+    if (!baseKeys.size) return;
+    resetEditableByPredicate(setSiteContent, (key) => {
+      const base = getBaseKey(key);
+      return baseKeys.has(base);
+    });
+    clearSelection();
+    haptics.warning();
+  };
+
+  const publishDraftSnapshot = () => {
+    setPublishedSnapshot(deepClone(draftSnapshot));
+    setPreviewVersion('published');
+    haptics.saveSuccess?.();
+  };
+
+  const exportDraft = () => {
+    const data = JSON.stringify(draftSnapshot, null, 2);
+    const blob = new Blob([data], { type: 'application/json;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `content-editor-draft-${Date.now()}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
     haptics.light();
-    update('about', 'cards', content.about.cards.filter((_, i) => i !== index));
   };
 
-  const resetSection = (section) => {
-    haptics.light();
-    setSiteContent((prev) => ({ ...prev, [section]: { ...DEFAULTS[section] } }));
+  const importDraft = async (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    try {
+      const raw = await file.text();
+      const parsed = JSON.parse(raw);
+      const imported = parsed?.globalEditor ? parsed.globalEditor : parsed;
+      const snapshot = {
+        text: imported?.text || {},
+        style: imported?.style || {},
+        position: imported?.position || {},
+        meta: imported?.meta || {},
+      };
+      applySnapshot(snapshot);
+      haptics.success();
+    } catch {
+      haptics.error();
+    } finally {
+      event.target.value = '';
+    }
   };
 
-  const previewContent = (
-    <div className="bg-slate/[0.03] rounded-2xl border border-slate/10 overflow-hidden">
-      <div className="px-4 py-2 border-b border-slate/10 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <IconEye size={12} className="text-accent" />
-          <span className="font-mono text-[9px] font-bold text-accent uppercase tracking-[0.2em]">Live Preview</span>
-        </div>
-        {fullscreenPreview && (
-          <button onClick={() => setFullscreenPreview(false)} className="p-1 text-slate/40 hover:text-primary"><IconX size={16} /></button>
-        )}
-      </div>
-
-      {/* Hero preview */}
-      <div className="relative bg-gradient-to-b from-slate/10 to-background p-8 flex flex-col items-center text-center gap-2">
-        <h2 className="font-display font-black text-xl tracking-tight uppercase text-primary leading-tight">{content.hero.line1}</h2>
-        <span className="font-drama italic text-4xl text-accent leading-[0.9] tracking-tighter">{content.hero.line2}</span>
-        <p className="font-roboto text-xs text-slate/80 max-w-[220px] leading-relaxed mt-2">{content.hero.description}</p>
-        <div className="mt-3">
-          <span className="bg-[#111113] text-white px-4 py-1.5 rounded-full font-sans font-bold text-[10px]">{content.hero.buttonText}</span>
-        </div>
-      </div>
-
-      {/* About preview */}
-      <div className="p-6 border-t border-slate/10">
-        <h3 className="font-sans font-bold text-lg text-primary mb-2 tracking-tight">{content.about.heading}</h3>
-        <p className="font-roboto text-slate/80 text-xs leading-relaxed mb-4">{content.about.description}</p>
-        <div className="flex flex-col gap-2">
-          {content.about.cards.map((card, i) => (
-            <div key={i} className="p-3 rounded-xl bg-slate/5 border border-slate/10">
-              <h4 className="font-sans font-bold text-sm text-primary mb-0.5">{card.title}</h4>
-              <p className="font-roboto text-slate/70 text-[11px] leading-relaxed">{card.desc}</p>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Meetings preview */}
-      <div className="p-6 border-t border-slate/10">
-        <h3 className="font-sans font-bold text-lg text-primary mb-1 tracking-tight">Club {content.meetings.headingAccent}</h3>
-        <p className="font-roboto text-slate/80 text-xs leading-relaxed mb-3">{content.meetings.description}</p>
-        <div className="p-3 rounded-xl bg-accent/5 border border-accent/10">
-          <span className="font-mono text-[9px] text-accent font-bold">{content.meetings.featuredBadge}</span>
-          <h4 className="font-sans font-bold text-sm text-primary mt-1">{content.meetings.featuredTitle}</h4>
-          <p className="font-roboto text-[10px] text-slate/60 mt-1">{content.meetings.timeDesc}</p>
-        </div>
-      </div>
-
-      {/* Esports preview */}
-      <div className="p-6 border-t border-slate/10">
-        <h3 className="font-sans font-bold text-lg text-primary tracking-tight">
-          {content.esports.heading} <span className="text-accent font-drama italic">{content.esports.headingAccent}</span>
-        </h3>
-        <p className="font-roboto text-slate/80 text-xs leading-relaxed mt-1">{content.esports.description}</p>
-      </div>
-    </div>
+  const changedKeys = useMemo(
+    () => diffChangedKeys(draftSnapshot, publishedSnapshot),
+    [draftSnapshot, publishedSnapshot]
   );
 
-  return (
-    <div className="flex flex-col gap-6">
-      <div className="flex items-center justify-between">
-        <h3 className="font-sans font-black text-lg sm:text-2xl text-primary italic uppercase tracking-tighter">Site Content</h3>
-        <div className="flex items-center gap-2">
-          {isMobile && (
-            <button onClick={() => { haptics.light(); setFullscreenPreview(true); }} className="flex items-center gap-2 text-accent bg-accent/5 px-3 py-2 rounded-xl text-[10px] font-mono font-black border border-accent/20 hover:bg-accent hover:text-white transition-all">
-              <IconEye size={14} />PREVIEW
-            </button>
-          )}
-          {!isMobile && (
-            <button onClick={() => { haptics.light(); setShowPreview(!showPreview); }} className="flex items-center gap-2 text-accent bg-accent/5 px-4 py-2 rounded-xl text-[10px] font-mono font-black border border-accent/20 hover:bg-accent hover:text-white transition-all">
-              {showPreview ? <IconEyeOff size={14} /> : <IconEye size={14} />}
-              {showPreview ? 'HIDE PREVIEW' : 'SHOW PREVIEW'}
-            </button>
-          )}
+  const changeSummaryByTab = useMemo(() => {
+    const summary = { home: 0, esports: 0, meetings: 0, legal: 0, global: 0 };
+    changedKeys.forEach((key) => {
+      const tab = keyToTab(key);
+      summary[tab] = (summary[tab] || 0) + 1;
+    });
+    return summary;
+  }, [changedKeys]);
+
+  useEffect(() => {
+    const domKeys = Array.from(canvasRef.current?.querySelectorAll?.('[data-content-key]') || [])
+      .map((node) => node.getAttribute('data-content-key'))
+      .filter(Boolean);
+    const merged = Array.from(new Set([...domKeys, ...listEditableKeys(siteContent)]))
+      .sort((a, b) => a.localeCompare(b));
+    setAvailableKeys(merged);
+  }, [previewTab, selectionGranularity, siteContent, historyRevision]);
+
+  useEffect(() => {
+    const onKeyDown = (e) => {
+      const meta = e.metaKey || e.ctrlKey;
+      if (meta && e.key.toLowerCase() === 'z') {
+        e.preventDefault();
+        if (e.shiftKey) redo();
+        else undo();
+        return;
+      }
+      if (!selectedKey) return;
+      if (isEditableTypingTarget(e.target)) return;
+      if (e.key === 'ArrowLeft') { e.preventDefault(); nudgeSelected(-1, 0, e.shiftKey ? 10 : 1); }
+      if (e.key === 'ArrowRight') { e.preventDefault(); nudgeSelected(1, 0, e.shiftKey ? 10 : 1); }
+      if (e.key === 'ArrowUp') { e.preventDefault(); nudgeSelected(0, -1, e.shiftKey ? 10 : 1); }
+      if (e.key === 'ArrowDown') { e.preventDefault(); nudgeSelected(0, 1, e.shiftKey ? 10 : 1); }
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [nudgeSelected, redo, selectedKey, undo]);
+
+  const filteredKeys = useMemo(() => {
+    const q = keySearch.trim().toLowerCase();
+    if (!q) return availableKeys.slice(0, 10);
+    return availableKeys.filter((key) => key.toLowerCase().includes(q)).slice(0, 10);
+  }, [availableKeys, keySearch]);
+
+  const renderPreviewTab = () => {
+    if (previewTab === 'home') {
+      return (
+        <HomeTab
+          gamesList={gamesList}
+          standings={standings}
+          rankings={rankings}
+          meetings={meetings}
+          siteContent={previewSiteContent}
+          setSiteContent={setSiteContent}
+          contentEditor={editor}
+          dataLoaded={dataLoaded}
+          onNavigateToEsports={() => setPreviewTab('esports')}
+        />
+      );
+    }
+    if (previewTab === 'esports') {
+      return (
+        <EsportsTab
+          gamesList={gamesList}
+          standings={standings}
+          rankings={rankings}
+          dataLoaded={dataLoaded}
+          siteContent={previewSiteContent}
+          setSiteContent={setSiteContent}
+          contentEditor={editor}
+        />
+      );
+    }
+    if (previewTab === 'meetings') {
+      return (
+        <MeetingsTab
+          meetings={meetings}
+          dataLoaded={dataLoaded}
+          siteContent={previewSiteContent}
+          setSiteContent={setSiteContent}
+          contentEditor={editor}
+        />
+      );
+    }
+    return (
+      <LegalTab
+        siteContent={previewSiteContent}
+        setSiteContent={setSiteContent}
+        contentEditor={editor}
+      />
+    );
+  };
+
+  if (isMobile) {
+    const mobileKeys = Array.from(new Set([
+      ...listEditableKeys(siteContent),
+      ...recentSelections.map(getBaseKey),
+      mobileManualKey.trim(),
+    ].filter(Boolean))).sort((a, b) => a.localeCompare(b));
+    const mobileSelected = selectedKey || mobileKeys[0] || '';
+    const mobileText = mobileSelected ? readEditableText(siteContent, mobileSelected, '') : '';
+    const mobileStyle = mobileSelected ? readEditableStyle(siteContent, mobileSelected) : {};
+    const mobileFontSize = mobileStyle?.fontSize ?? 16;
+
+    return (
+      <div className="rounded-2xl border border-slate/10 bg-background p-4 flex flex-col gap-3">
+        <div className="rounded-xl border border-amber-500/25 bg-amber-500/10 px-3 py-2">
+          <p className="font-sans text-xs text-amber-700 leading-relaxed">
+            Mobile quick edit mode supports text and font size only. Position/move controls stay desktop-only.
+          </p>
         </div>
-      </div>
 
-      <p className="font-sans text-sm text-slate/60 -mt-2">
-        Edit the text across all pages. Changes are saved when you hit Publish.
-      </p>
-
-      <div className={cn("grid gap-8", !isMobile && showPreview ? "lg:grid-cols-2" : "grid-cols-1")}>
-        {/* Editor column */}
-        <div className="flex flex-col gap-4">
-          <CollapsibleSection label="Hero Section" defaultOpen onReset={() => resetSection('hero')}>
-            <div>
-              <FieldLabel hint="Top line">Title Line 1</FieldLabel>
-              <TextInput value={content.hero.line1} onChange={(e) => update('hero', 'line1', e.target.value)} placeholder="Campbell CTRL" />
-            </div>
-            <div>
-              <FieldLabel hint="Large accent text">Title Line 2</FieldLabel>
-              <TextInput value={content.hero.line2} onChange={(e) => update('hero', 'line2', e.target.value)} placeholder="eSpartans" />
-            </div>
-            <div>
-              <FieldLabel hint="Subtitle">Description</FieldLabel>
-              <TextInput value={content.hero.description} onChange={(e) => update('hero', 'description', e.target.value)} placeholder="Campbell High School's..." multiline />
-            </div>
-            <div>
-              <FieldLabel hint="CTA button">Button Text</FieldLabel>
-              <TextInput value={content.hero.buttonText} onChange={(e) => update('hero', 'buttonText', e.target.value)} placeholder="Learn More" />
-            </div>
-          </CollapsibleSection>
-
-          <CollapsibleSection label="About the Club" onReset={() => resetSection('about')}>
-            <div>
-              <FieldLabel>Section Heading</FieldLabel>
-              <TextInput value={content.about.heading} onChange={(e) => update('about', 'heading', e.target.value)} placeholder="About the Club" />
-            </div>
-            <div>
-              <FieldLabel>Section Description</FieldLabel>
-              <TextInput value={content.about.description} onChange={(e) => update('about', 'description', e.target.value)} placeholder="Campbell CTRL is..." multiline />
-            </div>
-            <div className="flex items-center justify-between mt-1">
-              <FieldLabel>Feature Cards</FieldLabel>
-              <button onClick={addCard} className="flex items-center gap-1.5 text-[9px] font-mono font-bold text-accent hover:text-accent/80 transition-colors">
-                <IconPlus size={12} />ADD CARD
+        <div className="grid gap-2">
+          <label className="font-mono text-[10px] uppercase tracking-[0.15em] text-slate/50">Find or create key</label>
+          <input
+            value={mobileManualKey}
+            onChange={(e) => setMobileManualKey(e.target.value)}
+            placeholder="example: navbar.homeMobile"
+            className="h-10 rounded-xl border border-slate/10 bg-slate/5 px-3 text-xs"
+          />
+          <div className="max-h-36 overflow-y-auto custom-scrollbar grid gap-1">
+            {mobileKeys.length ? mobileKeys.map((key) => (
+              <button
+                key={key}
+                onClick={() => setSelectedKey(key)}
+                className={cn(
+                  "text-left px-2.5 py-2 rounded-lg border text-[10px] font-mono",
+                  mobileSelected === key
+                    ? "border-accent bg-accent/10 text-accent"
+                    : "border-slate/10 bg-slate/5 text-slate/60"
+                )}
+              >
+                {key}
               </button>
-            </div>
-            {content.about.cards.map((card, i) => (
-              <div key={i} className="bg-background rounded-xl p-4 border border-slate/10 flex flex-col gap-3 relative group">
-                <button onClick={() => removeCard(i)} className="absolute top-3 right-3 p-1.5 text-slate/20 hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-all opacity-0 group-hover:opacity-100">
-                  <IconTrash size={14} />
-                </button>
-                <div>
-                  <FieldLabel hint={`Card ${i + 1}`}>Title</FieldLabel>
-                  <TextInput value={card.title} onChange={(e) => updateCard(i, 'title', e.target.value)} placeholder="Card title" />
-                </div>
-                <div>
-                  <FieldLabel>Description</FieldLabel>
-                  <TextInput value={card.desc} onChange={(e) => updateCard(i, 'desc', e.target.value)} placeholder="Card description" multiline />
-                </div>
-              </div>
-            ))}
-          </CollapsibleSection>
-
-          <CollapsibleSection label="Meetings Page" onReset={() => resetSection('meetings')}>
-            <div>
-              <FieldLabel hint="Page heading accent">Heading Accent</FieldLabel>
-              <TextInput value={content.meetings.headingAccent} onChange={(e) => update('meetings', 'headingAccent', e.target.value)} placeholder="Meetings." />
-            </div>
-            <div>
-              <FieldLabel>Page Description</FieldLabel>
-              <TextInput value={content.meetings.description} onChange={(e) => update('meetings', 'description', e.target.value)} placeholder="Where the community..." multiline />
-            </div>
-            <div>
-              <FieldLabel hint="Featured card title">Featured Title</FieldLabel>
-              <TextInput value={content.meetings.featuredTitle} onChange={(e) => update('meetings', 'featuredTitle', e.target.value)} placeholder="Friday Sessions" />
-            </div>
-            <div>
-              <FieldLabel hint="Badge text">Badge</FieldLabel>
-              <TextInput value={content.meetings.featuredBadge} onChange={(e) => update('meetings', 'featuredBadge', e.target.value)} placeholder="EVERY WEEK" />
-            </div>
-            <div>
-              <FieldLabel>Time Description</FieldLabel>
-              <TextInput value={content.meetings.timeDesc} onChange={(e) => update('meetings', 'timeDesc', e.target.value)} placeholder="3:30 PM – 5:30 PM..." />
-            </div>
-            <div>
-              <FieldLabel>Location Description</FieldLabel>
-              <TextInput value={content.meetings.locationDesc} onChange={(e) => update('meetings', 'locationDesc', e.target.value)} placeholder="The Learning Commons..." />
-            </div>
-            <div>
-              <FieldLabel>Who Can Join</FieldLabel>
-              <TextInput value={content.meetings.whoDesc} onChange={(e) => update('meetings', 'whoDesc', e.target.value)} placeholder="Anyone from..." />
-            </div>
-          </CollapsibleSection>
-
-          <CollapsibleSection label="Esports Page" onReset={() => resetSection('esports')}>
-            <div>
-              <FieldLabel hint="Before accent text">Heading</FieldLabel>
-              <TextInput value={content.esports.heading} onChange={(e) => update('esports', 'heading', e.target.value)} placeholder="Campbell" />
-            </div>
-            <div>
-              <FieldLabel hint="Styled accent text">Heading Accent</FieldLabel>
-              <TextInput value={content.esports.headingAccent} onChange={(e) => update('esports', 'headingAccent', e.target.value)} placeholder="eSpartans." />
-            </div>
-            <div>
-              <FieldLabel>Page Description</FieldLabel>
-              <TextInput value={content.esports.description} onChange={(e) => update('esports', 'description', e.target.value)} placeholder="The official PlayVS..." multiline />
-            </div>
-          </CollapsibleSection>
-
-          {/* Design settings - desktop only */}
-          {!isMobile && (
-            <CollapsibleSection label="Design Settings" onReset={() => resetSection('design')}>
-              <div>
-                <FieldLabel hint="Primary accent color">Accent Color</FieldLabel>
-                <div className="flex items-center gap-3">
-                  <input type="color" value={content.design.accentColor} onChange={(e) => update('design', 'accentColor', e.target.value)} className="w-10 h-10 rounded-lg border border-slate/10 cursor-pointer" />
-                  <TextInput value={content.design.accentColor} onChange={(e) => update('design', 'accentColor', e.target.value)} placeholder="#0038A8" className="flex-1" />
-                </div>
-              </div>
-              <div>
-                <FieldLabel hint="Heading typeface">Heading Font</FieldLabel>
-                <SelectInput value={content.design.headingFont} onChange={(e) => update('design', 'headingFont', e.target.value)} options={[
-                  { value: 'sans', label: 'System Sans (Default)' },
-                  { value: 'mono', label: 'Monospace' },
-                  { value: 'display', label: 'Display (Impact)' },
-                ]} />
-              </div>
-              <div>
-                <FieldLabel hint="Body text typeface">Body Font</FieldLabel>
-                <SelectInput value={content.design.bodyFont} onChange={(e) => update('design', 'bodyFont', e.target.value)} options={[
-                  { value: 'roboto', label: 'Roboto (Default)' },
-                  { value: 'sans', label: 'System Sans' },
-                  { value: 'mono', label: 'Monospace' },
-                ]} />
-              </div>
-              <div>
-                <FieldLabel hint="Space between sections">Section Spacing</FieldLabel>
-                <SelectInput value={content.design.sectionSpacing} onChange={(e) => update('design', 'sectionSpacing', e.target.value)} options={[
-                  { value: 'compact', label: 'Compact' },
-                  { value: 'normal', label: 'Normal (Default)' },
-                  { value: 'spacious', label: 'Spacious' },
-                ]} />
-              </div>
-              <div>
-                <FieldLabel hint="Card border radius">Card Rounding</FieldLabel>
-                <SelectInput value={content.design.cardRounding} onChange={(e) => update('design', 'cardRounding', e.target.value)} options={[
-                  { value: 'small', label: 'Small (8px)' },
-                  { value: 'medium', label: 'Medium (16px)' },
-                  { value: 'large', label: 'Large (24px) - Default' },
-                  { value: 'full', label: 'Full (32px)' },
-                ]} />
-              </div>
-            </CollapsibleSection>
-          )}
+            )) : (
+              <p className="text-[11px] text-slate/50">No content keys yet. Type a key above to create one.</p>
+            )}
+          </div>
         </div>
 
-        {/* Desktop preview column */}
-        {!isMobile && showPreview && (
-          <div className="hidden lg:block sticky top-0 max-h-[calc(100vh-12rem)] overflow-y-auto custom-scrollbar">
-            {previewContent}
+        {mobileSelected && (
+          <div className="rounded-xl border border-slate/10 bg-slate/5 p-3 flex flex-col gap-2.5">
+            <div className="font-mono text-[10px] text-accent uppercase tracking-wider truncate">{mobileSelected}</div>
+            <label className="font-sans text-xs font-bold text-primary">Text</label>
+            <textarea
+              value={mobileText}
+              onChange={(e) => updateEditableText(setSiteContent, mobileSelected, e.target.value)}
+              rows={4}
+              className="w-full rounded-xl border border-slate/10 bg-background px-3 py-2 text-sm"
+            />
+            <label className="font-sans text-xs font-bold text-primary">Font Size</label>
+            <div className="flex items-center gap-2">
+              <input
+                type="range"
+                min={10}
+                max={96}
+                value={mobileFontSize}
+                onChange={(e) => updateEditableStyle(setSiteContent, mobileSelected, { fontSize: Number(e.target.value) })}
+                className="flex-1 accent-accent"
+              />
+              <div className="w-16">
+                <NumberField
+                  value={mobileFontSize}
+                  min={10}
+                  max={120}
+                  onChange={(e) => updateEditableStyle(setSiteContent, mobileSelected, { fontSize: Number(e.target.value) })}
+                />
+              </div>
+            </div>
           </div>
         )}
       </div>
+    );
+  }
 
-      {/* Mobile fullscreen preview */}
-      {isMobile && fullscreenPreview && (
-        <div className="fixed inset-0 z-[200] bg-background overflow-y-auto">
-          <div className="p-4 pb-24">
-            {previewContent}
+  return (
+    <div className="relative h-full min-h-[calc(100vh-11rem)] bg-background">
+      <div className="absolute inset-x-0 top-3 z-40 px-4">
+        <div className="mx-auto w-full max-w-6xl">
+          <div className="rounded-2xl border border-slate/10 bg-background/95 backdrop-blur-md px-4 py-3 shadow-xl">
+            <div className="flex flex-wrap items-center gap-3">
+              <span className="font-mono text-[9px] font-black text-accent uppercase tracking-[0.2em]">
+                Full Site Preview
+              </span>
+              <button
+                onClick={() => setPreviewVersion((v) => (v === 'draft' ? 'published' : 'draft'))}
+                className={cn(
+                  'px-3 py-1.5 rounded-xl border text-[10px] font-mono font-bold uppercase tracking-wider transition-all',
+                  previewVersion === 'draft'
+                    ? 'border-accent bg-accent/10 text-accent'
+                    : 'border-slate/10 bg-slate/5 text-slate/60'
+                )}
+              >
+                {previewVersion === 'draft' ? 'Draft View' : 'Published View'}
+              </button>
+              <button
+                onClick={publishDraftSnapshot}
+                className="px-3 py-1.5 rounded-xl border border-emerald-500/30 bg-emerald-500/10 text-[10px] font-mono font-bold uppercase tracking-wider text-emerald-700"
+              >
+                Set Published Baseline
+              </button>
+              <div className="flex flex-wrap gap-2">
+                {PREVIEW_TABS.map((tab) => (
+                  <button
+                    key={tab.id}
+                    onClick={() => { setPreviewTab(tab.id); haptics.tabSwitch?.(); }}
+                    className={cn(
+                      "px-3 py-1.5 rounded-xl border text-[10px] font-mono font-bold uppercase tracking-wider transition-all",
+                      previewTab === tab.id
+                        ? "border-accent bg-accent/10 text-accent"
+                        : "border-slate/10 bg-slate/5 text-slate/60 hover:text-primary"
+                    )}
+                  >
+                    {tab.label}
+                  </button>
+                ))}
+              </div>
+
+              <div className="ml-auto flex gap-2">
+                <button
+                  onClick={undo}
+                  disabled={!canUndo}
+                  className={cn(
+                    'px-3 py-1.5 rounded-xl border text-[10px] font-mono font-bold uppercase tracking-wider transition-all',
+                    canUndo ? 'border-slate/10 bg-slate/5 text-slate/60 hover:text-primary' : 'border-slate/10 bg-slate/5 text-slate/30 cursor-not-allowed'
+                  )}
+                >
+                  Undo
+                </button>
+                <button
+                  onClick={redo}
+                  disabled={!canRedo}
+                  className={cn(
+                    'px-3 py-1.5 rounded-xl border text-[10px] font-mono font-bold uppercase tracking-wider transition-all',
+                    canRedo ? 'border-slate/10 bg-slate/5 text-slate/60 hover:text-primary' : 'border-slate/10 bg-slate/5 text-slate/30 cursor-not-allowed'
+                  )}
+                >
+                  Redo
+                </button>
+                {MODES.map((item) => (
+                  <button
+                    key={item.id}
+                    onClick={() => { setMode(item.id); haptics.selection(); }}
+                    className={cn(
+                      "px-3 py-1.5 rounded-xl border text-[10px] font-mono font-bold uppercase tracking-wider transition-all",
+                      mode === item.id
+                        ? "border-accent bg-accent/10 text-accent"
+                        : "border-slate/10 bg-slate/5 text-slate/60 hover:text-primary"
+                    )}
+                  >
+                    {item.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="mt-3 grid gap-3 xl:grid-cols-[2fr_1.2fr_1fr_1fr]">
+              <div className="rounded-xl border border-slate/10 bg-slate/5 p-2.5">
+                <div className="font-mono text-[9px] uppercase tracking-[0.2em] text-slate/50 mb-2">Selection</div>
+                <div className="flex flex-wrap gap-2 mb-2">
+                  {GRANULARITY_OPTIONS.map((item) => (
+                    <button
+                      key={item.id}
+                      onClick={() => { setSelectionGranularity(item.id); haptics.toggle?.(); }}
+                      className={cn(
+                        'px-2.5 py-1.5 rounded-lg border text-[10px] font-mono font-bold uppercase',
+                        selectionGranularity === item.id
+                          ? 'border-accent bg-accent/10 text-accent'
+                          : 'border-slate/10 text-slate/60'
+                      )}
+                    >
+                      {item.label}
+                    </button>
+                  ))}
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {DENSITY_OPTIONS.map((item) => (
+                    <button
+                      key={item.id}
+                      onClick={() => { setSelectionDensity(item.id); haptics.toggle?.(); }}
+                      className={cn(
+                        'px-2.5 py-1.5 rounded-lg border text-[10px] font-mono font-bold uppercase',
+                        selectionDensity === item.id
+                          ? 'border-accent bg-accent/10 text-accent'
+                          : 'border-slate/10 text-slate/60'
+                      )}
+                    >
+                      {item.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="rounded-xl border border-slate/10 bg-slate/5 p-2.5">
+                <div className="font-mono text-[9px] uppercase tracking-[0.2em] text-slate/50 mb-2">Layout Precision</div>
+                <div className="flex flex-wrap gap-2 mb-2">
+                  <button onClick={() => setSnapEnabled((v) => !v)} className={cn('px-2.5 py-1.5 rounded-lg border text-[10px] font-mono font-bold uppercase', snapEnabled ? 'border-accent bg-accent/10 text-accent' : 'border-slate/10 text-slate/60')}>Snap</button>
+                  <button onClick={() => setGuidesEnabled((v) => !v)} className={cn('px-2.5 py-1.5 rounded-lg border text-[10px] font-mono font-bold uppercase', guidesEnabled ? 'border-accent bg-accent/10 text-accent' : 'border-slate/10 text-slate/60')}>Guides</button>
+                  <button onClick={() => setShiftAxisLock((v) => !v)} className={cn('px-2.5 py-1.5 rounded-lg border text-[10px] font-mono font-bold uppercase', shiftAxisLock ? 'border-accent bg-accent/10 text-accent' : 'border-slate/10 text-slate/60')}>Shift Lock</button>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <NumberField value={gridSize} min={1} max={32} onChange={(e) => setGridSize(Number(e.target.value) || 1)} />
+                  <NumberField value={nudgeStep} min={1} max={40} onChange={(e) => setNudgeStep(Number(e.target.value) || 1)} />
+                </div>
+              </div>
+
+              <div className="rounded-xl border border-slate/10 bg-slate/5 p-2.5">
+                <div className="font-mono text-[9px] uppercase tracking-[0.2em] text-slate/50 mb-2">Element Search</div>
+                <input
+                  type="text"
+                  value={keySearch}
+                  onChange={(e) => setKeySearch(e.target.value)}
+                  placeholder="Find key..."
+                  className="w-full bg-background border border-slate/10 rounded-lg px-2.5 py-2 text-xs"
+                />
+                <div className="mt-2 max-h-24 overflow-y-auto custom-scrollbar flex flex-col gap-1">
+                  {filteredKeys.map((key) => (
+                    <button
+                      key={key}
+                      onClick={() => registerSelection(key, readEditableText(siteContent, key, ''))}
+                      className="text-left px-2 py-1 rounded-md text-[10px] font-mono border border-slate/10 hover:border-accent/30 hover:bg-accent/5"
+                    >
+                      {key}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="rounded-xl border border-slate/10 bg-slate/5 p-2.5">
+                <div className="font-mono text-[9px] uppercase tracking-[0.2em] text-slate/50 mb-2">Draft Workflow</div>
+                <div className="flex flex-col gap-2">
+                  <button onClick={exportDraft} className="px-2.5 py-2 rounded-lg border border-slate/10 text-[10px] font-mono font-bold uppercase">Export JSON</button>
+                  <button onClick={() => fileImportRef.current?.click()} className="px-2.5 py-2 rounded-lg border border-slate/10 text-[10px] font-mono font-bold uppercase">Import JSON</button>
+                  <button onClick={resetCurrentTab} className="px-2.5 py-2 rounded-lg border border-amber-500/30 bg-amber-500/10 text-[10px] font-mono font-bold uppercase text-amber-700">Reset Current Tab</button>
+                </div>
+                <input ref={fileImportRef} type="file" accept="application/json" className="hidden" onChange={importDraft} />
+              </div>
+            </div>
+          </div>
+
+          {selectedKey && (
+            <div className="mt-2 rounded-2xl border border-accent/20 bg-background/95 backdrop-blur-md px-4 py-3 shadow-2xl">
+              <div className="flex items-center justify-between gap-3">
+                <span className="font-mono text-[10px] font-bold text-accent uppercase tracking-wider truncate">{selectedKey}</span>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => updateEditableMeta(setSiteContent, selectedBaseKey, { locked: !selectedMeta.locked })}
+                    className={cn(
+                      'text-[10px] font-mono font-bold px-2.5 py-1.5 rounded-lg border uppercase',
+                      selectedMeta.locked
+                        ? 'border-rose-500/30 bg-rose-500/10 text-rose-600'
+                        : 'border-emerald-500/30 bg-emerald-500/10 text-emerald-700'
+                    )}
+                  >
+                    {selectedMeta.locked ? 'Locked' : 'Unlocked'}
+                  </button>
+                  <button onClick={clearSelection} className="text-[10px] font-mono font-bold text-slate/50 hover:text-primary">Close</button>
+                </div>
+              </div>
+              <p className="mt-2 text-[11px] text-slate/60 font-sans">Edit text directly in the preview while in <span className="font-bold">Edit</span> mode.</p>
+
+              <div className="mt-3 grid gap-3 lg:grid-cols-[1.2fr_1fr_1fr_auto] items-end">
+                <div className="flex flex-col gap-1.5">
+                  <label className="font-sans text-xs font-bold text-primary">Font Size</label>
+                  <div className="flex gap-2 items-center">
+                    <input
+                      type="range"
+                      min={10}
+                      max={96}
+                      value={selectedFontSize}
+                      onChange={(e) => updateSelectedFontSize(e.target.value)}
+                      className="flex-1 accent-accent"
+                    />
+                    <div className="w-16">
+                      <NumberField value={selectedFontSize} min={10} max={120} onChange={(e) => updateSelectedFontSize(e.target.value)} />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="flex flex-col gap-1.5">
+                    <label className="font-sans text-xs font-bold text-primary">Weight</label>
+                    <NumberField value={selectedFontWeight} min={100} max={900} step={100} onChange={(e) => updateSelectedStyle({ fontWeight: Number(e.target.value) })} />
+                  </div>
+                  <div className="flex flex-col gap-1.5">
+                    <label className="font-sans text-xs font-bold text-primary">Line H</label>
+                    <NumberField value={selectedLineHeight} min={0.8} max={3} step={0.05} onChange={(e) => updateSelectedStyle({ lineHeight: Number(e.target.value) })} />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="flex flex-col gap-1.5">
+                    <label className="font-sans text-xs font-bold text-primary">X</label>
+                    <NumberField value={selectedPosition.x} min={-500} max={500} onChange={(e) => updateSelectedPosition(Number(e.target.value), selectedPosition.y)} />
+                  </div>
+                  <div className="flex flex-col gap-1.5">
+                    <label className="font-sans text-xs font-bold text-primary">Y</label>
+                    <NumberField value={selectedPosition.y} min={-500} max={500} onChange={(e) => updateSelectedPosition(selectedPosition.x, Number(e.target.value))} />
+                  </div>
+                </div>
+
+                <div className="flex gap-2">
+                  <button onClick={() => nudgeSelected(-1, 0)} className="px-2 py-2 rounded-lg border border-slate/10 bg-slate/5 text-[10px] font-mono font-bold">←</button>
+                  <button onClick={() => nudgeSelected(0, -1)} className="px-2 py-2 rounded-lg border border-slate/10 bg-slate/5 text-[10px] font-mono font-bold">↑</button>
+                  <button onClick={() => nudgeSelected(0, 1)} className="px-2 py-2 rounded-lg border border-slate/10 bg-slate/5 text-[10px] font-mono font-bold">↓</button>
+                  <button onClick={() => nudgeSelected(1, 0)} className="px-2 py-2 rounded-lg border border-slate/10 bg-slate/5 text-[10px] font-mono font-bold">→</button>
+                  <button
+                    onClick={() => { resetEditableText(setSiteContent, selectedKey); resetEditableStyleAndPosition(setSiteContent, selectedKey); haptics.warning(); }}
+                    className="px-3 py-2 rounded-lg border border-amber-500/30 bg-amber-500/10 text-[10px] font-mono font-bold text-amber-700 uppercase flex items-center gap-1"
+                  >
+                    <IconRotate size={11} />
+                    Reset
+                  </button>
+                </div>
+              </div>
+
+              <div className="mt-3 grid gap-2 lg:grid-cols-[1fr_1fr_1fr_1fr_1fr]">
+                <div className="flex flex-col gap-1">
+                  <label className="font-sans text-xs font-bold text-primary">Tracking</label>
+                  <NumberField value={selectedLetterSpacing} min={-6} max={24} step={0.25} onChange={(e) => updateSelectedStyle({ letterSpacing: Number(e.target.value) })} />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <label className="font-sans text-xs font-bold text-primary">Transform</label>
+                  <select value={selectedTextTransform} onChange={(e) => updateSelectedStyle({ textTransform: e.target.value })} className="w-full bg-slate/5 border border-slate/10 rounded-xl px-2.5 py-2 font-mono text-xs text-primary">
+                    <option value="none">none</option>
+                    <option value="uppercase">uppercase</option>
+                    <option value="lowercase">lowercase</option>
+                    <option value="capitalize">capitalize</option>
+                  </select>
+                </div>
+                <div className="flex flex-col gap-1">
+                  <label className="font-sans text-xs font-bold text-primary">Align</label>
+                  <select value={selectedTextAlign} onChange={(e) => updateSelectedStyle({ textAlign: e.target.value })} className="w-full bg-slate/5 border border-slate/10 rounded-xl px-2.5 py-2 font-mono text-xs text-primary">
+                    <option value="left">left</option>
+                    <option value="center">center</option>
+                    <option value="right">right</option>
+                    <option value="justify">justify</option>
+                  </select>
+                </div>
+                <div className="flex items-end gap-2">
+                  <button
+                    onClick={() => {
+                      const style = readEditableStyle(siteContent, selectedKey);
+                      navigator.clipboard?.writeText(JSON.stringify(style || {})).catch(() => {});
+                      haptics.light();
+                    }}
+                    className="w-full px-2.5 py-2 rounded-xl border border-slate/10 text-[10px] font-mono font-bold uppercase"
+                  >
+                    Copy Style
+                  </button>
+                </div>
+                <div className="flex items-end gap-2">
+                  <button
+                    onClick={async () => {
+                      try {
+                        const raw = await navigator.clipboard?.readText?.();
+                        if (!raw) return;
+                        const parsed = JSON.parse(raw);
+                        updateSelectedStyle(parsed);
+                        haptics.success();
+                      } catch {
+                        haptics.error();
+                      }
+                    }}
+                    className="w-full px-2.5 py-2 rounded-xl border border-slate/10 text-[10px] font-mono font-bold uppercase"
+                  >
+                    Paste Style
+                  </button>
+                </div>
+              </div>
+
+              <div className="mt-3 flex flex-wrap gap-2">
+                <button onClick={() => resetEditableText(setSiteContent, selectedKey)} className="px-2.5 py-1.5 rounded-lg border border-slate/10 text-[10px] font-mono font-bold uppercase">Reset Text</button>
+                <button onClick={() => resetEditableStyle(setSiteContent, selectedKey)} className="px-2.5 py-1.5 rounded-lg border border-slate/10 text-[10px] font-mono font-bold uppercase">Reset Style</button>
+                <button onClick={() => resetEditablePosition(setSiteContent, selectedKey)} className="px-2.5 py-1.5 rounded-lg border border-slate/10 text-[10px] font-mono font-bold uppercase">Reset Position</button>
+                <button onClick={() => resetEditableMeta(setSiteContent, selectedBaseKey)} className="px-2.5 py-1.5 rounded-lg border border-slate/10 text-[10px] font-mono font-bold uppercase">Reset Lock</button>
+                <button onClick={() => { resetEditableText(setSiteContent, selectedBaseKey); resetEditableStyleAndPosition(setSiteContent, selectedBaseKey); resetEditableMeta(setSiteContent, selectedBaseKey); }} className="px-2.5 py-1.5 rounded-lg border border-amber-500/30 bg-amber-500/10 text-amber-700 text-[10px] font-mono font-bold uppercase">Reset Base Element</button>
+              </div>
+            </div>
+          )}
+
+          <div className="mt-2 rounded-xl border border-slate/10 bg-background/90 px-4 py-2">
+            <div className="grid gap-2 md:grid-cols-2 lg:grid-cols-5 text-[10px] font-mono uppercase tracking-wide text-slate/60">
+              <div>Changed: <span className="text-primary font-bold">{changedKeys.size}</span></div>
+              <div>Home: <span className="text-primary font-bold">{changeSummaryByTab.home}</span></div>
+              <div>Esports: <span className="text-primary font-bold">{changeSummaryByTab.esports}</span></div>
+              <div>Meetings: <span className="text-primary font-bold">{changeSummaryByTab.meetings}</span></div>
+              <div>Legal/Global: <span className="text-primary font-bold">{changeSummaryByTab.legal + changeSummaryByTab.global}</span></div>
+            </div>
+            {!!recentSelections.length && (
+              <div className="mt-2 flex flex-wrap gap-2">
+                {recentSelections.slice(0, 6).map((key) => (
+                  <button key={key} onClick={() => registerSelection(key, readEditableText(siteContent, key, ''))} className="px-2 py-1 rounded-md border border-slate/10 text-[10px] font-mono">
+                    {key}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
         </div>
-      )}
+      </div>
+
+      <div
+        ref={canvasRef}
+        data-editor-canvas
+        onClick={clearSelection}
+        className={cn(
+          "h-full overflow-y-auto custom-scrollbar",
+          selectedKey ? "pt-[29rem] lg:pt-[22rem]" : "pt-[18rem] lg:pt-[12rem]"
+        )}
+      >
+        {guidesEnabled && guideState.showVertical && <div className="pointer-events-none fixed inset-y-0 left-1/2 -translate-x-1/2 w-px bg-accent/50 z-30" />}
+        {guidesEnabled && guideState.showHorizontal && <div className="pointer-events-none fixed inset-x-0 top-1/2 -translate-y-1/2 h-px bg-accent/50 z-30" />}
+        <Navbar
+          currentTab={previewTab}
+          onNavigate={(tab) => {
+            if (PREVIEW_TABS.some((t) => t.id === tab)) setPreviewTab(tab);
+          }}
+          siteContent={previewSiteContent}
+          setSiteContent={setSiteContent}
+          contentEditor={editor}
+          previewStatic
+        />
+        {renderPreviewTab()}
+        <Footer
+          onToggleAdmin={() => {}}
+          onNavigate={(tab) => {
+            if (PREVIEW_TABS.some((t) => t.id === tab)) setPreviewTab(tab);
+          }}
+          siteContent={previewSiteContent}
+          setSiteContent={setSiteContent}
+          contentEditor={editor}
+          hideAdminStatus
+        />
+      </div>
     </div>
   );
 };

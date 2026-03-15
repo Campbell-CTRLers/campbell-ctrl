@@ -2,21 +2,36 @@ import React, { useState } from 'react';
 import { IconCalendar } from '../AboutIcons';
 import { IconMapPin, IconChevronDown, IconChevronUp } from '../icons/SvgIcons';
 import { EventAddToCalendar } from '../EventAddToCalendar';
+import { EditableSiteText } from '../content/EditableSiteText';
 
-export const HomeMeetingsSection = ({ meetings = [] }) => {
+export const HomeMeetingsSection = ({ meetings = [], dataLoaded = true, siteContent = null, setSiteContent, contentEditor }) => {
   const [showAll, setShowAll] = useState(false);
 
   const displayMeetings = showAll ? meetings : meetings.slice(0, 3);
   const hasMore = meetings.length > 3;
 
+  if (!dataLoaded) {
+    return (
+      <section className="w-full py-16 md:py-20 px-6 md:px-16 bg-slate/5 border-y border-slate/10">
+        <div className="max-w-4xl mx-auto animate-pulse">
+          <div className="h-8 w-48 rounded-xl bg-slate/10 mb-3" />
+          <div className="h-4 w-80 rounded-xl bg-slate/10 mb-8" />
+          <div className="grid gap-4">
+            {Array.from({ length: 3 }).map((_, idx) => (
+              <div key={idx} className="h-28 rounded-2xl bg-slate/10" />
+            ))}
+          </div>
+        </div>
+      </section>
+    );
+  }
+
   if (meetings.length === 0) {
     return (
       <section className="w-full py-16 md:py-20 px-6 md:px-16 bg-slate/5 border-y border-slate/10">
         <div className="max-w-4xl mx-auto">
-          <h2 className="font-sans font-bold text-2xl md:text-3xl text-primary mb-2">
-            Club Meetings
-          </h2>
-          <p className="font-roboto text-slate/60 text-sm">No meetings scheduled. Check back soon.</p>
+          <EditableSiteText as="h2" contentKey="homeMeetings.heading" fallback="Club Meetings" siteContent={siteContent} setSiteContent={setSiteContent} editor={contentEditor} className="font-sans font-bold text-2xl md:text-3xl text-primary mb-2" />
+          <EditableSiteText as="p" contentKey="homeMeetings.empty" fallback="No meetings scheduled. Check back soon." siteContent={siteContent} setSiteContent={setSiteContent} editor={contentEditor} className="font-roboto text-slate/60 text-sm" />
         </div>
       </section>
     );
@@ -26,12 +41,8 @@ export const HomeMeetingsSection = ({ meetings = [] }) => {
     <section className="w-full py-16 md:py-20 px-6 md:px-16 bg-slate/5 border-y border-slate/10">
       <div className="max-w-4xl mx-auto">
         <div className="mb-8">
-          <h2 className="font-sans font-bold text-2xl md:text-3xl text-primary mb-2">
-            Club Meetings
-          </h2>
-          <p className="font-roboto text-slate/70 text-sm">
-            When and where we meet. Add to your calendar to stay updated.
-          </p>
+          <EditableSiteText as="h2" contentKey="homeMeetings.heading" fallback="Club Meetings" siteContent={siteContent} setSiteContent={setSiteContent} editor={contentEditor} className="font-sans font-bold text-2xl md:text-3xl text-primary mb-2" />
+          <EditableSiteText as="p" contentKey="homeMeetings.subheading" fallback="When and where we meet. Add to your calendar to stay updated." siteContent={siteContent} setSiteContent={setSiteContent} editor={contentEditor} className="font-roboto text-slate/70 text-sm" />
         </div>
 
         <div className="flex flex-col gap-4">
@@ -45,7 +56,7 @@ export const HomeMeetingsSection = ({ meetings = [] }) => {
                   <IconCalendar size={24} className="text-accent" />
                 </div>
                 <div className="min-w-0">
-                  <h3 className="font-sans font-bold text-lg text-primary">{m.title || 'Meeting'}</h3>
+                  <EditableSiteText as="h3" contentKey={`homeMeetings.cards.${m.id}.title`} fallback={m.title || 'Meeting'} siteContent={siteContent} setSiteContent={setSiteContent} editor={contentEditor} className="font-sans font-bold text-lg text-primary" />
                   <div className="flex flex-wrap items-center gap-3 mt-1 text-sm text-slate/70">
                     <span className="font-mono font-bold">
                       {Array.isArray(m.days) ? m.days.join(', ') : m.days || '—'}{' '}
@@ -59,7 +70,7 @@ export const HomeMeetingsSection = ({ meetings = [] }) => {
                     )}
                   </div>
                   {m.description && (
-                    <p className="font-roboto text-slate/60 text-sm mt-2">{m.description}</p>
+                    <EditableSiteText as="p" contentKey={`homeMeetings.cards.${m.id}.description`} fallback={m.description} siteContent={siteContent} setSiteContent={setSiteContent} editor={contentEditor} className="font-roboto text-slate/60 text-sm mt-2" />
                   )}
                 </div>
               </div>
@@ -75,11 +86,11 @@ export const HomeMeetingsSection = ({ meetings = [] }) => {
           >
             {showAll ? (
               <>
-                Show less <IconChevronUp size={16} />
+                <EditableSiteText as="span" contentKey="homeMeetings.showLess" fallback="Show less" siteContent={siteContent} setSiteContent={setSiteContent} editor={contentEditor} /> <IconChevronUp size={16} />
               </>
             ) : (
               <>
-                Show all {meetings.length} meetings <IconChevronDown size={16} />
+                <EditableSiteText as="span" contentKey="homeMeetings.showAllPrefix" fallback={`Show all ${meetings.length} meetings`} siteContent={siteContent} setSiteContent={setSiteContent} editor={contentEditor} /> <IconChevronDown size={16} />
               </>
             )}
           </button>

@@ -15,8 +15,15 @@ const AdminStandingsEditor = ({
   setStandingRoster,
   deleteStanding,
   setActiveControlId,
-}) => (
-  <div className="flex flex-col gap-4">
+  searchQuery = '',
+}) => {
+  const query = String(searchQuery || '').trim().toLowerCase();
+  const visibleStandings = query
+    ? standings.filter((s) => `${s.game || ''}`.toLowerCase().includes(query))
+    : standings;
+
+  return (
+    <div className="flex flex-col gap-4">
     <div className="flex items-center justify-between flex-wrap gap-2">
       <h3 className="font-sans font-black text-lg sm:text-2xl text-primary italic uppercase tracking-tighter">Live Standings</h3>
       <div className="flex items-center gap-2">
@@ -30,7 +37,7 @@ const AdminStandingsEditor = ({
     </div>
 
     <div className="flex flex-col gap-3">
-      {standings.map((s) => (
+      {visibleStandings.map((s) => (
         <div
           key={s.id}
           onClick={() => window.innerWidth < 768 && setActiveControlId(s.id)}
@@ -70,6 +77,7 @@ const AdminStandingsEditor = ({
       ))}
     </div>
   </div>
-);
+  );
+};
 
 export default AdminStandingsEditor;

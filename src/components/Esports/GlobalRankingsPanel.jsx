@@ -7,6 +7,7 @@ import { useHaptics } from '../../hooks/useHaptics';
 import AnimatedInput from '../../ui/AnimatedInput';
 import gsap from 'gsap';
 import { useGSAP } from '@gsap/react';
+import { EditableSiteText } from '../content/EditableSiteText';
 
 // ─── Constants & Styles ──────────────────────────────────────────────────────
 const SORT_OPTIONS = [
@@ -131,7 +132,7 @@ const CARD_HEADER_CLASS = "font-sans font-bold text-sm text-primary uppercase tr
 
 // standingsSource = list of teams from Standings (source of truth for which teams exist)
 // rankings = ranking rows; merged so each standing gets its (game, isAlt) ranking data
-export const GlobalRankingsPanel = ({ standingsSource = [], rankings = [], rosterFilter: controlledRoster, onRosterFilterChange, compact, noCard }) => {
+export const GlobalRankingsPanel = ({ standingsSource = [], rankings = [], rosterFilter: controlledRoster, onRosterFilterChange, compact, noCard, siteContent = null, setSiteContent, contentEditor }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [mobileOpen, setMobileOpen] = useState(false);
   const [activeLeague, setActiveLeague] = useState('ALL');
@@ -215,9 +216,16 @@ export const GlobalRankingsPanel = ({ standingsSource = [], rankings = [], roste
       <div className={cn("flex items-center justify-between", compact ? "mb-3" : "mb-6")}>
         <div className="flex flex-col">
           <h2 className={cn(compact && noCard ? CARD_HEADER_CLASS : "font-sans font-black text-primary flex items-center gap-2", compact && noCard ? "" : "italic", compact && !noCard ? "text-sm italic" : compact ? "" : "text-2xl")}>
-            {compact && noCard ? "Global Rankings" : <><IconTrophy className="text-accent" size={compact ? 16 : 24} /> GLOBAL RANKINGS</>}
+            {compact && noCard
+              ? <EditableSiteText as="span" contentKey="rankings.headingCompact" fallback="Global Rankings" siteContent={siteContent} setSiteContent={setSiteContent} editor={contentEditor} />
+              : (
+                <>
+                  <IconTrophy className="text-accent" size={compact ? 16 : 24} />
+                  <EditableSiteText as="span" contentKey="rankings.heading" fallback="GLOBAL RANKINGS" siteContent={siteContent} setSiteContent={setSiteContent} editor={contentEditor} />
+                </>
+              )}
           </h2>
-          {!compact && <span className="font-mono text-[9px] text-slate/40 tracking-[0.2em] uppercase mt-1 hidden sm:block">Cross-Roster Regional Leaderboard</span>}
+          {!compact && <EditableSiteText as="span" contentKey="rankings.subheading" fallback="Cross-Roster Regional Leaderboard" siteContent={siteContent} setSiteContent={setSiteContent} editor={contentEditor} className="font-mono text-[9px] text-slate/40 tracking-[0.2em] uppercase mt-1 hidden sm:block" />}
         </div>
 
         {/* Desktop Search & Mobile Toggle - hidden in compact */}
@@ -379,8 +387,10 @@ export const GlobalRankingsPanel = ({ standingsSource = [], rankings = [], roste
                 <td colSpan="4" className="py-24 text-center">
                   <div className="flex flex-col items-center gap-4 text-slate/20">
                     <Globe size={48} className="animate-pulse opacity-50" />
-                    <p className="font-mono text-[10px] items-center uppercase tracking-[0.3em] font-black">Zero Matching Records</p>
-                    <button onClick={reset} className="text-accent text-[9px] font-mono font-black bg-accent/5 px-4 py-2 rounded-xl border border-accent/20 hover:bg-accent hover:text-white transition-all">Clear All Filters</button>
+                    <EditableSiteText as="p" contentKey="rankings.empty" fallback="Zero Matching Records" siteContent={siteContent} setSiteContent={setSiteContent} editor={contentEditor} className="font-mono text-[10px] items-center uppercase tracking-[0.3em] font-black" />
+                    <button onClick={reset} className="text-accent text-[9px] font-mono font-black bg-accent/5 px-4 py-2 rounded-xl border border-accent/20 hover:bg-accent hover:text-white transition-all">
+                      <EditableSiteText as="span" contentKey="rankings.clearFilters" fallback="Clear All Filters" siteContent={siteContent} setSiteContent={setSiteContent} editor={contentEditor} />
+                    </button>
                   </div>
                 </td>
               </tr>
