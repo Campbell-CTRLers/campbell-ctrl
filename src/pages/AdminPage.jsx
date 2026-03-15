@@ -743,6 +743,7 @@ const AdminPage = ({
           updateStanding={updateStanding}
           updateRanking={updateRanking}
           updateMeeting={adminTab === 'meetings' ? updateMeeting : undefined}
+          meetings={meetings}
           haptics={haptics}
         />
       )}

@@ -8,20 +8,18 @@ import inPersonMeetingIcs from '../assets/in-person-meeting.ics?url';
 import iconGoogleCalendar from '../assets/icon-google-calendar.svg';
 import iconMicrosoftOutlook from '../assets/icon-microsoft-outlook.svg';
 import { useHaptics } from '../hooks/useHaptics';
-import { icsToUrls, openNativeAppWithFallback } from '../utils/calendarUtils';
+import { icsToUrls, openNativeAppWithFallback, downloadIcsFile } from '../utils/calendarUtils';
 
 export function CalendarOptions({ compact = false, titleId }) {
   const containerRef = useRef(null);
   const haptics = useHaptics();
   const [googleUrl, setGoogleUrl] = useState('');
   const [outlookUrl, setOutlookUrl] = useState('');
-  const [blobUrl, setBlobUrl] = useState('');
+  const [icsText, setIcsText] = useState('');
   const [outlookNativeUrl, setOutlookNativeUrl] = useState('');
-  const [appleNativeUrl, setAppleNativeUrl] = useState([]);
 
   useEffect(() => {
     let active = true;
-    let createdUrl = '';
     fetch(inPersonMeetingIcs)
       .then(r => {
         if (!r.ok) {
@@ -35,26 +33,22 @@ export function CalendarOptions({ compact = false, titleId }) {
         setGoogleUrl(urls.googleUrl || '');
         setOutlookUrl(urls.outlookUrl || '');
         setOutlookNativeUrl(urls.outlookNativeUrl || '');
-        setAppleNativeUrl(urls.appleNativeUrl || []);
-        createdUrl = urls.blobUrl || '';
-        setBlobUrl(createdUrl);
+        setIcsText(text);
         
       })
       .catch(err => {
         console.error('Failed to initialize calendar options:', err);
-        if (active && createdUrl) {
-          URL.revokeObjectURL(createdUrl);
-        }
+        if (active) setIcsText('');
       });
-    return () => { active = false; if (createdUrl) URL.revokeObjectURL(createdUrl); };
+    return () => { active = false; };
   }, []);
 
-  const ready = !!(googleUrl && outlookUrl && blobUrl);
+  const ready = !!(googleUrl && outlookUrl && icsText);
   const handleAppleAdd = (e) => {
     e.preventDefault();
     if (!ready) return;
     haptics.openPanel?.();
-    openNativeAppWithFallback(appleNativeUrl, [blobUrl, 'https://www.icloud.com/calendar/']);
+    downloadIcsFile(icsText, 'campbell-ctrl-meeting.ics');
   };
 
   const handleOutlookAdd = (e) => {

@@ -1,9 +1,10 @@
 import React from 'react';
-import { IconPlus, IconTrash, IconChevronRight } from '../icons/SvgIcons';
+import { IconPlus, IconTrash, IconChevronRight, IconMapPin } from '../icons/SvgIcons';
 import { cn } from '../../utils/cn';
-import { CustomTimePicker } from '../../ui/FormControls';
+import { CustomTimePicker, CustomDropdown } from '../../ui/FormControls';
 import AnimatedInput from '../../ui/AnimatedInput';
 import { useHaptics } from '../../hooks/useHaptics';
+import { buildGoogleMapsSearchUrl, buildMeetingLocationOptions } from '../../utils/locationUtils';
 
 const DAY_OPTIONS = [
   { id: 'Mon', label: 'Mon' },
@@ -28,6 +29,7 @@ const AdminMeetingsEditor = ({
   const visibleMeetings = query
     ? meetings.filter((m) => `${m.title || ''} ${m.location || ''} ${Array.isArray(m.days) ? m.days.join(' ') : m.days || ''}`.toLowerCase().includes(query))
     : meetings;
+  const locationOptions = buildMeetingLocationOptions(meetings);
 
   const toggleDay = (meetingId, dayId) => {
     haptics.light();
@@ -120,14 +122,26 @@ const AdminMeetingsEditor = ({
                 />
               </div>
               <div className="flex-1 min-w-[120px] max-w-[180px]">
-                <AnimatedInput
-                  value={m.location}
-                  onChange={(e) => updateMeeting(m.id, 'location', e.target.value)}
-                  placeholder="Location"
-                  className="h-10 rounded-xl pl-4"
-                  mono={false}
-                  tracking="normal"
-                />
+                <div className="flex items-center gap-2">
+                  <CustomDropdown
+                    value={m.location || ''}
+                    onChange={(value) => updateMeeting(m.id, 'location', value)}
+                    options={locationOptions}
+                    placeholder="Location"
+                    isEditable
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      haptics.openPanel?.();
+                      window.open(buildGoogleMapsSearchUrl(m.location), '_blank', 'noopener,noreferrer');
+                    }}
+                    className="w-10 h-10 rounded-xl border border-slate/15 bg-slate/5 text-slate/60 hover:text-accent hover:border-accent/30 transition-colors flex items-center justify-center"
+                    aria-label="Open Google Maps location selector"
+                  >
+                    <IconMapPin size={16} />
+                  </button>
+                </div>
               </div>
             </div>
 

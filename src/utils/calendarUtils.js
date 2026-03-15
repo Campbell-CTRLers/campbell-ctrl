@@ -4,6 +4,7 @@
 
 const DAY_TO_ICS = { Mon: 'MO', Tue: 'TU', Wed: 'WE', Thu: 'TH', Fri: 'FR', Sat: 'SA', Sun: 'SU' };
 const TZ = 'America/New_York';
+const BRAND_PREFIX = 'Campbell CTRL - ';
 
 function parseTimeTo24(timeStr) {
   if (!timeStr) return { h: 15, m: 30 };
@@ -47,8 +48,16 @@ function escapeIcsText(value) {
     .replace(/\r?\n/g, '\\n');
 }
 
+function withBrandPrefix(value, fallback = '') {
+  const clean = String(value || fallback || '').trim();
+  if (!clean) return 'Campbell CTRL';
+  return clean.toLowerCase().startsWith(BRAND_PREFIX.toLowerCase())
+    ? clean
+    : `${BRAND_PREFIX}${clean}`;
+}
+
 export function meetingToIcs(meeting) {
-  const title = escapeIcsText(meeting.title || 'Campbell CTRL Meeting');
+  const title = escapeIcsText(withBrandPrefix(meeting.title, 'Meeting'));
   const location = escapeIcsText(meeting.location);
   const desc = escapeIcsText(meeting.description);
   const days = Array.isArray(meeting.days) ? meeting.days : (meeting.days ? [meeting.days] : ['Fri']);
@@ -108,8 +117,8 @@ END:VCALENDAR`.replace(/\n/g, '\r\n');
 export function gameToIcs(game) {
   const summaryRaw = game.game && game.opponent
     ? `${game.game} vs ${game.opponent}`
-    : (game.title || game.game || 'Campbell CTRL Match');
-  const summary = escapeIcsText(summaryRaw);
+    : (game.title || game.game || 'Match');
+  const summary = escapeIcsText(withBrandPrefix(summaryRaw, 'Match'));
   const dateStr = game.date || new Date().toISOString().slice(0, 10);
   const time = parseTimeTo24(game.time || '6:00 PM');
   const d = new Date(dateStr + 'T12:00:00');
@@ -141,6 +150,21 @@ END:VCALENDAR`.replace(/\n/g, '\r\n');
 
 export function icsToDataUri(icsText) {
   return 'data:text/calendar;charset=utf-8,' + encodeURIComponent(icsText);
+}
+
+export function downloadIcsFile(icsText, filename = 'campbell-ctrl-event.ics') {
+  if (typeof window === 'undefined' || typeof document === 'undefined') return;
+  const blob = new Blob([icsText], { type: 'text/calendar;charset=utf-8' });
+  const blobUrl = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = blobUrl;
+  link.download = filename;
+  link.rel = 'noopener';
+  link.style.display = 'none';
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  window.setTimeout(() => URL.revokeObjectURL(blobUrl), 10000);
 }
 
 function parseIcsDateTime(value) {

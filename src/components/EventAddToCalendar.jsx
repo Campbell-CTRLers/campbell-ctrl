@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { IconX } from './icons/SvgIcons';
-import { meetingToIcs, gameToIcs, icsToUrls, openNativeAppWithFallback } from '../utils/calendarUtils';
+import { meetingToIcs, gameToIcs, icsToUrls, openNativeAppWithFallback, downloadIcsFile } from '../utils/calendarUtils';
 import iconGoogleCalendar from '../assets/icon-google-calendar.svg';
 import iconMicrosoftOutlook from '../assets/icon-microsoft-outlook.svg';
 import AppleCalendarIcon from './AppleCalendarIcon';
@@ -13,7 +13,7 @@ export function EventAddToCalendar({ event, eventType, compact = false, fullWidt
   const haptics = useHaptics();
   const popoverRef = useRef(null);
 
-  const { googleUrl, outlookUrl, outlookNativeUrl, appleNativeUrl, blobUrl, appleDataUri } = useMemo(() => {
+  const { googleUrl, outlookUrl, outlookNativeUrl, blobUrl, icsText } = useMemo(() => {
     if (!event) return {};
     const ics = eventType === 'meeting' ? meetingToIcs(event) : gameToIcs(event);
     return icsToUrls(ics);
@@ -25,7 +25,7 @@ export function EventAddToCalendar({ event, eventType, compact = false, fullWidt
 
   const close = useCallback(() => setOpen(false), []);
 
-  const ready = !!(googleUrl && outlookUrl && blobUrl);
+  const ready = !!(googleUrl && outlookUrl && icsText);
   useEffect(() => {
     if (!open) return;
     document.body.style.overflow = 'hidden';
@@ -36,7 +36,8 @@ export function EventAddToCalendar({ event, eventType, compact = false, fullWidt
     e.preventDefault();
     if (!ready) return;
     haptics.openPanel?.();
-    openNativeAppWithFallback(appleNativeUrl, [blobUrl, appleDataUri, 'https://www.icloud.com/calendar/']);
+    const fileLabel = eventType === 'meeting' ? 'meeting' : 'event';
+    downloadIcsFile(icsText, `campbell-ctrl-${fileLabel}.ics`);
     close();
   };
 

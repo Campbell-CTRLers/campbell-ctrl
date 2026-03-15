@@ -1,5 +1,5 @@
 import { forwardRef, useMemo, useState } from 'react';
-import { IconX, IconTrash, IconCheck } from '../icons/SvgIcons';
+import { IconX, IconTrash, IconCheck, IconMapPin } from '../icons/SvgIcons';
 import { CustomAnimatedDatePicker, CustomTimePicker, CustomDropdown } from '../../ui/FormControls';
 import AnimatedInput from '../../ui/AnimatedInput';
 import RosterPill from './RosterPill';
@@ -7,6 +7,7 @@ import NumberStepper from './NumberStepper';
 import { getRosterType } from './constants';
 import { GAME_OPTIONS, TYPE_OPTIONS, LEAGUE_OPTIONS } from './constants';
 import { cn } from '../../utils/cn';
+import { buildGoogleMapsSearchUrl, buildMeetingLocationOptions } from '../../utils/locationUtils';
 
 const DAY_OPTIONS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 const parseClockToMinutes = (value) => {
@@ -33,9 +34,11 @@ const AdminControlSheet = forwardRef(({
   updateStanding,
   updateRanking,
   updateMeeting,
+  meetings = [],
   haptics,
 }, ref) => {
   const [step, setStep] = useState('basics');
+  const meetingLocationOptions = useMemo(() => buildMeetingLocationOptions(meetings), [meetings]);
   const sheetTitle = adminTab === 'meetings'
     ? (activeControlItem?.title || 'Meeting')
     : (activeControlItem?.game || activeControlItem?.opponent);
@@ -73,6 +76,11 @@ const AdminControlSheet = forwardRef(({
     else days.push(day);
     days.sort((a, b) => DAY_OPTIONS.indexOf(a) - DAY_OPTIONS.indexOf(b));
     updateMeeting(activeControlId, 'days', days);
+  };
+
+  const openGoogleMapsLocationSelector = () => {
+    const url = buildGoogleMapsSearchUrl(activeControlItem.location);
+    window.open(url, '_blank', 'noopener,noreferrer');
   };
 
   return (
@@ -196,7 +204,26 @@ const AdminControlSheet = forwardRef(({
                 <>
               <div className="flex flex-col gap-1.5">
                 <label className="font-mono text-[9px] text-slate/40 uppercase pl-1">Location</label>
-                <AnimatedInput value={activeControlItem.location} onChange={(e) => updateMeeting(activeControlId, 'location', e.target.value)} placeholder="e.g. Learning Commons" className="h-12 rounded-2xl bg-slate/5 border-none" mono={false} tracking="normal" />
+                <div className="grid grid-cols-[1fr_auto] gap-2">
+                  <CustomDropdown
+                    value={activeControlItem.location || ''}
+                    onChange={(value) => updateMeeting(activeControlId, 'location', value)}
+                    options={meetingLocationOptions}
+                    placeholder="Location"
+                    isEditable
+                  />
+                  <button
+                    type="button"
+                    onClick={() => { haptics.openPanel?.(); openGoogleMapsLocationSelector(); }}
+                    className="h-12 px-3 rounded-xl border border-slate/15 bg-slate/5 text-slate/60 hover:text-accent hover:border-accent/30 transition-colors flex items-center justify-center"
+                    aria-label="Open Google Maps location selector"
+                  >
+                    <IconMapPin size={16} />
+                  </button>
+                </div>
+                <p className="font-mono text-[8px] text-slate/35 uppercase tracking-wide pl-1">
+                  Pick from saved locations or search in Google Maps.
+                </p>
               </div>
               <div className="flex flex-col gap-1.5">
                 <label className="font-mono text-[9px] text-slate/40 uppercase pl-1">Description (optional)</label>
