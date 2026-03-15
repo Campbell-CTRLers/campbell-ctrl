@@ -145,7 +145,13 @@ export function icsToDataUri(icsText) {
 
 function parseIcsDateTime(value) {
   if (!value) return null;
-  const clean = String(value).trim();
+  const clean = String(value).trim().replace(/^[^:]+:/, '');
+  const dateOnly = clean.match(/^(\d{4})(\d{2})(\d{2})$/);
+  if (dateOnly) {
+    const [, y, mo, d] = dateOnly;
+    // Parse date-only events to local noon to avoid DST boundary rollovers.
+    return new Date(Number(y), Number(mo) - 1, Number(d), 12, 0, 0);
+  }
   const m = clean.match(/^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})?(Z)?$/);
   if (!m) return null;
   const [, y, mo, d, h, mi, s = '00', z] = m;
@@ -171,14 +177,76 @@ function toAppleCalshowSlash(date) {
   return `calshow://${Math.floor((date.getTime() - appleEpochMs) / 1000)}`;
 }
 
+function normalizeUrlList(value) {
+  return (Array.isArray(value) ? value : [value])
+    .filter(item => typeof item === 'string')
+    .map(item => item.trim())
+    .filter(Boolean);
+}
+
+function isApplePlatform() {
+  if (typeof navigator === 'undefined') return false;
+  const ua = navigator.userAgent || '';
+  const platform = navigator.platform || '';
+  const iOS = /iPad|iPhone|iPod/i.test(ua);
+  const macOS = /Mac/i.test(platform);
+  const iPadOS = macOS && Number(navigator.maxTouchPoints || 0) > 1;
+  return iOS || macOS || iPadOS;
+}
+
+function isCustomProtocol(url) {
+  return /^[a-zA-Z][a-zA-Z\d+.-]*:/.test(url) && !/^(https?|data|blob):/i.test(url);
+}
+
+function openCustomProtocol(url) {
+  if (typeof document === 'undefined' || !document.body) return false;
+  const iframe = document.createElement('iframe');
+  iframe.style.display = 'none';
+  iframe.setAttribute('aria-hidden', 'true');
+  iframe.tabIndex = -1;
+  iframe.src = url;
+  document.body.appendChild(iframe);
+  window.setTimeout(() => iframe.remove(), 1500);
+  return true;
+}
+
 export function openNativeAppWithFallback(nativeUrl, fallbackUrl, timeoutMs = 1200) {
   if (typeof window === 'undefined') return;
-  const nativeUrls = (Array.isArray(nativeUrl) ? nativeUrl : [nativeUrl]).filter(Boolean);
-  if (!nativeUrls.length && fallbackUrl) {
-    window.location.assign(fallbackUrl);
+  const nativeUrls = normalizeUrlList(nativeUrl);
+  const fallbackUrls = normalizeUrlList(fallbackUrl);
+  const openFallback = () => {
+    const nextFallback = fallbackUrls.shift();
+    if (nextFallback) window.location.assign(nextFallback);
+  };
+
+  // #region agent log
+  window.__calendarDebugLog?.({
+    hypothesisId: 'A',
+    location: 'calendarUtils.js:openNativeAppWithFallback:entry',
+    message: 'Native launch requested',
+    data: { nativeCount: nativeUrls.length, fallbackCount: fallbackUrls.length },
+    timestamp: Date.now(),
+  });
+  // #endregion
+
+  if (!nativeUrls.length && fallbackUrls.length) {
+    openFallback();
     return;
   }
   if (!nativeUrls.length) return;
+  if (nativeUrls.some(url => /^calshow:/i.test(url)) && !isApplePlatform()) {
+    // #region agent log
+    window.__calendarDebugLog?.({
+      hypothesisId: 'B',
+      location: 'calendarUtils.js:openNativeAppWithFallback:nonAppleBypass',
+      message: 'Bypassing calshow on non-Apple platform',
+      data: { userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : '' },
+      timestamp: Date.now(),
+    });
+    // #endregion
+    openFallback();
+    return;
+  }
 
   let didHide = false;
   let done = false;
@@ -196,6 +264,15 @@ export function openNativeAppWithFallback(nativeUrl, fallbackUrl, timeoutMs = 12
   const onVisibility = () => {
     if (document.visibilityState === 'hidden') {
       didHide = true;
+      // #region agent log
+      window.__calendarDebugLog?.({
+        hypothesisId: 'C',
+        location: 'calendarUtils.js:openNativeAppWithFallback:onVisibility',
+        message: 'Page hidden after native launch',
+        data: { attempt },
+        timestamp: Date.now(),
+      });
+      // #endregion
       cleanup();
     }
   };
@@ -213,14 +290,38 @@ export function openNativeAppWithFallback(nativeUrl, fallbackUrl, timeoutMs = 12
       return;
     }
     const nextNative = nativeUrls[attempt];
+    // #region agent log
+    window.__calendarDebugLog?.({
+      hypothesisId: 'A',
+      location: 'calendarUtils.js:openNativeAppWithFallback:attemptNative',
+      message: 'Attempting native URL',
+      data: { attempt, nextNative: nextNative || null },
+      timestamp: Date.now(),
+    });
+    // #endregion
     attempt += 1;
     if (!nextNative) {
-      if (fallbackUrl) window.location.assign(fallbackUrl);
+      // #region agent log
+      window.__calendarDebugLog?.({
+        hypothesisId: 'D',
+        location: 'calendarUtils.js:openNativeAppWithFallback:openFallback',
+        message: 'All native attempts exhausted; opening fallback',
+        data: { remainingFallbacks: fallbackUrls.length },
+        timestamp: Date.now(),
+      });
+      // #endregion
+      openFallback();
       cleanup();
       return;
     }
     try {
-      window.location.assign(nextNative);
+      if (isCustomProtocol(nextNative)) {
+        if (!openCustomProtocol(nextNative)) {
+          window.location.assign(nextNative);
+        }
+      } else {
+        window.location.assign(nextNative);
+      }
     } catch {
       // If scheme assignment fails synchronously, continue to fallback cycle.
     }

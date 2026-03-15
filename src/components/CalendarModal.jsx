@@ -8,7 +8,7 @@ import inPersonMeetingIcs from '../assets/in-person-meeting.ics?url';
 import iconGoogleCalendar from '../assets/icon-google-calendar.svg';
 import iconMicrosoftOutlook from '../assets/icon-microsoft-outlook.svg';
 import { useHaptics } from '../hooks/useHaptics';
-import { openNativeAppWithFallback } from '../utils/calendarUtils';
+import { icsToUrls, openNativeAppWithFallback } from '../utils/calendarUtils';
 
 export function CalendarOptions({ compact = false, titleId }) {
   const containerRef = useRef(null);
@@ -31,61 +31,12 @@ export function CalendarOptions({ compact = false, titleId }) {
       })
       .then(text => {
         if (!active) return;
-        const unfolded = text.replace(/\r?\n[ \t]/g, '');
-        const veventMatch = unfolded.match(/BEGIN:VEVENT([\s\S]*?)END:VEVENT/);
-        const vevent = veventMatch ? veventMatch[1] : unfolded;
-        const get = key => {
-          const m = vevent.match(new RegExp('^' + key + '[^:]*:(.+)', 'm'));
-          return m ? m[1].trim() : '';
-        };
-        const dtstart = get('DTSTART');
-        const dtend = get('DTEND');
-        const rrule = get('RRULE');
-        const summary = get('SUMMARY');
-        const location = get('LOCATION').replace(/\\,/g, ',').replace(/\\n/g, ' ');
-        
-        const googleParams = new URLSearchParams({ action: 'TEMPLATE', text: summary, dates: `${dtstart}/${dtend}`, location });
-        if (rrule) googleParams.set('recur', `RRULE:${rrule}`);
-        setGoogleUrl(`https://calendar.google.com/calendar/render?${googleParams}`);
-
-        const outlookParams = new URLSearchParams({
-          path: '/calendar/action/compose',
-          rru: 'addevent',
-          subject: summary,
-          startdt: dtstart,
-          enddt: dtend,
-          location: location,
-          allday: 'false'
-        });
-        setOutlookUrl(`https://outlook.office.com/calendar/0/deeplink/compose?${outlookParams}`);
-        const startIso = dtstart
-          ? `${dtstart.slice(0, 4)}-${dtstart.slice(4, 6)}-${dtstart.slice(6, 8)}T${dtstart.slice(9, 11)}:${dtstart.slice(11, 13)}:00`
-          : '';
-        const endIso = dtend
-          ? `${dtend.slice(0, 4)}-${dtend.slice(4, 6)}-${dtend.slice(6, 8)}T${dtend.slice(9, 11)}:${dtend.slice(11, 13)}:00`
-          : '';
-        const nativeOutlookParams = new URLSearchParams({
-          subject: summary || 'Campbell CTRL Event',
-          start: startIso,
-          end: endIso,
-          location: location || '',
-        });
-        setOutlookNativeUrl(`ms-outlook://events/new?${nativeOutlookParams}`);
-
-        if (dtstart) {
-          const y = Number(dtstart.slice(0, 4));
-          const mo = Number(dtstart.slice(4, 6)) - 1;
-          const d = Number(dtstart.slice(6, 8));
-          const h = Number(dtstart.slice(9, 11));
-          const mi = Number(dtstart.slice(11, 13));
-          const appleEpochMs = Date.UTC(2001, 0, 1, 0, 0, 0);
-          const when = new Date(y, mo, d, h, mi, 0);
-          const seconds = Math.floor((when.getTime() - appleEpochMs) / 1000);
-          setAppleNativeUrl([`calshow:${seconds}`, `calshow://${seconds}`]);
-        }
-
-        const blob = new Blob([text], { type: 'text/calendar;charset=utf-8' });
-        createdUrl = URL.createObjectURL(blob);
+        const urls = icsToUrls(text);
+        setGoogleUrl(urls.googleUrl || '');
+        setOutlookUrl(urls.outlookUrl || '');
+        setOutlookNativeUrl(urls.outlookNativeUrl || '');
+        setAppleNativeUrl(urls.appleNativeUrl || []);
+        createdUrl = urls.blobUrl || '';
         setBlobUrl(createdUrl);
         
       })
@@ -103,7 +54,7 @@ export function CalendarOptions({ compact = false, titleId }) {
     e.preventDefault();
     if (!ready) return;
     haptics.openPanel?.();
-    openNativeAppWithFallback(appleNativeUrl, 'https://www.icloud.com/calendar/');
+    openNativeAppWithFallback(appleNativeUrl, [blobUrl, 'https://www.icloud.com/calendar/']);
   };
 
   const handleOutlookAdd = (e) => {
